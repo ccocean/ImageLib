@@ -1,4 +1,5 @@
 #include "itctypes.h"
+<<<<<<< HEAD
 #include "limits.h"
 #include <assert.h>
 #include <iostream>
@@ -108,4 +109,10 @@ ItcMemStorage* itcCreateMemStorage(int block_size)
 	itcInitMemStorage( storage, block_size );
 
 	return storage;
+=======
+
+inline int  itcAlign(int size, int align)
+{
+	assert((align&(align-1))==0 && size<INT_MAX)
+>>>>>>> 7d1bf42daf64f82f67817f5f1502b34738b2ab03
 }

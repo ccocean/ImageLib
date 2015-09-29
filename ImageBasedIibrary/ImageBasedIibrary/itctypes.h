@@ -167,8 +167,11 @@ typedef struct ItcMemBlock
 }
 ItcMemBlock;
 
+<<<<<<< HEAD
 #define ITC_STORAGE_MAGIC_VAL    0x42890000
 
+=======
+>>>>>>> 7d1bf42daf64f82f67817f5f1502b34738b2ab03
 typedef struct ItcMemStorage
 {
 	int signature;
