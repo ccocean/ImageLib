@@ -34,9 +34,9 @@ ItcMat*	itcCreateMat( int height, int width, int type )
 		step = ITC_ELEM_SIZE(mat->type)*mat->cols;
 
 	int64 _total_size = (int64)step*mat->rows + sizeof(int) + ITC_MALLOC_ALIGN;	//int是用于保存统计计数的，ITC_MALLOC_ALIGN用与内存的对齐
-	total_size = (size_t)_total_size;
- 	if(_total_size != (int64)total_size)
- 		ITC_ERROR_("Too big buffer is allocated");//
+	total_size = (size_t)_total_size;				//根据系统不同，用size_t类型截取本系统能分配的空间大小
+ 	if(_total_size != (int64)total_size)			//如果不相等，说明已经溢出
+ 		ITC_ERROR_("Too big buffer is allocated");	//分配的空间超出当前系统的寻址范围
 	mat->refcount = (int*)malloc( (size_t)total_size );
 	mat->data.ptr = (uchar*)( mat->refcount + 1);
 	mat->data.ptr = (uchar*)(((size_t)mat->data.ptr + ITC_MALLOC_ALIGN - 1) &~ (size_t)(ITC_MALLOC_ALIGN - 1));//对齐到ITC_MALLOC_ALIGN整数位，比如说地址是110，ITC_MALLOC_ALIGN=16，那么就把地址对齐到112，如果地址是120，那么就对齐到128，
