@@ -253,4 +253,6 @@ ICV_DEF_BIN_ARI_ALL( ITC_SUB_R, Sub )			//定义sub操作的函数
 
 void itcSub(ItcMat* src1,ItcMat* src2,ItcMat* dst);			//dst=src1-src2
 
+void itcUpdateMHI(ItcMat* src1, ItcMat* src2, ItcMat* mhi, int diffThreshold, ItcMat* maskT, int Threshold);//输入连续两帧图像，生成mhi图，diffThreshold用于过滤帧差大小,Threshold用于生成掩码是过滤mhi的值
+
 #endif // itcCore_h__
