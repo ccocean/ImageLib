@@ -1,3 +1,8 @@
+#ifndef _ITCTYPE_H_
+#define _ITCTYPE_H_
+
+
+#pragma once
 /****************************************************************************************\
 *                             Common macros and inline functions                         *
 \****************************************************************************************/
@@ -276,7 +281,7 @@ typedef struct ItcMemStoragePos
 
 /*********************************** Sequence *******************************************/
 #define ITC_SEQ_MAGIC_VAL             0x42990000  //稠密序列  队列，栈，向量
-#define ITC_SET_MAGIC_VAL             0x42980000	 //稀疏序列  图，点集，哈希表
+#define ITC_SET_MAGIC_VAL             0x42980000  //稀疏序列  图，点集，哈希表
 typedef struct ItcSeqBlock
 {
     struct ItcSeqBlock*  prev; /* previous sequence block */
@@ -340,3 +345,37 @@ typedef struct ItcContour
 ItcContour;
 
 typedef ItcContour ItcPoint2DSeq;
+
+
+// declaration
+inline int  itcAlign(int size, int align);
+inline void* itcAlignPtr(const void* ptr, int align);
+inline int itcAlignLeft(int size, int align);
+static void* itcDefaultAlloc(size_t size, void*);
+static int itcDefaultFree(void* ptr, void*);
+void*  itcAlloc(size_t size);
+void  itcFree_(void* ptr);
+static void itcInitMemStorage(ItcMemStorage* storage, int block_size);
+ItcMemStorage* itcCreateMemStorage(int block_size);
+ItcMemStorage* itcCreateChildMemStorage(ItcMemStorage * parent);
+static void itcDestroyMemStorage(ItcMemStorage* storage);
+void itcReleaseMemStorage(ItcMemStorage** storage);
+void itcClearMemStorage(ItcMemStorage * storage);
+static void itcGoNextMemBlock(ItcMemStorage * storage);
+void itcSaveMemStoragePos(const ItcMemStorage * storage, ItcMemStoragePos * pos);
+void itcRestoreMemStoragePos(ItcMemStorage * storage, ItcMemStoragePos * pos);
+void* itcMemStorageAlloc(ItcMemStorage* storage, size_t size);
+ItcSeq *itcCreateSeq(int seq_flags, int header_size, int elem_size, ItcMemStorage * storage);
+void itcSetSeqBlockSize(ItcSeq *seq, int delta_elements);
+char* itcGetSeqElem(const ItcSeq *seq, int index);
+int itcSeqElemIdx(const ItcSeq* seq, const void* _element, ItcSeqBlock** _block);
+static void itcGrowSeq(ItcSeq *seq, int in_front_of);
+char* itcSeqPush(ItcSeq *seq, void *element);
+void itcSeqPop(ItcSeq *seq, void *element);
+static void itcFreeSeqBlock(ItcSeq *seq, int in_front_of);
+char* itcSeqPushFront(ItcSeq *seq, void *element);
+void itcSeqPopFront(ItcSeq *seq, void *element);
+char* itcSeqInsert(ItcSeq *seq, int before_index, void *element);
+void itcSeqRemove(ItcSeq *seq, int index);
+
+#endif // !1
