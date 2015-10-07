@@ -1,4 +1,5 @@
-#include "itctypes.h"
+#pragma once
+#include "itcdatastructs.h"
 #include "limits.h"
 #include "itcCore.h"
 #include <assert.h>
@@ -11,7 +12,7 @@
 
 /* maximum size of dynamic memory buffer.
    cvAlloc reports an error if a larger block is requested. */
-#define  ITC_MAX_ALLOC_SIZE    (((size_t)1 << (sizeof(size_t)*8-2)))
+#define  ITC_MAX_ALLOC_SIZE    (((size_t)1 << (sizeof(size_t)*8-2)))  //判断是否越界
 /* the alignment of all the allocated buffers */
 #define  ITC_MALLOC_ALIGN    32
 /* default storage block size */
@@ -31,6 +32,29 @@ static const char itcPower2ShiftTab[] =
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5
 };
 
+#define ITC_MEMCPY_AUTO( dst, src, len )                                             \
+{                                                                                   \
+	size_t _icv_memcpy_i_, _icv_memcpy_len_ = (len);                                \
+	char* _icv_memcpy_dst_ = (char*)(dst);                                          \
+	const char* _icv_memcpy_src_ = (const char*)(src);                              \
+if ((_icv_memcpy_len_ & (sizeof(int)-1)) == 0)                                 \
+{                                                                               \
+	assert(((size_t)_icv_memcpy_src_&(sizeof(int)-1)) == 0 && \
+	((size_t)_icv_memcpy_dst_&(sizeof(int)-1)) == 0);                  \
+for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_;                 \
+	_icv_memcpy_i_ += sizeof(int))                                           \
+{                                                                           \
+	*(int*)(_icv_memcpy_dst_ + _icv_memcpy_i_) = \
+	*(const int*)(_icv_memcpy_src_ + _icv_memcpy_i_);                         \
+	}                                                                           \
+	}                                                                               \
+	else                                                                            \
+{                                                                               \
+for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_; _icv_memcpy_i_++)\
+	_icv_memcpy_dst_[_icv_memcpy_i_] = _icv_memcpy_src_[_icv_memcpy_i_];    \
+	}                                                                               \
+}
+
 
 //error code
 #define  ITC_OK 0
@@ -45,28 +69,7 @@ static const char itcPower2ShiftTab[] =
 // pointers to allocation functions, initially set to default
 static void* p_cvAllocUserData = 0;
 
-// declaration
-inline int  itcAlign(int size, int align);
-inline void* itcAlignPtr( const void* ptr, int align );
-inline int itcAlignLeft( int size, int align );
-static void* itcDefaultAlloc( size_t size, void* );
-static int itcDefaultFree( void* ptr, void* );
-void*  itcAlloc( size_t size );
-void  itcFree_( void* ptr );
-static void itcInitMemStorage( ItcMemStorage* storage, int block_size );
-ItcMemStorage* itcCreateMemStorage(int block_size);
-ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent );
-static void itcDestroyMemStorage( ItcMemStorage* storage );
-void itcReleaseMemStorage( ItcMemStorage** storage );
-void itcClearMemStorage( ItcMemStorage * storage );
-static void itcGoNextMemBlock( ItcMemStorage * storage );
-void itcSaveMemStoragePos( const ItcMemStorage * storage, ItcMemStoragePos * pos );
-void itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos );
-void* itcMemStorageAlloc( ItcMemStorage* storage, size_t size );
-ItcSeq *itcCreateSeq( int seq_flags, int header_size, int elem_size, ItcMemStorage * storage );
-void itcSetSeqBlockSize( ItcSeq *seq, int delta_elements );
-char* itcGetSeqElem( const ItcSeq *seq, int index );
-int itcSeqElemIdx( const ItcSeq* seq, const void* _element, ItcSeqBlock** _block );
+
 
 inline int  itcAlign(int size, int align)
 {
@@ -93,14 +96,14 @@ static void*
 	itcDefaultAlloc( size_t size, void* )
 {
 	char *ptr, *ptr0 = (char*)malloc(
-		(size_t)(size + ITC_MALLOC_ALIGN*((size >= 4096) + 1) + sizeof(char*)));
+		(size_t)(size + ITC_MALLOC_ALIGN*((size >= 4096) + 1) + sizeof(char*)));   //多申请了 ITC_MALLOC_ALIGN*((size >= 4096) + 1) + sizeof(char*)大小的内存
 
 	if( !ptr0 )
 		return 0;
 
 	// align the pointer
-	ptr = (char*)itcAlignPtr(ptr0 + sizeof(char*) + 1, ITC_MALLOC_ALIGN);
-	*(char**)(ptr - sizeof(char*)) = ptr0;
+	ptr = (char*)itcAlignPtr(ptr0 + sizeof(char*) + 1, ITC_MALLOC_ALIGN);   //将指针对齐到ITC_MALLOC_ALIGN，32bit既4个字节，将指针调整到32的整数倍
+	*(char**)(ptr - sizeof(char*)) = ptr0;	//将ptr0记录到(ptr – sizeof(char*))
 
 	return ptr;
 }
@@ -173,7 +176,7 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 	if( block_size <= 0 )
 		block_size = ITC_STORAGE_BLOCK_SIZE;
 
-	block_size = itcAlign( block_size, ITC_STRUCT_ALIGN );
+	block_size = itcAlign( block_size, ITC_STRUCT_ALIGN );//待分配空间大小调整为8字节的倍数
 	assert( sizeof(ItcMemBlock) % ITC_STRUCT_ALIGN == 0 );
 
 	memset( storage, 0, sizeof( *storage ));
@@ -659,7 +662,7 @@ int
 
 /* pushes element to the sequence */
 char*
-	cvSeqPush( ItcSeq *seq, void *element )
+	itcSeqPush( ItcSeq *seq, void *element )
 {
 	char *ptr = 0;
 	size_t elem_size;
@@ -684,16 +687,49 @@ char*
 	}
 
 	if( element )
-		CV_MEMCPY_AUTO( ptr, element, elem_size );
+		ITC_MEMCPY_AUTO(ptr, element, elem_size);
 	seq->first->prev->count++;
 	seq->total++;
 	seq->ptr = ptr + elem_size;
 
-	__END__;
+	//__END__;
 
 	return ptr;
 }
 
+/* pops the last element out of the sequence */
+void itcSeqPop(ItcSeq *seq, void *element)
+{
+	char *ptr;
+	int elem_size;
+
+	//CV_FUNCNAME("cvSeqPop");
+
+	//__BEGIN__;
+
+	if (!seq)
+		std::cout << "err: " << ITC_StsNullPtr << std::endl;
+		//CV_ERROR(ITC_StsNullPtr, "");
+	if (seq->total <= 0)
+		std::cout << "err: " << ITC_StsBadSize << std::endl;
+		//CV_ERROR(ITC_StsBadSize, "");
+
+	elem_size = seq->elem_size;
+	seq->ptr = ptr = seq->ptr - elem_size;
+
+	if (element)
+		ITC_MEMCPY_AUTO(element, ptr, elem_size);
+	seq->ptr = ptr;
+	seq->total--;
+
+	if (--(seq->first->prev->count) == 0)
+	{
+		itcFreeSeqBlock(seq, 0);
+		assert(seq->ptr == seq->block_max);
+	}
+
+	//__END__;
+}
 
 /* the function allocates space for at least one more sequence element.
    if there are free sequence blocks (seq->free_blocks != 0),
@@ -828,6 +864,360 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
 
     //__END__;
 }
+
+/* recycles a sequence block for the further use */
+static void itcFreeSeqBlock(ItcSeq *seq, int in_front_of)
+{
+	/*CV_FUNCNAME( "icvFreeSeqBlock" );*/
+
+	//__BEGIN__;
+
+	ItcSeqBlock *block = seq->first;
+
+	assert((in_front_of ? block : block->prev)->count == 0);
+
+	if (block == block->prev)  /* single block case */
+	{
+		block->count = (int)(seq->block_max - block->data) + block->start_index * seq->elem_size;
+		block->data = seq->block_max - block->count;
+		seq->first = 0;
+		seq->ptr = seq->block_max = 0;
+		seq->total = 0;
+	}
+	else
+	{
+		if (!in_front_of)
+		{
+			block = block->prev;
+			assert(seq->ptr == block->data);
+
+			block->count = (int)(seq->block_max - seq->ptr);
+			seq->block_max = seq->ptr = block->prev->data +
+				block->prev->count * seq->elem_size;
+		}
+		else
+		{
+			int delta = block->start_index;
+
+			block->count = delta * seq->elem_size;
+			block->data -= block->count;
+
+			/* update start indices of sequence blocks */
+			for (;;)
+			{
+				block->start_index -= delta;
+				block = block->next;
+				if (block == seq->first)
+					break;
+			}
+
+			seq->first = block->next;
+		}
+
+		block->prev->next = block->next;
+		block->next->prev = block->prev;
+	}
+
+	assert(block->count > 0 && block->count % seq->elem_size == 0);
+	block->next = seq->free_blocks;
+	seq->free_blocks = block;
+
+	//__END__;
+}
+
+/* pushes element to the front of the sequence */
+char* itcSeqPushFront(ItcSeq *seq, void *element)
+{
+	char* ptr = 0;
+	int elem_size;
+	ItcSeqBlock *block;
+
+	//CV_FUNCNAME("cvSeqPushFront");
+
+	//__BEGIN__;
+
+	if (!seq)
+		std::cout << "err: " << ITC_StsNullPtr << std::endl;
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	elem_size = seq->elem_size;
+	block = seq->first;
+
+	if (!block || block->start_index == 0)
+	{
+		//CV_CALL(icvGrowSeq(seq, 1));
+		itcGrowSeq(seq, 1);
+
+		block = seq->first;
+		assert(block->start_index > 0);
+	}
+
+	ptr = block->data -= elem_size;
+
+	if (element)
+		ITC_MEMCPY_AUTO(ptr, element, elem_size);
+	block->count++;
+	block->start_index--;
+	seq->total++;
+
+	//__END__;
+
+	return ptr;
+}
+
+/* pulls out the first element of the sequence */
+void itcSeqPopFront(ItcSeq *seq, void *element)
+{
+	int elem_size;
+	ItcSeqBlock *block;
+
+	//CV_FUNCNAME("cvSeqPopFront");
+
+	//__BEGIN__;
+
+	if (!seq)
+		std::cout << "err: " << ITC_StsNullPtr << std::endl;
+		//CV_ERROR(CV_StsNullPtr, "");
+	if (seq->total <= 0)
+		std::cout << "err: " << ITC_StsBadSize << std::endl;
+		//CV_ERROR(CV_StsBadSize, "");
+
+	elem_size = seq->elem_size;
+	block = seq->first;
+
+	if (element)
+		ITC_MEMCPY_AUTO(element, block->data, elem_size);
+	block->data += elem_size;
+	block->start_index++;
+	seq->total--;
+
+	if (--(block->count) == 0)
+	{
+		itcFreeSeqBlock(seq, 1);
+	}
+
+	//__END__;
+}
+
+/* inserts new element in the middle of the sequence */
+char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
+{
+	int elem_size;
+	int block_size;
+	ItcSeqBlock *block;
+	int delta_index;
+	int total;
+	char* ret_ptr = 0;
+
+	//CV_FUNCNAME("cvSeqInsert");
+
+	//__BEGIN__;
+
+	if (!seq)
+		std::cout << "err: " << ITC_StsNullPtr << std::endl;
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	total = seq->total;
+	before_index += before_index < 0 ? total : 0;
+	before_index -= before_index > total ? total : 0;
+
+	if ((unsigned)before_index > (unsigned)total)
+		std::cout << "err: " << ITC_StsOutOfRange <<"Invalid index"<< std::endl;
+		//CV_ERROR(CV_StsOutOfRange, "");
+
+	if (before_index == total)
+	{
+		//CV_CALL(ret_ptr = cvSeqPush(seq, element));
+		ret_ptr = itcSeqPush(seq, element);
+	}
+	else if (before_index == 0)
+	{
+		//CV_CALL(ret_ptr = cvSeqPushFront(seq, element));
+		ret_ptr = itcSeqPushFront(seq, element);
+	}
+	else
+	{
+		elem_size = seq->elem_size;
+
+		if (before_index >= total >> 1)
+		{
+			char *ptr = seq->ptr + elem_size;
+
+			if (ptr > seq->block_max)
+			{
+				//CV_CALL(icvGrowSeq(seq, 0));
+				itcGrowSeq(seq, 0);
+
+				ptr = seq->ptr + elem_size;
+				assert(ptr <= seq->block_max);
+			}
+
+			delta_index = seq->first->start_index;
+			block = seq->first->prev;
+			block->count++;
+			block_size = (int)(ptr - block->data);
+
+			while (before_index < block->start_index - delta_index)
+			{
+				ItcSeqBlock *prev_block = block->prev;
+
+				memmove(block->data + elem_size, block->data, block_size - elem_size);
+				block_size = prev_block->count * elem_size;
+				memcpy(block->data, prev_block->data + block_size - elem_size, elem_size);
+				block = prev_block;
+
+				/* check that we don't fall in the infinite loop */
+				assert(block != seq->first->prev);
+			}
+
+			before_index = (before_index - block->start_index + delta_index) * elem_size;
+			memmove(block->data + before_index + elem_size, block->data + before_index,
+				block_size - before_index - elem_size);
+
+			ret_ptr = block->data + before_index;
+
+			if (element)
+				memcpy(ret_ptr, element, elem_size);
+			seq->ptr = ptr;
+		}
+		else
+		{
+			block = seq->first;
+
+			if (block->start_index == 0)
+			{
+				//CV_CALL(icvGrowSeq(seq, 1));
+				itcGrowSeq(seq, 1);
+
+				block = seq->first;
+			}
+
+			delta_index = block->start_index;
+			block->count++;
+			block->start_index--;
+			block->data -= elem_size;
+
+			while (before_index > block->start_index - delta_index + block->count)
+			{
+				ItcSeqBlock *next_block = block->next;
+
+				block_size = block->count * elem_size;
+				memmove(block->data, block->data + elem_size, block_size - elem_size);
+				memcpy(block->data + block_size - elem_size, next_block->data, elem_size);
+				block = next_block;
+				/* check that we don't fall in the infinite loop */
+				assert(block != seq->first);
+			}
+
+			before_index = (before_index - block->start_index + delta_index) * elem_size;
+			memmove(block->data, block->data + elem_size, before_index - elem_size);
+
+			ret_ptr = block->data + before_index - elem_size;
+
+			if (element)
+				memcpy(ret_ptr, element, elem_size);
+		}
+
+		seq->total = total + 1;
+	}
+
+	//__END__;
+
+	return ret_ptr;
+}
+
+/* removes element from the sequence */
+void itcSeqRemove(ItcSeq *seq, int index)
+{
+	char *ptr;
+	int elem_size;
+	int block_size;
+	ItcSeqBlock *block;
+	int delta_index;
+	int total, front = 0;
+
+	//CV_FUNCNAME("cvSeqRemove");
+
+	//__BEGIN__;
+
+	if (!seq)
+		std::cout << "err: " << ITC_StsNullPtr << std::endl;
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	total = seq->total;
+
+	index += index < 0 ? total : 0;
+	index -= index >= total ? total : 0;
+
+	if ((unsigned)index >= (unsigned)total)
+		std::cout << "err: " << ITC_StsOutOfRange << "Invalid index" << std::endl;
+		//CV_ERROR(CV_StsOutOfRange, "Invalid index");
+
+	if (index == total - 1)
+	{
+		itcSeqPop(seq, 0);
+	}
+	else if (index == 0)
+	{
+		itcSeqPopFront(seq, 0);
+	}
+	else
+	{
+		block = seq->first;
+		elem_size = seq->elem_size;
+		delta_index = block->start_index;
+		while (block->start_index - delta_index + block->count <= index)
+			block = block->next;
+
+		ptr = block->data + (index - block->start_index + delta_index) * elem_size;
+
+		front = index < total >> 1;
+		if (!front)
+		{
+			block_size = block->count * elem_size - (int)(ptr - block->data);
+
+			while (block != seq->first->prev)  /* while not the last block */
+			{
+				ItcSeqBlock *next_block = block->next;
+
+				memmove(ptr, ptr + elem_size, block_size - elem_size);
+				memcpy(ptr + block_size - elem_size, next_block->data, elem_size);
+				block = next_block;
+				ptr = block->data;
+				block_size = block->count * elem_size;
+			}
+
+			memmove(ptr, ptr + elem_size, block_size - elem_size);
+			seq->ptr -= elem_size;
+		}
+		else
+		{
+			ptr += elem_size;
+			block_size = (int)(ptr - block->data);
+
+			while (block != seq->first)
+			{
+				ItcSeqBlock *prev_block = block->prev;
+
+				memmove(block->data + elem_size, block->data, block_size - elem_size);
+				block_size = prev_block->count * elem_size;
+				memcpy(block->data, prev_block->data + block_size - elem_size, elem_size);
+				block = prev_block;
+			}
+
+			memmove(block->data + elem_size, block->data, block_size - elem_size);
+			block->data += elem_size;
+			block->start_index++;
+		}
+
+		seq->total = total - 1;
+		if (--block->count == 0)
+			itcFreeSeqBlock(seq, front);
+	}
+
+	//__END__;
+}
+
 //int
 //itcSliceLength( CvSlice slice, const CvSeq* seq )
 //{
