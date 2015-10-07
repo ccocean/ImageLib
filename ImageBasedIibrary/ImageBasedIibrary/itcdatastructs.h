@@ -344,6 +344,15 @@ typedef struct ItcContour
 }
 ItcContour;
 
+
+typedef  struct ItcLinkedRunPoint
+{
+	struct ItcLinkedRunPoint* link;
+	struct ItcLinkedRunPoint* next;
+	ItcPoint pt;
+}
+ItcLinkedRunPoint;
+
 typedef ItcContour ItcPoint2DSeq;
 
 
