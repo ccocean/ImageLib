@@ -34,9 +34,9 @@ ItcMat*	itcCreateMat( int height, int width, int type )
 		step = ITC_ELEM_SIZE(mat->type)*mat->cols;
 
 	int64 _total_size = (int64)step*mat->rows + sizeof(int) + ITC_MALLOC_ALIGN;	//int是用于保存统计计数的，ITC_MALLOC_ALIGN用与内存的对齐
-	total_size = (size_t)_total_size;
- 	if(_total_size != (int64)total_size)
- 		ITC_ERROR_("Too big buffer is allocated");//
+	total_size = (size_t)_total_size;				//根据系统不同，用size_t类型截取本系统能分配的空间大小
+ 	if(_total_size != (int64)total_size)			//如果不相等，说明已经溢出
+ 		ITC_ERROR_("Too big buffer is allocated");	//分配的空间超出当前系统的寻址范围
 	mat->refcount = (int*)malloc( (size_t)total_size );
 	mat->data.ptr = (uchar*)( mat->refcount + 1);
 	mat->data.ptr = (uchar*)(((size_t)mat->data.ptr + ITC_MALLOC_ALIGN - 1) &~ (size_t)(ITC_MALLOC_ALIGN - 1));//对齐到ITC_MALLOC_ALIGN整数位，比如说地址是110，ITC_MALLOC_ALIGN=16，那么就把地址对齐到112，如果地址是120，那么就对齐到128，
@@ -169,5 +169,84 @@ void itcSub(ItcMat* src1,ItcMat* src2,ItcMat* dst)
 		break;
 	default:
 		break;
+	}
+}
+
+void itcUpdateMHI(ItcMat* src1, ItcMat* src2, ItcMat* mhi, int diffThreshold, ItcMat* maskT, int Threshold)
+{
+	if (!ITC_ARE_TYPES_EQ(src1, src2) || !ITC_ARE_TYPES_EQ(src1, mhi))//检测类型是否一致
+		ITC_ERROR_("矩阵类型不一致");
+
+	if (!ITC_ARE_SIZES_EQ(src1, src2) || !ITC_ARE_SIZES_EQ(src1, mhi))//检查大小是否一致
+		ITC_ERROR_("矩阵大小不一致");
+
+	int type = ITC_MAT_TYPE(src1->type);	//类型
+	int depth = ITC_MAT_DEPTH(type);		//深度
+	if( ITC_MAT_CN(type)!=1 )				//通道数
+		ITC_ERROR_("通道数不为1");
+
+	ItcSize sizeMat;
+	sizeMat.width = src1->cols;
+	sizeMat.height = src1->rows;
+
+	int i = 0;
+	int j = 0;
+	uchar *qsrc1 = src1->data.ptr;
+	uchar *qsrc2 = src2->data.ptr;
+	uchar *qmhi = mhi->data.ptr;
+	if (maskT == NULL)
+	{
+		for (i = 0; i < sizeMat.height; i++)
+		{
+			for (j = 0; j < sizeMat.width; j++)
+			{
+				int k = abs(qsrc1[j] - qsrc2[j]);
+				if ( k > diffThreshold )
+				{
+					qmhi[j] = 255;
+				}
+				else
+				{
+					//mhi不能取小于0的值
+					qmhi[j] = ITC_IMAX(qmhi[j], 1);
+					qmhi[j]--;
+				}
+			}
+			qsrc1 += src1->step;
+			qsrc2 += src2->step;
+			qmhi += mhi->step;
+		}
+	}
+	else
+	{
+		uchar *qmask = maskT->data.ptr;
+		if (!ITC_ARE_TYPES_EQ(src1, maskT))//检测类型是否一致
+			ITC_ERROR_("矩阵类型不一致");
+		if (!ITC_ARE_SIZES_EQ(src1, maskT))//检查大小是否一致
+			ITC_ERROR_("矩阵大小不一致");
+
+		for (i = 0; i < sizeMat.height; i++)
+		{
+			for (j = 0; j < sizeMat.width; j++)
+			{
+				int k = abs(qsrc1[j] - qsrc2[j]);
+				if (k > diffThreshold)
+				{
+					qmhi[j] = 255;
+				}
+				else
+				{
+					//mhi不能取小于0的值
+					qmhi[j] = ITC_IMAX(qmhi[j], 1);
+					qmhi[j]--;
+				}
+
+				qmask[j] = qmhi[j] > Threshold ? 255 : 0;//生成一个二值化掩码
+			}
+			qsrc1 += src1->step;
+			qsrc2 += src2->step;
+			qmhi += mhi->step;
+			qmask += maskT->step;
+		}
 	}
 }

@@ -35,7 +35,7 @@ typedef unsigned short ushort;
 #define  ITC_SIGN(a)     ITC_CMP((a),0)
 
 
-#define ITC_CN_MAX     64
+#define ITC_CN_MAX     512			//不应超过2047
 #define ITC_CN_SHIFT   3
 #define ITC_DEPTH_MAX  (1 << ITC_CN_SHIFT)
 
@@ -181,8 +181,8 @@ ItcMat;
 	(((mat)->height|(mat)->width) == 1)
 
 #define ITC_ELEM_SIZE(type) \
-	(ITC_MAT_CN(type) << ((((sizeof(size_t)/4+1)*0x4000|0x3a50) >> ITC_MAT_DEPTH(type)*2) & 3))	//计算单个元素所占的内存大小
-
+	(ITC_MAT_CN(type) << ((((sizeof(size_t)/4+1)*0x4000|0x3a50) >> ITC_MAT_DEPTH(type)*2) & 3))	//每一个元素有n个通道，每个通道占s个字节，那么一个元素的大小就为n*s,其中s的取值为1，2，4，8，用位操作《取代*则为0，1，2，3
+																								//0x3a50中，每两个位对应一个深度的s,最高两位对应ITC_USRTYPE1，size_t只对最高两位产生影响（因为0x4000）
 /* general-purpose saturation macros */ 
 #define  ITC_CAST_8U(t)  (uchar)(!((t) & ~255) ? (t) : (t) > 0 ? 255 : 0)					//((t) & ~255)不为0说明已经越界
 #define  ITC_CAST_8S(t)  (char)(!(((t)+128) & ~255) ? (t) : (t) > 0 ? 127 : -128)
@@ -252,5 +252,7 @@ ICV_DEF_BIN_ARI_OP_2D( __op__, icv##name##_64f_C1R, double, double, ITC_CAST_64F
 ICV_DEF_BIN_ARI_ALL( ITC_SUB_R, Sub )			//定义sub操作的函数
 
 void itcSub(ItcMat* src1,ItcMat* src2,ItcMat* dst);			//dst=src1-src2
+
+void itcUpdateMHI(ItcMat* src1, ItcMat* src2, ItcMat* mhi, int diffThreshold, ItcMat* maskT, int Threshold);//输入连续两帧图像，生成mhi图，diffThreshold用于过滤帧差大小,Threshold用于生成掩码是过滤mhi的值
 
 #endif // itcCore_h__
