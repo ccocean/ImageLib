@@ -20,6 +20,9 @@
 /* default alignment for dynamic data strucutures, resided in storages. */
 #define  ITC_STRUCT_ALIGN    ((int)sizeof(double))
 
+#define ITC_GET_LAST_ELEM( seq, block ) \
+	((block)->data + ((block)->count - 1)*((seq)->elem_size))
+
 #define ICV_FREE_PTR(storage)  \
 	((char*)(storage)->top + (storage)->block_size - (storage)->free_space)
 /* 0x3a50 = 11 10 10 01 01 00 00 ~ array of log2(sizeof(arr_type_elem)) */
@@ -333,8 +336,9 @@ itcGoNextMemBlock( ItcMemStorage * storage )
     
     //__BEGIN__;
     
-    if( !storage )
-        std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!storage)
+		ITC_ERROR_(ITC_StsNullPtr);
+        //std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
     if( !storage->top || !storage->top->next )
     {
@@ -1214,6 +1218,357 @@ void itcSeqRemove(ItcSeq *seq, int index)
 		if (--block->count == 0)
 			itcFreeSeqBlock(seq, front);
 	}
+
+	//__END__;
+}
+
+/* initializes sequence writer */
+void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer)
+{
+	//CV_FUNCNAME("cvStartAppendToSeq");
+
+	//__BEGIN__;
+
+	if (!seq || !writer)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	memset(writer, 0, sizeof(*writer));
+	writer->header_size = sizeof(ItcSeqWriter);
+
+	writer->seq = seq;
+	writer->block = seq->first ? seq->first->prev : 0;
+	writer->ptr = seq->ptr;
+	writer->block_max = seq->block_max;
+
+	//__END__;
+}
+
+/* initializes sequence writer */
+void itcStartWriteSeq(int seq_flags, int header_size,
+int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer)
+{
+	ItcSeq *seq = 0;
+
+	//CV_FUNCNAME("cvStartWriteSeq");
+
+	//__BEGIN__;
+
+	if (!storage || !writer)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	//CV_CALL(seq = cvCreateSeq(seq_flags, header_size, elem_size, storage));
+	seq = itcCreateSeq(seq_flags, header_size, elem_size, storage);
+	itcStartAppendToSeq(seq, writer);
+
+	//__END__;
+}
+
+/* updates sequence header */
+void itcFlushSeqWriter(ItcSeqWriter * writer)
+{
+	ItcSeq *seq = 0;
+
+	//CV_FUNCNAME("cvFlushSeqWriter");
+
+	//__BEGIN__;
+
+	if (!writer)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	seq = writer->seq;
+	seq->ptr = writer->ptr;
+
+	if (writer->block)
+	{
+		int total = 0;
+		ItcSeqBlock *first_block = writer->seq->first;
+		ItcSeqBlock *block = first_block;
+
+		writer->block->count = (int)((writer->ptr - writer->block->data) / seq->elem_size);
+		assert(writer->block->count > 0);
+
+		do
+		{
+			total += block->count;
+			block = block->next;
+		} while (block != first_block);
+
+		writer->seq->total = total;
+	}
+
+	//__END__;
+}
+
+/* calls icvFlushSeqWriter and finishes writing process */
+ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer)
+{
+	ItcSeq *seq = 0;
+
+	//CV_FUNCNAME("cvEndWriteSeq");
+
+	//__BEGIN__;
+
+	if (!writer)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	//CV_CALL(cvFlushSeqWriter(writer));
+	itcFlushSeqWriter(writer);
+	seq = writer->seq;
+
+	/* truncate the last block */
+	if (writer->block && writer->seq->storage)
+	{
+		ItcMemStorage *storage = seq->storage;
+		char *storage_block_max = (char *)storage->top + storage->block_size;
+
+		assert(writer->block->count > 0);
+
+		if ((unsigned)((storage_block_max - storage->free_space)
+			- seq->block_max) < ITC_STRUCT_ALIGN)
+		{
+			storage->free_space = itcAlignLeft((int)(storage_block_max - seq->ptr), ITC_STRUCT_ALIGN);
+			seq->block_max = seq->ptr;
+		}
+	}
+
+	writer->ptr = 0;
+
+	//__END__;
+
+	return seq;
+}
+
+/* initializes sequence reader */
+void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse)
+{
+	ItcSeqBlock *first_block;
+	ItcSeqBlock *last_block;
+
+	//CV_FUNCNAME("cvStartReadSeq");
+
+	if (reader)
+	{
+		reader->seq = 0;
+		reader->block = 0;
+		reader->ptr = reader->block_max = reader->block_min = 0;
+	}
+
+	//__BEGIN__;
+
+	if (!seq || !reader)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	reader->header_size = sizeof(ItcSeqReader);
+	reader->seq = (ItcSeq*)seq;
+
+	first_block = seq->first;
+
+	if (first_block)
+	{
+		last_block = first_block->prev;
+		reader->ptr = first_block->data;
+		reader->prev_elem = ITC_GET_LAST_ELEM(seq, last_block);
+		reader->delta_index = seq->first->start_index;
+
+		if (reverse)
+		{
+			char *temp = reader->ptr;
+
+			reader->ptr = reader->prev_elem;
+			reader->prev_elem = temp;
+
+			reader->block = last_block;
+		}
+		else
+		{
+			reader->block = first_block;
+		}
+
+		reader->block_min = reader->block->data;
+		reader->block_max = reader->block_min + reader->block->count * seq->elem_size;
+	}
+	else
+	{
+		reader->delta_index = 0;
+		reader->block = 0;
+
+		reader->ptr = reader->prev_elem = reader->block_min = reader->block_max = 0;
+	}
+
+	//__END__;
+}
+
+/* adds several elements to the end or in the beginning of sequence */
+void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front)
+{
+	char *elements = (char *)_elements;
+
+	//CV_FUNCNAME("cvSeqPushMulti");
+
+	//__BEGIN__;
+	int elem_size;
+
+	if (!seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "NULL sequence pointer");
+	if (count < 0)
+		ITC_ERROR_(ITC_StsBadSize);
+		//CV_ERROR(CV_StsBadSize, "number of removed elements is negative");
+
+	elem_size = seq->elem_size;
+
+	if (!front)
+	{
+		while (count > 0)
+		{
+			int delta = (int)((seq->block_max - seq->ptr) / elem_size);
+
+			delta = ITC_MIN(delta, count);
+			if (delta > 0)
+			{
+				seq->first->prev->count += delta;
+				seq->total += delta;
+				count -= delta;
+				delta *= elem_size;
+				if (elements)
+				{
+					memcpy(seq->ptr, elements, delta);
+					elements += delta;
+				}
+				seq->ptr += delta;
+			}
+
+			if (count > 0)
+				itcGrowSeq(seq, 0);
+				//CV_CALL(icvGrowSeq(seq, 0));
+		}
+	}
+	else
+	{
+		ItcSeqBlock* block = seq->first;
+
+		while (count > 0)
+		{
+			int delta;
+
+			if (!block || block->start_index == 0)
+			{
+				itcGrowSeq(seq, 1);
+				//CV_CALL(icvGrowSeq(seq, 1));
+
+				block = seq->first;
+				assert(block->start_index > 0);
+			}
+
+			delta = ITC_MIN(block->start_index, count);
+			count -= delta;
+			block->start_index -= delta;
+			block->count += delta;
+			seq->total += delta;
+			delta *= elem_size;
+			block->data -= delta;
+
+			if (elements)
+				memcpy(block->data, elements + count*elem_size, delta);
+		}
+	}
+
+	//__END__;
+}
+
+/* removes several elements from the end of sequence */
+void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front)
+{
+	char *elements = (char *)_elements;
+
+	//CV_FUNCNAME("cvSeqPopMulti");
+
+	//__BEGIN__;
+
+	if (!seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "NULL sequence pointer");
+	if (count < 0)
+		ITC_ERROR_(ITC_StsBadSize);
+		//CV_ERROR(CV_StsBadSize, "number of removed elements is negative");
+
+	count = ITC_MIN(count, seq->total);
+
+	if (!front)
+	{
+		if (elements)
+			elements += count * seq->elem_size;
+
+		while (count > 0)
+		{
+			int delta = seq->first->prev->count;
+
+			delta = ITC_MIN(delta, count);
+			assert(delta > 0);
+
+			seq->first->prev->count -= delta;
+			seq->total -= delta;
+			count -= delta;
+			delta *= seq->elem_size;
+			seq->ptr -= delta;
+
+			if (elements)
+			{
+				elements -= delta;
+				memcpy(elements, seq->ptr, delta);
+			}
+
+			if (seq->first->prev->count == 0)
+				itcFreeSeqBlock(seq, 0);
+				//icvFreeSeqBlock(seq, 0);
+		}
+	}
+	else
+	{
+		while (count > 0)
+		{
+			int delta = seq->first->count;
+
+			delta = ITC_MIN(delta, count);
+			assert(delta > 0);
+
+			seq->first->count -= delta;
+			seq->total -= delta;
+			count -= delta;
+			seq->first->start_index += delta;
+			delta *= seq->elem_size;
+
+			if (elements)
+			{
+				memcpy(elements, seq->first->data, delta);
+				elements += delta;
+			}
+
+			seq->first->data += delta;
+			if (seq->first->count == 0)
+				itcFreeSeqBlock(seq, 1);
+				//icvFreeSeqBlock(seq, 1);
+		}
+	}
+
+	//__END__;
+}
+
+/* removes all elements from the sequence */
+void itcClearSeq(ItcSeq *seq)
+{
+	//CV_FUNCNAME("cvClearSeq");
+
+	//__BEGIN__;
+
+	if (!seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+	itcSeqPopMulti(seq, 0, seq->total);
 
 	//__END__;
 }

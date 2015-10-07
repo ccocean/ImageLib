@@ -324,6 +324,42 @@ ItcSeq;
 #define ITC_TYPE_NAME_SEQ             "opencv-sequence"
 #define ITC_TYPE_NAME_SEQ_TREE        "opencv-sequence-tree"
 
+
+/****************************************************************************************/
+/*                            Sequence writer & reader                                  */
+/****************************************************************************************/
+
+#define ITC_SEQ_WRITER_FIELDS()                                     \
+	int          header_size;                                      \
+	ItcSeq*       seq;        /* the sequence written */            \
+	ItcSeqBlock*  block;      /* current block */                   \
+	char*        ptr;        /* pointer to free space */           \
+	char*        block_min;  /* pointer to the beginning of block*/\
+	char*        block_max;  /* pointer to the end of block */
+
+typedef struct ItcSeqWriter
+{
+	ITC_SEQ_WRITER_FIELDS()
+}
+ItcSeqWriter;
+
+#define ITC_SEQ_READER_FIELDS()                                      \
+	int          header_size;                                       \
+	ItcSeq*       seq;        /* sequence, beign read */             \
+	ItcSeqBlock*  block;      /* current block */                    \
+	char*        ptr;        /* pointer to element be read next */  \
+	char*        block_min;  /* pointer to the beginning of block */\
+	char*        block_max;  /* pointer to the end of block */      \
+	int          delta_index;/* = seq->first->start_index   */      \
+	char*        prev_elem;  /* pointer to previous element */
+
+
+typedef struct ItcSeqReader
+{
+	ITC_SEQ_READER_FIELDS()
+}
+ItcSeqReader;
+
 /*********************************** Chain/Countour *************************************/
 
 typedef struct ItcChain
@@ -386,5 +422,14 @@ char* itcSeqPushFront(ItcSeq *seq, void *element);
 void itcSeqPopFront(ItcSeq *seq, void *element);
 char* itcSeqInsert(ItcSeq *seq, int before_index, void *element);
 void itcSeqRemove(ItcSeq *seq, int index);
+void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer);
+void itcStartWriteSeq(int seq_flags, int header_size,
+	int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer);
+void itcFlushSeqWriter(ItcSeqWriter * writer);
+ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer);
+void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse);
+void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front);
+void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front=0);
+void itcClearSeq(ItcSeq *seq);
 
 #endif // !1
