@@ -23,7 +23,7 @@
 #define ITC_GET_LAST_ELEM( seq, block ) \
 	((block)->data + ((block)->count - 1)*((seq)->elem_size))
 
-#define ICV_FREE_PTR(storage)  \
+#define ITC_FREE_PTR(storage)  \
 	((char*)(storage)->top + (storage)->block_size - (storage)->free_space)
 /* 0x3a50 = 11 10 10 01 01 00 00 ~ array of log2(sizeof(arr_type_elem)) */
 #define ITC_ELEM_SIZE(type) \
@@ -177,7 +177,7 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	if( block_size <= 0 )
-		block_size = ITC_STORAGE_BLOCK_SIZE;
+		block_size = ITC_STORAGE_BLOCK_SIZE;//block_size==0分配块大小默认为32640
 
 	block_size = itcAlign( block_size, ITC_STRUCT_ALIGN );//待分配空间大小调整为8字节的倍数
 	assert( sizeof(ItcMemBlock) % ITC_STRUCT_ALIGN == 0 );
@@ -190,7 +190,7 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 }
 
 /* creates root memory storage */
-ItcMemStorage* itcCreateMemStorage(int block_size)
+ItcMemStorage* itcCreateMemStorage(int block_size)//当block_size==0则分配其大小为默认值
 {
 	ItcMemStorage *storage = 0;
 
@@ -209,8 +209,9 @@ ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 
 	//__BEGIN__;
 
-	if( !parent )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!parent)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	//CV_CALL( storage = cvCreateMemStorage(parent->block_size));
 	storage = itcCreateMemStorage(parent->block_size);
@@ -236,8 +237,9 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 	ItcMemBlock *block;
 	ItcMemBlock *dst_top = 0;
 
-	if( !storage )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!storage)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	if( storage->parent )
 		dst_top = storage->parent->top;
@@ -261,9 +263,10 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 			{
 				dst_top = storage->parent->bottom = storage->parent->top = temp;
 				temp->prev = temp->next = 0;
-				storage->free_space = storage->block_size - sizeof( *temp );
+				storage->free_space = storage->block_size - sizeof( *temp );//释放storage中的空间还给parent
 			}
 		}
+		//如果没有parent则逐个释放掉storage中每个block的内存
 		else
 		{
 			//cvFree( &temp );
@@ -287,8 +290,10 @@ void
 	//__BEGIN__;
 
 	if( !storage )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
+	//为什么不直接释放内存？
 	st = *storage;
 	*storage = 0;
 
@@ -312,14 +317,16 @@ void
 	//__BEGIN__;
 
 	if( !storage )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	if( storage->parent )
 	{
-		itcDestroyMemStorage( storage );
+		itcDestroyMemStorage( storage );//假如有parent则把空间还给parent
 	}
 	else
 	{
+		//没有parent则清空该storage，只是清空，并不释放内存
 		storage->top = storage->bottom;
 		storage->free_space = storage->bottom ? storage->block_size - sizeof(ItcMemBlock) : 0;
 	}
@@ -403,7 +410,8 @@ void
 	//__BEGIN__;
 
 	if( !storage || !pos )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	pos->top = storage->top;
 	pos->free_space = storage->free_space;
@@ -420,9 +428,11 @@ itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos )
     //__BEGIN__;
 
     if( !storage || !pos )
-        std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+        //std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
     if( pos->free_space > storage->block_size )
-		std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
+		ITC_ERROR_(ITC_StsBadSize);
+		//std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
         //CV_ERROR( CV_StsBadSize, "" );
 
     /*
@@ -466,12 +476,14 @@ void*
 	//__BEGIN__;
 
 	if( !storage )
+		ITC_ERROR_(ITC_StsNullPtr);
 		//CV_ERROR( CV_StsNullPtr, "NULL storage pointer" );
-		std::cout<<"err: "<<ITC_StsNullPtr<<" Null storage pointer"<<std::endl;
+		//std::cout<<"err: "<<ITC_StsNullPtr<<" Null storage pointer"<<std::endl;
 
 	if( size > INT_MAX )
+		ITC_ERROR_(ITC_StsOutOfRange);
 		//CV_ERROR( CV_StsOutOfRange, "Too large memory block is requested" );
-		std::cout<<"err: "<<ITC_StsOutOfRange<<" Too large memory block is requested"<<std::endl;
+		//std::cout<<"err: "<<ITC_StsOutOfRange<<" Too large memory block is requested"<<std::endl;
 
 	assert( storage->free_space % ITC_STRUCT_ALIGN == 0 );
 
@@ -486,7 +498,7 @@ void*
 		itcGoNextMemBlock(storage);
 	}
 
-	ptr = ICV_FREE_PTR(storage);
+	ptr = ITC_FREE_PTR(storage);
 	assert( (size_t)ptr % ITC_STRUCT_ALIGN == 0 );
 	storage->free_space = itcAlignLeft(storage->free_space - (int)size, ITC_STRUCT_ALIGN );
 
@@ -768,7 +780,7 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
         /* if there is a free space just after last allocated block
            and it's big enough then enlarge the last block
            (this can happen only if the new block is added to the end of sequence */
-        if( (unsigned)(ICV_FREE_PTR(storage) - seq->block_max) < ITC_STRUCT_ALIGN &&
+        if( (unsigned)(ITC_FREE_PTR(storage) - seq->block_max) < ITC_STRUCT_ALIGN &&
             storage->free_space >= seq->elem_size && !in_front_of )
         {
             int delta = storage->free_space / elem_size;
@@ -1568,7 +1580,36 @@ void itcClearSeq(ItcSeq *seq)
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
-	itcSeqPopMulti(seq, 0, seq->total);
+	itcSeqPopMulti(seq, 0, seq->total,0);
+
+	//__END__;
+}
+
+/* changes the current reading block to the previous or to the next */
+void itcChangeSeqBlock(void* _reader, int direction)
+{
+	//CV_FUNCNAME("cvChangeSeqBlock");
+
+	//__BEGIN__;
+
+	ItcSeqReader* reader = (ItcSeqReader*)_reader;
+
+	if (!reader)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	if (direction > 0)
+	{
+		reader->block = reader->block->next;
+		reader->ptr = reader->block->data;
+	}
+	else
+	{
+		reader->block = reader->block->prev;
+		reader->ptr = ITC_GET_LAST_ELEM(reader->seq, reader->block);
+	}
+	reader->block_min = reader->block->data;
+	reader->block_max = reader->block_min + reader->block->count * reader->seq->elem_size;
 
 	//__END__;
 }

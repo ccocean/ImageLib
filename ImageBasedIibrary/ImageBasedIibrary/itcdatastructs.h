@@ -360,6 +360,30 @@ typedef struct ItcSeqReader
 }
 ItcSeqReader;
 
+#define ITC_SEQ_ELTYPE_POINT          ITC_32SC2  /* (x,y) */
+
+/****************************************************************************************/
+/*                                Operations on sequences                               */
+/****************************************************************************************/
+
+/* move reader position forward */
+#define ITC_NEXT_SEQ_ELEM( elem_size, reader )                 \
+{                                                             \
+if (((reader).ptr += (elem_size)) >= (reader).block_max) \
+{                                                         \
+	itcChangeSeqBlock(&(reader), 1);                     \
+}                                                         \
+}
+
+/* read element and move read position forward */
+#define ITC_READ_SEQ_ELEM( elem, reader )                       \
+{                                                              \
+	assert((reader).seq->elem_size == sizeof(elem));          \
+	memcpy(&(elem), (reader).ptr, sizeof((elem)));            \
+	ITC_NEXT_SEQ_ELEM(sizeof(elem), reader)                   \
+}
+
+
 /*********************************** Chain/Countour *************************************/
 
 typedef struct ItcChain
@@ -429,7 +453,8 @@ void itcFlushSeqWriter(ItcSeqWriter * writer);
 ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer);
 void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse);
 void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front);
-void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front=0);
+void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front);
 void itcClearSeq(ItcSeq *seq);
+void itcChangeSeqBlock(void* _reader, int direction);
 
 #endif // !1
