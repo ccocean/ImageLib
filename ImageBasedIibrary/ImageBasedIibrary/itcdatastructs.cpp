@@ -177,7 +177,7 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	if( block_size <= 0 )
-		block_size = ITC_STORAGE_BLOCK_SIZE;//block_size==0·ÖÅä¿é´óÐ¡Ä¬ÈÏÎª32640
+		block_size = ITC_STORAGE_BLOCK_SIZE;//block_size==0·ÖÅä¿é´óÐ¡Ä¬ÈÏÎª65408
 
 	block_size = itcAlign( block_size, ITC_STRUCT_ALIGN );//´ý·ÖÅä¿Õ¼ä´óÐ¡µ÷ÕûÎª8×Ö½ÚµÄ±¶Êý
 	assert( sizeof(ItcMemBlock) % ITC_STRUCT_ALIGN == 0 );
@@ -190,6 +190,9 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 }
 
 /* creates root memory storage */
+/*
+	ÎªItcMemStorageÉêÇëÄÚ´æ£¬block_sizeÎª´óÐ¡£¬0ÎªÄ¬ÈÏÖµ£¬Ä¬ÈÏ´óÐ¡Îª65408
+*/
 ItcMemStorage* itcCreateMemStorage(int block_size)//µ±block_size==0Ôò·ÖÅäÆä´óÐ¡ÎªÄ¬ÈÏÖµ
 {
 	ItcMemStorage *storage = 0;
@@ -202,6 +205,9 @@ ItcMemStorage* itcCreateMemStorage(int block_size)//µ±block_size==0Ôò·ÖÅäÆä´óÐ¡Î
 }
 
 /* creates child memory storage */
+/*
+	´Ó¸¸storage´¦»ñÈ¡×ÓÄÚ´æ¿é
+*/
 ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 {
 	ItcMemStorage *storage = 0;
@@ -281,6 +287,9 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 }
 
 /* releases memory storage */
+/*
+	ÊÍ·ÅstorageµÄËùÓÐÄÚ´æ
+*/
 void
 	itcReleaseMemStorage( ItcMemStorage** storage )
 {
@@ -309,6 +318,9 @@ void
 }
 
 /* clears memory storage (returns blocks to the parent if any) */
+/*
+	Çå¿ÕstorageµÄÄÚ´æ£¬¼ÙÈç´Ó¸¸¿é¼Ì³ÐµÄÄÚ´æÔò»¹¸ø¸¸¿é
+*/
 void
 	itcClearMemStorage( ItcMemStorage * storage )
 {
@@ -512,6 +524,14 @@ void*
 \****************************************************************************************/
 
 /* creates empty sequence */
+/*
+	seq_flags ÎªÐòÁÐÖÐÔªËØµÄÀàÐÍ
+	header_size ÎªÍ·µÄ´óÐ¡£¬±ØÐë´óÓÚµÈÓÚItcSeqµÄ´óÐ¡
+	elem_size ÎªÐòÁÐÖÐÔªËØµÄ´óÐ¡
+	storage ÎªÐòÁÐµÄÄÚ´æ¿Õ¼ä
+
+	ItcSeq *runs = itcCreateSeq(ITC_SEQ_ELTYPE_POINT, sizeof(ItcSeq), sizeof(ItcPoint), storage);
+*/
 ItcSeq *
 	itcCreateSeq( int seq_flags, int header_size, int elem_size, ItcMemStorage * storage )
 {
@@ -521,10 +541,12 @@ ItcSeq *
 
 	//__BEGIN__;
 
-	if( !storage )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!storage)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 	if( header_size < (int)sizeof( ItcSeq ) || elem_size <= 0 )
-		std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
+		ITC_ERROR_(ITC_StsBadSize);
+		//std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
 
 	/* allocate sequence header */
 	//CV_CALL( seq = (CvSeq*)cvMemStorageAlloc( storage, header_size ));
@@ -537,9 +559,11 @@ ItcSeq *
 		int elemtype = ITC_MAT_TYPE(seq_flags);
 		int typesize = ITC_ELEM_SIZE(elemtype);
 
-		if( elemtype != CV_SEQ_ELTYPE_GENERIC &&
-			typesize != 0 && typesize != elem_size )
-			std::cout<<"err: "<<ITC_StsBadSize<<"Specified element size doesn't match to the size of the specified element type (try to use 0 for element type)"<<std::endl;
+		if (elemtype != CV_SEQ_ELTYPE_GENERIC &&
+			typesize != 0 && typesize != elem_size)
+			ITC_ERROR_DETAIL(ITC_StsBadSize, "Specified element size doesn't match to the size of the specified element type \
+			(try to use 0 for element type)");
+			//std::cout<<"err: "<<ITC_StsBadSize<<"Specified element size doesn't match to the size of the specified element type (try to use 0 for element type)"<<std::endl;
 			//CV_ERROR( CV_StsBadSize,
 			//"Specified element size doesn't match to the size of the specified element type "
 			//"(try to use 0 for element type)" );
@@ -596,6 +620,12 @@ itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
 }
 
 /* finds sequence element by its index */
+/*
+	*seqÎªÄ¿±êÐòÁÐ
+	indexÎª¸ÃÐòÁÐÖÐÏëÒª»ñÈ¡µÄÔªËØµÄË÷Òý
+
+	ItcPoint *p = (ItcPoint*)itcGetSeqElem(runs, i);
+*/
 char*
 	itcGetSeqElem( const ItcSeq *seq, int index )
 {
@@ -677,6 +707,13 @@ int
 }
 
 /* pushes element to the sequence */
+/*
+	seqÎªÄ¿±êÐòÁÐ
+	*elementÎªÏëÒª¼ÓÈëÐòÁÐµÄÔªËØ
+
+	ItcPoint pt1 = itcPoint(i, i);
+	itcSeqPush(runs, &pt1);
+*/
 char*
 	itcSeqPush( ItcSeq *seq, void *element )
 {
@@ -714,6 +751,13 @@ char*
 }
 
 /* pops the last element out of the sequence */
+/*
+	seq ÎªÄ¿±êÐòÁÐ
+	*element ÎªÏëÒªµ¯³öµÄÔªËØÀàÐÍµÄÖ¸Õë
+
+	ItcPoint temp ;
+	itcSeqPop(runs, &temp);
+*/
 void itcSeqPop(ItcSeq *seq, void *element)
 {
 	char *ptr;
@@ -942,6 +986,10 @@ static void itcFreeSeqBlock(ItcSeq *seq, int in_front_of)
 }
 
 /* pushes element to the front of the sequence */
+/*
+	ItcPoint temp = itcPoint(101,102);
+	itcSeqPushFront(runs, &temp);
+*/
 char* itcSeqPushFront(ItcSeq *seq, void *element)
 {
 	char* ptr = 0;
@@ -982,6 +1030,9 @@ char* itcSeqPushFront(ItcSeq *seq, void *element)
 }
 
 /* pulls out the first element of the sequence */
+/*
+	ÓÃ·¨Í¬itcSeqPop
+*/
 void itcSeqPopFront(ItcSeq *seq, void *element)
 {
 	int elem_size;
@@ -1016,6 +1067,12 @@ void itcSeqPopFront(ItcSeq *seq, void *element)
 }
 
 /* inserts new element in the middle of the sequence */
+/*
+	seq ÎªÄ¿±êÐòÁÐ
+	before_index ÎªÒª²åÈëµÄÎ»ÖÃ£¬²»¿ÉÒÔ³¬¹ýÐòÁÐµÄÔªËØ×ÜÊýÄ¿
+	*element Îª²åÈëÔªËØµÄÀàÐÍ
+
+*/
 char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 {
 	int elem_size;
@@ -1143,6 +1200,9 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 }
 
 /* removes element from the sequence */
+/*
+	ÓÃ·¨²Î¿¼itcSeqPop£¬indexÎªÒªÒÆ³ýµÄÔªËØË÷Òý
+*/
 void itcSeqRemove(ItcSeq *seq, int index)
 {
 	char *ptr;
@@ -1416,6 +1476,11 @@ void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse)
 }
 
 /* adds several elements to the end or in the beginning of sequence */
+/*
+	ÏòÐòÁÐÖÐÍÆÈë¶à¸öÔªËØ£¬*_elementÎªÊ×µØÖ·£¬countÎª¸öÊý£¬frontÎª±êÊ¶·û0ÒâÎªÔÚÐòÁÐÍ·²¿Ìí¼Ó£¬·Ç0ÎªÔÚÐòÁÐÎ²²¿Ìí¼Ó
+
+	itcSeqPushMulti(runs, &temp, 5, ITC_FRONT);
+*/
 void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front)
 {
 	char *elements = (char *)_elements;
@@ -1494,6 +1559,9 @@ void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front)
 }
 
 /* removes several elements from the end of sequence */
+/*
+	ÓÃ·¨²Î¿¼itcSeqPushMulti
+*/
 void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front)
 {
 	char *elements = (char *)_elements;
@@ -1572,6 +1640,11 @@ void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front)
 }
 
 /* removes all elements from the sequence */
+/*
+	Çå¿ÕÐòÁÐÖÐµÄÔªËØ£¬µ«²¢²»ÊÍ·ÅstorageµÄÄÚ´æ¡£
+
+	Èç¹ûÏÈÇå¿ÕÁËstorageÖÐµÄÄÚ´æ£¬µ«²¢²»Ó°ÏìÐòÁÐÖÐµÄÔªËØ£¬²»Çå³þÔ­Òò£¬»¹ÔÚ¿´
+*/
 void itcClearSeq(ItcSeq *seq)
 {
 	//CV_FUNCNAME("cvClearSeq");

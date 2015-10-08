@@ -366,6 +366,9 @@ ItcSeqReader;
 /*                                Operations on sequences                               */
 /****************************************************************************************/
 
+#define ITC_FRONT 0 //在序列头部添加元素
+#define ITC_BACK 1 //在序列尾部添加元素
+
 /* move reader position forward */
 #define ITC_NEXT_SEQ_ELEM( elem_size, reader )                 \
 {                                                             \
