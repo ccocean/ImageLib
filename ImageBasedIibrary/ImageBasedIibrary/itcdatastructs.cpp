@@ -20,7 +20,10 @@
 /* default alignment for dynamic data strucutures, resided in storages. */
 #define  ITC_STRUCT_ALIGN    ((int)sizeof(double))
 
-#define ICV_FREE_PTR(storage)  \
+#define ITC_GET_LAST_ELEM( seq, block ) \
+	((block)->data + ((block)->count - 1)*((seq)->elem_size))
+
+#define ITC_FREE_PTR(storage)  \
 	((char*)(storage)->top + (storage)->block_size - (storage)->free_space)
 /* 0x3a50 = 11 10 10 01 01 00 00 ~ array of log2(sizeof(arr_type_elem)) */
 #define ITC_ELEM_SIZE(type) \
@@ -131,12 +134,14 @@ void*  itcAlloc( size_t size )
 
 	//__BEGIN__;
 
-	if( (size_t)size > ITC_MAX_ALLOC_SIZE )
-		std::cout<<"err: "<<ITC_StsOutOfRange<<std::endl;
+	if ((size_t)size > ITC_MAX_ALLOC_SIZE)
+		ITC_ERROR_(ITC_StsOutOfRange);
+		//std::cout<<"err: "<<ITC_StsOutOfRange<<std::endl;
 
 	ptr = itcDefaultAlloc( size, p_cvAllocUserData );
 	if( !ptr )
-		std::cout<<"err: "<<ITC_StsNoMem<<std::endl;
+		ITC_ERROR_(ITC_StsNoMem);
+		//std::cout<<"err: "<<ITC_StsNoMem<<std::endl;
 
 	//__END__;
 
@@ -152,8 +157,9 @@ void  itcFree_( void* ptr )
 	if( ptr )
 	{
 		int status = itcDefaultFree( ptr, p_cvAllocUserData );
-		if( status < 0 )
-			std::cout<<"Deallocation error"<<std::endl;
+		if (status < 0)
+			printf("Deallocation error\n");
+			//std::cout<<"Deallocation error"<<std::endl;
 	}
 
 	//__END__;
@@ -170,11 +176,12 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 
 	//__BEGIN__;
 
-	if( !storage )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!storage)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	if( block_size <= 0 )
-		block_size = ITC_STORAGE_BLOCK_SIZE;
+		block_size = ITC_STORAGE_BLOCK_SIZE;//block_size==0分配块大小默认为65408
 
 	block_size = itcAlign( block_size, ITC_STRUCT_ALIGN );//待分配空间大小调整为8字节的倍数
 	assert( sizeof(ItcMemBlock) % ITC_STRUCT_ALIGN == 0 );
@@ -187,7 +194,10 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 }
 
 /* creates root memory storage */
-ItcMemStorage* itcCreateMemStorage(int block_size)
+/*
+	为ItcMemStorage申请内存，block_size为大小，0为默认值，默认大小为65408
+*/
+ItcMemStorage* itcCreateMemStorage(int block_size)//当block_size==0则分配其大小为默认值
 {
 	ItcMemStorage *storage = 0;
 
@@ -199,6 +209,9 @@ ItcMemStorage* itcCreateMemStorage(int block_size)
 }
 
 /* creates child memory storage */
+/*
+	从父storage处获取子内存块
+*/
 ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 {
 	ItcMemStorage *storage = 0;
@@ -206,8 +219,9 @@ ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 
 	//__BEGIN__;
 
-	if( !parent )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!parent)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	//CV_CALL( storage = cvCreateMemStorage(parent->block_size));
 	storage = itcCreateMemStorage(parent->block_size);
@@ -233,8 +247,9 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 	ItcMemBlock *block;
 	ItcMemBlock *dst_top = 0;
 
-	if( !storage )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!storage)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	if( storage->parent )
 		dst_top = storage->parent->top;
@@ -258,9 +273,10 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 			{
 				dst_top = storage->parent->bottom = storage->parent->top = temp;
 				temp->prev = temp->next = 0;
-				storage->free_space = storage->block_size - sizeof( *temp );
+				storage->free_space = storage->block_size - sizeof( *temp );//释放storage中的空间还给parent
 			}
 		}
+		//如果没有parent则逐个释放掉storage中每个block的内存
 		else
 		{
 			//cvFree( &temp );
@@ -275,6 +291,9 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 }
 
 /* releases memory storage */
+/*
+	释放storage的所有内存
+*/
 void
 	itcReleaseMemStorage( ItcMemStorage** storage )
 {
@@ -284,8 +303,10 @@ void
 	//__BEGIN__;
 
 	if( !storage )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
+	//为什么不直接释放内存？
 	st = *storage;
 	*storage = 0;
 
@@ -301,6 +322,9 @@ void
 }
 
 /* clears memory storage (returns blocks to the parent if any) */
+/*
+	清空storage的内存，假如从父块继承的内存则还给父块
+*/
 void
 	itcClearMemStorage( ItcMemStorage * storage )
 {
@@ -309,14 +333,16 @@ void
 	//__BEGIN__;
 
 	if( !storage )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	if( storage->parent )
 	{
-		itcDestroyMemStorage( storage );
+		itcDestroyMemStorage( storage );//假如有parent则把空间还给parent
 	}
 	else
 	{
+		//没有parent则清空该storage，只是清空，并不释放内存
 		storage->top = storage->bottom;
 		storage->free_space = storage->bottom ? storage->block_size - sizeof(ItcMemBlock) : 0;
 	}
@@ -333,8 +359,9 @@ itcGoNextMemBlock( ItcMemStorage * storage )
     
     //__BEGIN__;
     
-    if( !storage )
-        std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!storage)
+		ITC_ERROR_(ITC_StsNullPtr);
+        //std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
     if( !storage->top || !storage->top->next )
     {
@@ -399,7 +426,8 @@ void
 	//__BEGIN__;
 
 	if( !storage || !pos )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	pos->top = storage->top;
 	pos->free_space = storage->free_space;
@@ -416,9 +444,11 @@ itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos )
     //__BEGIN__;
 
     if( !storage || !pos )
-        std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+        //std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
     if( pos->free_space > storage->block_size )
-		std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
+		ITC_ERROR_(ITC_StsBadSize);
+		//std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
         //CV_ERROR( CV_StsBadSize, "" );
 
     /*
@@ -462,27 +492,30 @@ void*
 	//__BEGIN__;
 
 	if( !storage )
+		ITC_ERROR_(ITC_StsNullPtr);
 		//CV_ERROR( CV_StsNullPtr, "NULL storage pointer" );
-		std::cout<<"err: "<<ITC_StsNullPtr<<" Null storage pointer"<<std::endl;
+		//std::cout<<"err: "<<ITC_StsNullPtr<<" Null storage pointer"<<std::endl;
 
 	if( size > INT_MAX )
+		ITC_ERROR_(ITC_StsOutOfRange);
 		//CV_ERROR( CV_StsOutOfRange, "Too large memory block is requested" );
-		std::cout<<"err: "<<ITC_StsOutOfRange<<" Too large memory block is requested"<<std::endl;
+		//std::cout<<"err: "<<ITC_StsOutOfRange<<" Too large memory block is requested"<<std::endl;
 
 	assert( storage->free_space % ITC_STRUCT_ALIGN == 0 );
 
 	if( (size_t)storage->free_space < size )
 	{
 		size_t max_free_space = itcAlignLeft(storage->block_size - sizeof(ItcMemBlock), ITC_STRUCT_ALIGN);
-		if( max_free_space < size )
+		if (max_free_space < size)
 			//CV_ERROR( CV_StsOutOfRange, "requested size is negative or too big" );
-			std::cout<<"err: "<<ITC_StsOutOfRange<<" Too large memory block is requested"<<std::endl;
+			ITC_ERROR_DETAIL(ITC_StsOutOfRange, "Too large memory block is requested");
+			//std::cout<<"err: "<<ITC_StsOutOfRange<<" Too large memory block is requested"<<std::endl;
 
 		//CV_CALL( icvGoNextMemBlock( storage ));
 		itcGoNextMemBlock(storage);
 	}
 
-	ptr = ICV_FREE_PTR(storage);
+	ptr = ITC_FREE_PTR(storage);
 	assert( (size_t)ptr % ITC_STRUCT_ALIGN == 0 );
 	storage->free_space = itcAlignLeft(storage->free_space - (int)size, ITC_STRUCT_ALIGN );
 
@@ -496,6 +529,14 @@ void*
 \****************************************************************************************/
 
 /* creates empty sequence */
+/*
+	seq_flags 为序列中元素的类型
+	header_size 为头的大小，必须大于等于ItcSeq的大小
+	elem_size 为序列中元素的大小
+	storage 为序列的内存空间
+
+	ItcSeq *runs = itcCreateSeq(ITC_SEQ_ELTYPE_POINT, sizeof(ItcSeq), sizeof(ItcPoint), storage);
+*/
 ItcSeq *
 	itcCreateSeq( int seq_flags, int header_size, int elem_size, ItcMemStorage * storage )
 {
@@ -505,10 +546,12 @@ ItcSeq *
 
 	//__BEGIN__;
 
-	if( !storage )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!storage)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 	if( header_size < (int)sizeof( ItcSeq ) || elem_size <= 0 )
-		std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
+		ITC_ERROR_(ITC_StsBadSize);
+		//std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
 
 	/* allocate sequence header */
 	//CV_CALL( seq = (CvSeq*)cvMemStorageAlloc( storage, header_size ));
@@ -521,9 +564,11 @@ ItcSeq *
 		int elemtype = ITC_MAT_TYPE(seq_flags);
 		int typesize = ITC_ELEM_SIZE(elemtype);
 
-		if( elemtype != CV_SEQ_ELTYPE_GENERIC &&
-			typesize != 0 && typesize != elem_size )
-			std::cout<<"err: "<<ITC_StsBadSize<<"Specified element size doesn't match to the size of the specified element type (try to use 0 for element type)"<<std::endl;
+		if (elemtype != CV_SEQ_ELTYPE_GENERIC &&
+			typesize != 0 && typesize != elem_size)
+			ITC_ERROR_DETAIL(ITC_StsBadSize, "Specified element size doesn't match to the size of the specified element type \
+			(try to use 0 for element type)");
+			//std::cout<<"err: "<<ITC_StsBadSize<<"Specified element size doesn't match to the size of the specified element type (try to use 0 for element type)"<<std::endl;
 			//CV_ERROR( CV_StsBadSize,
 			//"Specified element size doesn't match to the size of the specified element type "
 			//"(try to use 0 for element type)" );
@@ -551,10 +596,12 @@ itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
 
     //__BEGIN__;
 	
-    if( !seq || !seq->storage )
-        std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
-    if( delta_elements < 0 )
-        std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
+	if (!seq || !seq->storage)
+		ITC_ERROR_(ITC_StsNullPtr);
+        //std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (delta_elements < 0)
+		ITC_ERROR_(ITC_StsBadSize);
+        //std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
 
     useful_block_size = itcAlignLeft(seq->storage->block_size - sizeof(ItcMemBlock) -
                                     sizeof(ItcSeqBlock), ITC_STRUCT_ALIGN);
@@ -568,8 +615,9 @@ itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
     if( delta_elements * elem_size > useful_block_size )
     {
         delta_elements = useful_block_size / elem_size;
-        if( delta_elements == 0 )
-			std::cout<<"err: "<<ITC_StsBadSize<<"Storage block size is too small to fit the sequence elements"<<std::endl;
+		if (delta_elements == 0)
+			ITC_ERROR_DETAIL(ITC_StsBadSize, "Storage block size is too small to fit the sequence elements");
+			//std::cout<<"err: "<<ITC_StsBadSize<<"Storage block size is too small to fit the sequence elements"<<std::endl;
             //CV_ERROR( CV_StsOutOfRange, "Storage block size is too small "
                                        // "to fit the sequence elements" );
     }
@@ -580,6 +628,12 @@ itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
 }
 
 /* finds sequence element by its index */
+/*
+	*seq为目标序列
+	index为该序列中想要获取的元素的索引
+
+	ItcPoint *p = (ItcPoint*)itcGetSeqElem(runs, i);
+*/
 char*
 	itcGetSeqElem( const ItcSeq *seq, int index )
 {
@@ -631,8 +685,9 @@ int
 
 	//__BEGIN__;
 
-	if( !seq || !element )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!seq || !element)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	block = first_block = seq->first;
 	elem_size = seq->elem_size;
@@ -661,6 +716,13 @@ int
 }
 
 /* pushes element to the sequence */
+/*
+	seq为目标序列
+	*element为想要加入序列的元素
+
+	ItcPoint pt1 = itcPoint(i, i);
+	itcSeqPush(runs, &pt1);
+*/
 char*
 	itcSeqPush( ItcSeq *seq, void *element )
 {
@@ -672,7 +734,8 @@ char*
 	//__BEGIN__;
 
 	if( !seq )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 		//CV_ERROR( CV_StsNullPtr, "" );
 
 	elem_size = seq->elem_size;
@@ -698,6 +761,13 @@ char*
 }
 
 /* pops the last element out of the sequence */
+/*
+	seq 为目标序列
+	*element 为想要弹出的元素类型的指针
+
+	ItcPoint temp ;
+	itcSeqPop(runs, &temp);
+*/
 void itcSeqPop(ItcSeq *seq, void *element)
 {
 	char *ptr;
@@ -708,10 +778,12 @@ void itcSeqPop(ItcSeq *seq, void *element)
 	//__BEGIN__;
 
 	if (!seq)
-		std::cout << "err: " << ITC_StsNullPtr << std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout << "err: " << ITC_StsNullPtr << std::endl;
 		//CV_ERROR(ITC_StsNullPtr, "");
 	if (seq->total <= 0)
-		std::cout << "err: " << ITC_StsBadSize << std::endl;
+		ITC_ERROR_(ITC_StsBadSize);
+		//std::cout << "err: " << ITC_StsBadSize << std::endl;
 		//CV_ERROR(ITC_StsBadSize, "");
 
 	elem_size = seq->elem_size;
@@ -743,8 +815,9 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
 
     ItcSeqBlock *block;
 
-    if( !seq )
-		std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+	if (!seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
         //CV_ERROR( CV_StsNullPtr, "" );
     block = seq->free_blocks;
 
@@ -758,13 +831,14 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
             itcSetSeqBlockSize( seq, delta_elems*2 );
 
         if( !storage )
-			std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
+			ITC_ERROR_(ITC_StsNullPtr);
+			//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
             //CV_ERROR( CV_StsNullPtr, "The sequence has NULL storage pointer" );
 
         /* if there is a free space just after last allocated block
            and it's big enough then enlarge the last block
            (this can happen only if the new block is added to the end of sequence */
-        if( (unsigned)(ICV_FREE_PTR(storage) - seq->block_max) < ITC_STRUCT_ALIGN &&
+        if( (unsigned)(ITC_FREE_PTR(storage) - seq->block_max) < ITC_STRUCT_ALIGN &&
             storage->free_space >= seq->elem_size && !in_front_of )
         {
             int delta = storage->free_space / elem_size;
@@ -926,6 +1000,10 @@ static void itcFreeSeqBlock(ItcSeq *seq, int in_front_of)
 }
 
 /* pushes element to the front of the sequence */
+/*
+	ItcPoint temp = itcPoint(101,102);
+	itcSeqPushFront(runs, &temp);
+*/
 char* itcSeqPushFront(ItcSeq *seq, void *element)
 {
 	char* ptr = 0;
@@ -937,7 +1015,8 @@ char* itcSeqPushFront(ItcSeq *seq, void *element)
 	//__BEGIN__;
 
 	if (!seq)
-		std::cout << "err: " << ITC_StsNullPtr << std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout << "err: " << ITC_StsNullPtr << std::endl;
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	elem_size = seq->elem_size;
@@ -966,6 +1045,9 @@ char* itcSeqPushFront(ItcSeq *seq, void *element)
 }
 
 /* pulls out the first element of the sequence */
+/*
+	用法同itcSeqPop
+*/
 void itcSeqPopFront(ItcSeq *seq, void *element)
 {
 	int elem_size;
@@ -976,10 +1058,12 @@ void itcSeqPopFront(ItcSeq *seq, void *element)
 	//__BEGIN__;
 
 	if (!seq)
-		std::cout << "err: " << ITC_StsNullPtr << std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout << "err: " << ITC_StsNullPtr << std::endl;
 		//CV_ERROR(CV_StsNullPtr, "");
 	if (seq->total <= 0)
-		std::cout << "err: " << ITC_StsBadSize << std::endl;
+		ITC_ERROR_(ITC_StsBadSize);
+		//std::cout << "err: " << ITC_StsBadSize << std::endl;
 		//CV_ERROR(CV_StsBadSize, "");
 
 	elem_size = seq->elem_size;
@@ -1000,6 +1084,12 @@ void itcSeqPopFront(ItcSeq *seq, void *element)
 }
 
 /* inserts new element in the middle of the sequence */
+/*
+	seq 为目标序列
+	before_index 为要插入的位置，不可以超过序列的元素总数目
+	*element 为插入元素的类型
+
+*/
 char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 {
 	int elem_size;
@@ -1014,7 +1104,8 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 	//__BEGIN__;
 
 	if (!seq)
-		std::cout << "err: " << ITC_StsNullPtr << std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout << "err: " << ITC_StsNullPtr << std::endl;
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	total = seq->total;
@@ -1022,7 +1113,8 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 	before_index -= before_index > total ? total : 0;
 
 	if ((unsigned)before_index > (unsigned)total)
-		std::cout << "err: " << ITC_StsOutOfRange <<"Invalid index"<< std::endl;
+		ITC_ERROR_DETAIL(ITC_StsOutOfRange, "Invalid index");
+		//std::cout << "err: " << ITC_StsOutOfRange <<"Invalid index"<< std::endl;
 		//CV_ERROR(CV_StsOutOfRange, "");
 
 	if (before_index == total)
@@ -1127,6 +1219,9 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 }
 
 /* removes element from the sequence */
+/*
+	用法参考itcSeqPop，index为要移除的元素索引
+*/
 void itcSeqRemove(ItcSeq *seq, int index)
 {
 	char *ptr;
@@ -1141,7 +1236,8 @@ void itcSeqRemove(ItcSeq *seq, int index)
 	//__BEGIN__;
 
 	if (!seq)
-		std::cout << "err: " << ITC_StsNullPtr << std::endl;
+		ITC_ERROR_(ITC_StsNullPtr);
+		//std::cout << "err: " << ITC_StsNullPtr << std::endl;
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	total = seq->total;
@@ -1150,7 +1246,8 @@ void itcSeqRemove(ItcSeq *seq, int index)
 	index -= index >= total ? total : 0;
 
 	if ((unsigned)index >= (unsigned)total)
-		std::cout << "err: " << ITC_StsOutOfRange << "Invalid index" << std::endl;
+		ITC_ERROR_DETAIL(ITC_StsOutOfRange, "Invalid index");
+		//std::cout << "err: " << ITC_StsOutOfRange << "Invalid index" << std::endl;
 		//CV_ERROR(CV_StsOutOfRange, "Invalid index");
 
 	if (index == total - 1)
@@ -1217,6 +1314,594 @@ void itcSeqRemove(ItcSeq *seq, int index)
 
 	//__END__;
 }
+
+/****************************************************************************************\
+*                             Sequence Writer implementation                             *
+\****************************************************************************************/
+
+/* initializes sequence writer */
+/*
+	将writer和seq绑定，通过宏ITC_WRITE_SEQ_ELEM（）向seq序列中写入值
+	ITC_WRITE_SEQ_ELEM(elem,writer);
+*/
+void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer)
+{
+	//CV_FUNCNAME("cvStartAppendToSeq");
+
+	//__BEGIN__;
+
+	if (!seq || !writer)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	memset(writer, 0, sizeof(*writer));
+	writer->header_size = sizeof(ItcSeqWriter);
+
+	writer->seq = seq;
+	writer->block = seq->first ? seq->first->prev : 0;
+	writer->ptr = seq->ptr;
+	writer->block_max = seq->block_max;
+
+	//__END__;
+}
+
+
+/* initializes sequence writer */
+/*
+	新建一个序列seq并将其与writer绑定
+*/
+void itcStartWriteSeq(int seq_flags, int header_size,
+int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer)
+{
+	ItcSeq *seq = 0;
+
+	//CV_FUNCNAME("cvStartWriteSeq");
+
+	//__BEGIN__;
+
+	if (!storage || !writer)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	//CV_CALL(seq = cvCreateSeq(seq_flags, header_size, elem_size, storage));
+	seq = itcCreateSeq(seq_flags, header_size, elem_size, storage);
+	itcStartAppendToSeq(seq, writer);
+
+	//__END__;
+}
+
+/* updates sequence header */
+void itcFlushSeqWriter(ItcSeqWriter * writer)
+{
+	ItcSeq *seq = 0;
+
+	//CV_FUNCNAME("cvFlushSeqWriter");
+
+	//__BEGIN__;
+
+	if (!writer)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	seq = writer->seq;
+	seq->ptr = writer->ptr;
+
+	if (writer->block)
+	{
+		int total = 0;
+		ItcSeqBlock *first_block = writer->seq->first;
+		ItcSeqBlock *block = first_block;
+
+		writer->block->count = (int)((writer->ptr - writer->block->data) / seq->elem_size);
+		assert(writer->block->count > 0);
+
+		do
+		{
+			total += block->count;
+			block = block->next;
+		} while (block != first_block);
+
+		writer->seq->total = total;
+	}
+
+	//__END__;
+}
+
+
+/* calls icvFlushSeqWriter and finishes writing process */
+/*
+	关闭写入序列，此时无法通过宏向seq里写入元素
+*/
+ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer)
+{
+	ItcSeq *seq = 0;
+
+	//CV_FUNCNAME("cvEndWriteSeq");
+
+	//__BEGIN__;
+
+	if (!writer)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	//CV_CALL(cvFlushSeqWriter(writer));
+	itcFlushSeqWriter(writer);
+	seq = writer->seq;
+
+	/* truncate the last block */
+	if (writer->block && writer->seq->storage)
+	{
+		ItcMemStorage *storage = seq->storage;
+		char *storage_block_max = (char *)storage->top + storage->block_size;
+
+		assert(writer->block->count > 0);
+
+		if ((unsigned)((storage_block_max - storage->free_space)
+			- seq->block_max) < ITC_STRUCT_ALIGN)
+		{
+			storage->free_space = itcAlignLeft((int)(storage_block_max - seq->ptr), ITC_STRUCT_ALIGN);
+			seq->block_max = seq->ptr;
+		}
+	}
+
+	writer->ptr = 0;
+
+	//__END__;
+
+	return seq;
+}
+
+/* creates new sequence block */
+void itcCreateSeqBlock(ItcSeqWriter * writer)
+{
+	//CV_FUNCNAME("cvCreateSeqBlock");
+
+	//__BEGIN__;
+
+	ItcSeq *seq;
+
+	if (!writer || !writer->seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	seq = writer->seq;
+
+	itcFlushSeqWriter(writer);
+
+	//CV_CALL(icvGrowSeq(seq, 0));
+	itcGrowSeq(seq, 0);
+
+	writer->block = seq->first->prev;
+	writer->ptr = seq->ptr;
+	writer->block_max = seq->block_max;
+
+	//__END__;
+}
+
+/****************************************************************************************\
+*                               Sequence Reader implementation                           *
+\****************************************************************************************/
+
+/* initializes sequence reader */
+/*
+	将seq和reader绑定，通过宏ITC_READ_SEQ_ELEM（）来从序列seq中读取数据元素。
+	reverse代表是否逆序读取，0代表从尾到头，非0位从头到尾
+*/
+void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse)
+{
+	ItcSeqBlock *first_block;
+	ItcSeqBlock *last_block;
+
+	//CV_FUNCNAME("cvStartReadSeq");
+
+	if (reader)
+	{
+		reader->seq = 0;
+		reader->block = 0;
+		reader->ptr = reader->block_max = reader->block_min = 0;
+	}
+
+	//__BEGIN__;
+
+	if (!seq || !reader)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	reader->header_size = sizeof(ItcSeqReader);
+	reader->seq = (ItcSeq*)seq;
+
+	first_block = seq->first;
+
+	if (first_block)
+	{
+		last_block = first_block->prev;
+		reader->ptr = first_block->data;
+		reader->prev_elem = ITC_GET_LAST_ELEM(seq, last_block);
+		reader->delta_index = seq->first->start_index;
+
+		if (reverse)
+		{
+			char *temp = reader->ptr;
+
+			reader->ptr = reader->prev_elem;
+			reader->prev_elem = temp;
+
+			reader->block = last_block;
+		}
+		else
+		{
+			reader->block = first_block;
+		}
+
+		reader->block_min = reader->block->data;
+		reader->block_max = reader->block_min + reader->block->count * seq->elem_size;
+	}
+	else
+	{
+		reader->delta_index = 0;
+		reader->block = 0;
+
+		reader->ptr = reader->prev_elem = reader->block_min = reader->block_max = 0;
+	}
+
+	//__END__;
+}
+
+/* changes the current reading block to the previous or to the next */
+void itcChangeSeqBlock(void* _reader, int direction)
+{
+	//CV_FUNCNAME("cvChangeSeqBlock");
+
+	//__BEGIN__;
+
+	ItcSeqReader* reader = (ItcSeqReader*)_reader;
+
+	if (!reader)
+		ITC_ERROR_(ITC_StsNullPtr);
+	//CV_ERROR(CV_StsNullPtr, "");
+
+	if (direction > 0)
+	{
+		reader->block = reader->block->next;
+		reader->ptr = reader->block->data;
+	}
+	else
+	{
+		reader->block = reader->block->prev;
+		reader->ptr = ITC_GET_LAST_ELEM(reader->seq, reader->block);
+	}
+	reader->block_min = reader->block->data;
+	reader->block_max = reader->block_min + reader->block->count * reader->seq->elem_size;
+
+	//__END__;
+}
+
+/* returns the current reader position */
+/*
+	函数cvGetSeqReaderPos放回当前reader的位置在(0到reader->seq->total-1之间)
+*/
+int itcGetSeqReaderPos(ItcSeqReader* reader)
+{
+	int elem_size;
+	int index = -1;
+
+	//CV_FUNCNAME("cvGetSeqReaderPos");
+
+	//__BEGIN__;
+
+	if (!reader || !reader->ptr)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	elem_size = reader->seq->elem_size;
+	if (elem_size <= ITC_SHIFT_TAB_MAX && (index = itcPower2ShiftTab[elem_size - 1]) >= 0)
+		index = (int)((reader->ptr - reader->block_min) >> index);
+	else
+		index = (int)((reader->ptr - reader->block_min) / elem_size);
+
+	index += reader->block->start_index - reader->delta_index;
+
+	//__END__;
+
+	return index;
+}
+
+/* sets reader position to given absolute or relative
+(relatively to the current one) position */
+/*
+	功能
+	函数itcSetSeqReaderPos移动读取器到指定的位置
+	格式
+	void itcSetSeqReaderPos(CvSeqReader* reader,int  index, int is_relative = 0);
+	参数
+	reader 读取器的状态
+	index 索引的位置.如果使用绝对位置,则实际位置为index % reader->seq->total.
+	is_relative 如果不为0,则索引(index)值为相对位置
+	说明
+	函数itcSetSeqReaderPos将读取器的位置移动到绝对位置,或相对于当前位置的相对位置上.
+*/
+void itcSetSeqReaderPos(ItcSeqReader* reader, int index, int is_relative)
+{
+	//CV_FUNCNAME("cvSetSeqReaderPos");
+
+	//__BEGIN__;
+
+	ItcSeqBlock *block;
+	int elem_size, count, total;
+
+	if (!reader || !reader->seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	total = reader->seq->total;
+	elem_size = reader->seq->elem_size;
+
+	if (!is_relative)
+	{
+		if (index < 0)
+		{
+			if (index < -total)
+				ITC_ERROR_(ITC_StsOutOfRange);
+				//CV_ERROR(CV_StsOutOfRange, "");
+			index += total;
+		}
+		else if (index >= total)
+		{
+			index -= total;
+			if (index >= total)
+				ITC_ERROR_(ITC_StsOutOfRange);
+				//CV_ERROR(CV_StsOutOfRange, "");
+		}
+
+		block = reader->seq->first;
+		if (index >= (count = block->count))
+		{
+			if (index + index <= total)
+			{
+				do
+				{
+					block = block->next;
+					index -= count;
+				} while (index >= (count = block->count));
+			}
+			else
+			{
+				do
+				{
+					block = block->prev;
+					total -= block->count;
+				} while (index < total);
+				index -= total;
+			}
+		}
+		reader->ptr = block->data + index * elem_size;
+		if (reader->block != block)
+		{
+			reader->block = block;
+			reader->block_min = block->data;
+			reader->block_max = block->data + block->count * elem_size;
+		}
+	}
+	else
+	{
+		char* ptr = reader->ptr;
+		index *= elem_size;
+		block = reader->block;
+
+		if (index > 0)
+		{
+			while (ptr + index >= reader->block_max)
+			{
+				int delta = (int)(reader->block_max - ptr);
+				index -= delta;
+				reader->block = block = block->next;
+				reader->block_min = ptr = block->data;
+				reader->block_max = block->data + block->count*elem_size;
+			}
+			reader->ptr = ptr + index;
+		}
+		else
+		{
+			while (ptr + index < reader->block_min)
+			{
+				int delta = (int)(ptr - reader->block_min);
+				index += delta;
+				reader->block = block = block->prev;
+				reader->block_min = block->data;
+				reader->block_max = ptr = block->data + block->count*elem_size;
+			}
+			reader->ptr = ptr + index;
+		}
+	}
+
+	//__END__;
+}
+
+
+/* adds several elements to the end or in the beginning of sequence */
+/*
+	向序列中推入多个元素，*_element为首地址，count为个数，front为标识符0意为在序列头部添加，非0为在序列尾部添加
+
+	itcSeqPushMulti(runs, &temp, 5, ITC_FRONT);
+*/
+void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front)
+{
+	char *elements = (char *)_elements;
+
+	//CV_FUNCNAME("cvSeqPushMulti");
+
+	//__BEGIN__;
+	int elem_size;
+
+	if (!seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "NULL sequence pointer");
+	if (count < 0)
+		ITC_ERROR_(ITC_StsBadSize);
+		//CV_ERROR(CV_StsBadSize, "number of removed elements is negative");
+
+	elem_size = seq->elem_size;
+
+	if (!front)
+	{
+		while (count > 0)
+		{
+			int delta = (int)((seq->block_max - seq->ptr) / elem_size);
+
+			delta = ITC_MIN(delta, count);
+			if (delta > 0)
+			{
+				seq->first->prev->count += delta;
+				seq->total += delta;
+				count -= delta;
+				delta *= elem_size;
+				if (elements)
+				{
+					memcpy(seq->ptr, elements, delta);
+					elements += delta;
+				}
+				seq->ptr += delta;
+			}
+
+			if (count > 0)
+				itcGrowSeq(seq, 0);
+				//CV_CALL(icvGrowSeq(seq, 0));
+		}
+	}
+	else
+	{
+		ItcSeqBlock* block = seq->first;
+
+		while (count > 0)
+		{
+			int delta;
+
+			if (!block || block->start_index == 0)
+			{
+				itcGrowSeq(seq, 1);
+				//CV_CALL(icvGrowSeq(seq, 1));
+
+				block = seq->first;
+				assert(block->start_index > 0);
+			}
+
+			delta = ITC_MIN(block->start_index, count);
+			count -= delta;
+			block->start_index -= delta;
+			block->count += delta;
+			seq->total += delta;
+			delta *= elem_size;
+			block->data -= delta;
+
+			if (elements)
+				memcpy(block->data, elements + count*elem_size, delta);
+		}
+	}
+
+	//__END__;
+}
+
+/* removes several elements from the end of sequence */
+/*
+	用法参考itcSeqPushMulti
+*/
+void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front)
+{
+	char *elements = (char *)_elements;
+
+	//CV_FUNCNAME("cvSeqPopMulti");
+
+	//__BEGIN__;
+
+	if (!seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "NULL sequence pointer");
+	if (count < 0)
+		ITC_ERROR_(ITC_StsBadSize);
+		//CV_ERROR(CV_StsBadSize, "number of removed elements is negative");
+
+	count = ITC_MIN(count, seq->total);
+
+	if (!front)
+	{
+		if (elements)
+			elements += count * seq->elem_size;
+
+		while (count > 0)
+		{
+			int delta = seq->first->prev->count;
+
+			delta = ITC_MIN(delta, count);
+			assert(delta > 0);
+
+			seq->first->prev->count -= delta;
+			seq->total -= delta;
+			count -= delta;
+			delta *= seq->elem_size;
+			seq->ptr -= delta;
+
+			if (elements)
+			{
+				elements -= delta;
+				memcpy(elements, seq->ptr, delta);
+			}
+
+			if (seq->first->prev->count == 0)
+				itcFreeSeqBlock(seq, 0);
+				//icvFreeSeqBlock(seq, 0);
+		}
+	}
+	else
+	{
+		while (count > 0)
+		{
+			int delta = seq->first->count;
+
+			delta = ITC_MIN(delta, count);
+			assert(delta > 0);
+
+			seq->first->count -= delta;
+			seq->total -= delta;
+			count -= delta;
+			seq->first->start_index += delta;
+			delta *= seq->elem_size;
+
+			if (elements)
+			{
+				memcpy(elements, seq->first->data, delta);
+				elements += delta;
+			}
+
+			seq->first->data += delta;
+			if (seq->first->count == 0)
+				itcFreeSeqBlock(seq, 1);
+				//icvFreeSeqBlock(seq, 1);
+		}
+	}
+
+	//__END__;
+}
+
+/* removes all elements from the sequence */
+/*
+	清空序列中的元素，但并不释放storage的内存。
+
+	如果先清空了storage中的内存，但并不影响序列中的元素，不清楚原因，还在看
+*/
+void itcClearSeq(ItcSeq *seq)
+{
+	//CV_FUNCNAME("cvClearSeq");
+
+	//__BEGIN__;
+
+	if (!seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+	itcSeqPopMulti(seq, 0, seq->total,0);
+
+	//__END__;
+}
+
+
 
 //int
 //itcSliceLength( CvSlice slice, const CvSeq* seq )

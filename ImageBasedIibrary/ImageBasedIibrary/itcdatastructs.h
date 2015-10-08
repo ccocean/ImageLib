@@ -1,6 +1,7 @@
 #ifndef _ITCTYPE_H_
 #define _ITCTYPE_H_
 
+#include <assert.h>
 
 #pragma once
 /****************************************************************************************\
@@ -324,6 +325,144 @@ ItcSeq;
 #define ITC_TYPE_NAME_SEQ             "opencv-sequence"
 #define ITC_TYPE_NAME_SEQ_TREE        "opencv-sequence-tree"
 
+
+/****************************************************************************************/
+/*                            Sequence writer & reader                                  */
+/****************************************************************************************/
+
+#define ITC_SEQ_WRITER_FIELDS()                                     \
+	int          header_size;                                      \
+	ItcSeq*       seq;        /* the sequence written */            \
+	ItcSeqBlock*  block;      /* current block */                   \
+	char*        ptr;        /* pointer to free space */           \
+	char*        block_min;  /* pointer to the beginning of block*/\
+	char*        block_max;  /* pointer to the end of block */
+
+typedef struct ItcSeqWriter
+{
+	ITC_SEQ_WRITER_FIELDS()
+}
+ItcSeqWriter;
+
+#define ITC_SEQ_READER_FIELDS()                                      \
+	int          header_size;                                       \
+	ItcSeq*       seq;        /* sequence, beign read */             \
+	ItcSeqBlock*  block;      /* current block */                    \
+	char*        ptr;        /* pointer to element be read next */  \
+	char*        block_min;  /* pointer to the beginning of block */\
+	char*        block_max;  /* pointer to the end of block */      \
+	int          delta_index;/* = seq->first->start_index   */      \
+	char*        prev_elem;  /* pointer to previous element */
+
+
+typedef struct ItcSeqReader
+{
+	ITC_SEQ_READER_FIELDS()
+}
+ItcSeqReader;
+
+#define ITC_SEQ_ELTYPE_POINT          ITC_32SC2  /* (x,y) */
+
+/****************************************************************************************/
+/*                                Operations on sequences                               */
+/****************************************************************************************/
+
+#define ITC_FRONT 0 //在序列头部添加元素
+#define ITC_BACK 1 //在序列尾部添加元素
+
+#define  ITC_SEQ_ELEM( seq, elem_type, index )                    \
+	/* assert gives some guarantee that <seq> parameter is valid */  \
+	(assert(sizeof((seq)->first[0]) == sizeof(CvSeqBlock) && \
+	(seq)->elem_size == sizeof(elem_type)), \
+	(elem_type*)((seq)->first && (unsigned)index < \
+	(unsigned)((seq)->first->count) ? \
+	(seq)->first->data + (index)* sizeof(elem_type) : \
+	itcGetSeqElem((CvSeq*)(seq), (index))))
+#define ITC_GET_SEQ_ELEM( elem_type, seq, index ) ITC_SEQ_ELEM( (seq), elem_type, (index) )
+
+/* macro that adds element to sequence */
+#define CV_WRITE_SEQ_ELEM_VAR( elem_ptr, writer )     \
+{\
+	if ((writer).ptr >= (writer).block_max)          \
+	{                                                 \
+		itcCreateSeqBlock(&writer);                   \
+	}                                                 \
+	memcpy((writer).ptr, elem_ptr, (writer).seq->elem_size); \
+	(writer).ptr += (writer).seq->elem_size;          \
+}
+
+#define ITC_WRITE_SEQ_ELEM( elem, writer )             \
+{                                                     \
+	assert((writer).seq->elem_size == sizeof(elem)); \
+	if ((writer).ptr >= (writer).block_max)          \
+	{                                                 \
+		itcCreateSeqBlock(&writer);                   \
+	}                                                 \
+	assert((writer).ptr <= (writer).block_max - sizeof(elem)); \
+	memcpy((writer).ptr, &(elem), sizeof(elem));      \
+	(writer).ptr += sizeof(elem);                     \
+}
+
+/* move reader position forward */
+#define ITC_NEXT_SEQ_ELEM( elem_size, reader )                 \
+{                                                             \
+	if (((reader).ptr += (elem_size)) >= (reader).block_max) \
+	{                                                         \
+		itcChangeSeqBlock(&(reader), 1);                     \
+	}                                                         \
+}
+
+/* move reader position backward */
+#define ITC_PREV_SEQ_ELEM( elem_size, reader )                \
+{                                                            \
+if (((reader).ptr -= (elem_size)) < (reader).block_min) \
+{                                                        \
+	itcChangeSeqBlock(&(reader), -1);                   \
+}                                                        \
+}
+
+/* read element and move read position forward */
+#define ITC_READ_SEQ_ELEM( elem, reader )                       \
+{                                                              \
+	assert((reader).seq->elem_size == sizeof(elem));          \
+	memcpy(&(elem), (reader).ptr, sizeof((elem)));            \
+	ITC_NEXT_SEQ_ELEM(sizeof(elem), reader)                   \
+}
+
+/* read element and move read position backward */
+#define ITC_REV_READ_SEQ_ELEM( elem, reader )                     \
+{                                                                \
+	assert((reader).seq->elem_size == sizeof(elem));            \
+	memcpy(&(elem), (reader).ptr, sizeof((elem)));               \
+	ITC_PREV_SEQ_ELEM(sizeof(elem), reader)                     \
+}
+
+#define ITC_READ_CHAIN_POINT( _pt, reader )                              \
+{                                                                       \
+	(_pt) = (reader).pt;                                                \
+	if ((reader).ptr)                                                  \
+	{                                                                   \
+		ITC_READ_SEQ_ELEM((reader).code, (reader));                     \
+		assert(((reader).code & ~7) == 0);                            \
+		(reader).pt.x += (reader).deltas[(int)(reader).code][0];        \
+		(reader).pt.y += (reader).deltas[(int)(reader).code][1];        \
+	}                                                                   \
+}
+
+#define ITC_CURRENT_POINT( reader )  (*((CvPoint*)((reader).ptr)))
+#define ITC_PREV_POINT( reader )     (*((CvPoint*)((reader).prev_elem)))
+
+#define ITC_READ_EDGE( pt1, pt2, reader )               \
+{                                                      \
+	assert(sizeof(pt1) == sizeof(CvPoint) && \
+	sizeof(pt2) == sizeof(CvPoint) && \
+	reader.seq->elem_size == sizeof(CvPoint)); \
+	(pt1) = ITC_PREV_POINT(reader);                   \
+	(pt2) = ITC_CURRENT_POINT(reader);                \
+	(reader).prev_elem = (reader).ptr;                 \
+	ITC_NEXT_SEQ_ELEM(sizeof(CvPoint), (reader));      \
+}
+
 /*********************************** Chain/Countour *************************************/
 
 typedef struct ItcChain
@@ -343,6 +482,15 @@ typedef struct ItcContour
 	ITC_CONTOUR_FIELDS()
 }
 ItcContour;
+
+
+typedef  struct ItcLinkedRunPoint
+{
+	struct ItcLinkedRunPoint* link;
+	struct ItcLinkedRunPoint* next;
+	ItcPoint pt;
+}
+ItcLinkedRunPoint;
 
 typedef ItcContour ItcPoint2DSeq;
 
@@ -377,5 +525,17 @@ char* itcSeqPushFront(ItcSeq *seq, void *element);
 void itcSeqPopFront(ItcSeq *seq, void *element);
 char* itcSeqInsert(ItcSeq *seq, int before_index, void *element);
 void itcSeqRemove(ItcSeq *seq, int index);
+void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer);
+void itcStartWriteSeq(int seq_flags, int header_size,
+	int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer);
+void itcFlushSeqWriter(ItcSeqWriter * writer);
+ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer);
+void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse);
+void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front);
+void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front);
+void itcClearSeq(ItcSeq *seq);
+void itcChangeSeqBlock(void* _reader, int direction);
+int itcGetSeqReaderPos(ItcSeqReader* reader);
+void itcSetSeqReaderPos(ItcSeqReader* reader, int index, int is_relative);
 
 #endif // !1
