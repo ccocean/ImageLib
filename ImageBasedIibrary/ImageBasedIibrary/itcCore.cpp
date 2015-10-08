@@ -38,6 +38,7 @@ ItcMat*	itcCreateMat( int height, int width, int type )
  	if(_total_size != (int64)total_size)			//如果不相等，说明已经溢出
  		ITC_ERROR_("Too big buffer is allocated");	//分配的空间超出当前系统的寻址范围
 	mat->refcount = (int*)malloc( (size_t)total_size );
+	memset(mat->refcount, 0, (size_t)total_size);	//初始化为0
 	mat->data.ptr = (uchar*)( mat->refcount + 1);
 	mat->data.ptr = (uchar*)(((size_t)mat->data.ptr + ITC_MALLOC_ALIGN - 1) &~ (size_t)(ITC_MALLOC_ALIGN - 1));//对齐到ITC_MALLOC_ALIGN整数位，比如说地址是110，ITC_MALLOC_ALIGN=16，那么就把地址对齐到112，如果地址是120，那么就对齐到128，
 	*mat->refcount = 1;
@@ -66,7 +67,7 @@ ItcMat*	itcCreateMatHeader( int rows, int cols, int type )
 	ItcMat* arr = (ItcMat*)malloc( sizeof(*arr));
 
 	arr->step = min_step;
-	arr->type = ITC_MAT_MAGIC_VAL | type | ITC_MAT_CONT_FLAG;
+	arr->type = ITC_MAT_MAGIC_VAL | type | ITC_MAT_CONT_FLAG;//ITC_MAT_MAGIC_VAL为Mat结构的标志，用于判断是否是mat结构
 	arr->rows = rows;
 	arr->cols = cols;
 	arr->data.ptr = NULL;
@@ -220,14 +221,18 @@ void itcUpdateMHI(ItcMat* src1, ItcMat* src2, ItcMat* mhi, int diffThreshold, It
 	else
 	{
 		uchar *qmask = maskT->data.ptr;
+		//生成掩码要使四周边界都为0，用于进行轮廓检测
+		qsrc1 += src1->step;
+		qsrc2 += src2->step;
+		qmhi += mhi->step;
+		qmask += maskT->step;
 		if (!ITC_ARE_TYPES_EQ(src1, maskT))//检测类型是否一致
 			ITC_ERROR_("矩阵类型不一致");
 		if (!ITC_ARE_SIZES_EQ(src1, maskT))//检查大小是否一致
 			ITC_ERROR_("矩阵大小不一致");
-
-		for (i = 0; i < sizeMat.height; i++)
+		for (i = 1; i < sizeMat.height - 1; i++)
 		{
-			for (j = 0; j < sizeMat.width; j++)
+			for (j = 1; j < sizeMat.width - 1; j++)
 			{
 				int k = abs(qsrc1[j] - qsrc2[j]);
 				if (k > diffThreshold)
@@ -241,7 +246,7 @@ void itcUpdateMHI(ItcMat* src1, ItcMat* src2, ItcMat* mhi, int diffThreshold, It
 					qmhi[j]--;
 				}
 
-				qmask[j] = qmhi[j] > Threshold ? 255 : 0;//生成一个二值化掩码
+				qmask[j] = qmhi[j] > Threshold ? 1 : 0;//生成一个二值化掩码
 			}
 			qsrc1 += src1->step;
 			qsrc2 += src2->step;
@@ -249,4 +254,167 @@ void itcUpdateMHI(ItcMat* src1, ItcMat* src2, ItcMat* mhi, int diffThreshold, It
 			qmask += maskT->step;
 		}
 	}
+}
+
+/* initializes 8-element array for fast access to 3x3 neighborhood of a pixel */
+#define  ITC_INIT_3X3_DELTAS( deltas, step, nch )				\
+	((deltas)[0] = (nch), (deltas)[1] = -(step)+(nch),			\
+	(deltas)[2] = -(step), (deltas)[3] = -(step)-(nch),			\
+	(deltas)[4] = -(nch), (deltas)[5] = (step)-(nch),			\
+	(deltas)[6] = (step), (deltas)[7] = (step)+(nch))
+
+static const ItcPoint icvCodeDeltas[8] =
+{ { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 }, { 0, 1 }, { 1, 1 } };
+
+static int itcFetchContourEx(char*		ptr,
+int							step,
+ItcPoint					pt,
+ItcContour*					contour,
+int							nbd)
+{
+	int         deltas[16];
+	char        *i0 = ptr, *i1, *i3, *i4;
+	ItcRect      rect;
+	int         prev_s = -1, s, s_end;
+
+	assert(1 < nbd && nbd < 128);
+
+	/* initialize local state */
+	ITC_INIT_3X3_DELTAS(deltas, step, 1);
+	memcpy(deltas + 8, deltas, 8 * sizeof(deltas[0]));
+
+	rect.x = rect.width = pt.x;
+	rect.y = rect.height = pt.y;
+
+	s_end = s = (contour->flags) ? 0 : 4;	//判断是否是孔,是孔就从右边开始扫，是外轮廓就从左边开始扫
+
+	do
+	{
+		s = (s - 1) & 7;				//顺时针找边缘
+		i1 = i0 + deltas[s];
+		if (*i1 != 0)
+			break;
+	} while (s != s_end);
+
+	if (s == s_end)						//扫了一圈没有找到其他边缘，说明是单一一个点
+	{
+		*i0 = (char)(nbd | 0x80);		//把char类型最高位置为1,因为单点也是一个右边缘点
+		//CV_WRITE_SEQ_ELEM(pt, writer);//保存点
+	}
+	else
+	{
+		i3 = i0;
+		prev_s = s ^ 4;
+
+		//跟踪边缘
+		for (;;)
+		{
+			s_end = s;
+			for (;;)
+			{
+				i4 = i3 + deltas[++s];	//逆时针扫描8邻域
+				if (*i4 != 0)
+					break;
+			}
+			s &= 7;
+
+			//检查右边缘
+			if ((unsigned)(s - 1) < (unsigned)s_end)
+			{
+				*i3 = (char)(nbd | 0x80);//把右边缘点的值首位设置为1，因为-128 = 0x80 =1000 0000
+			}
+			else if (*i3 == 1)
+			{
+				*i3 = (char)nbd;//非右边缘值首位保持为0
+			}
+
+			if (s != prev_s)//压缩同方向的点
+			{
+				//CV_WRITE_SEQ_ELEM(pt, writer);//保存点
+			}
+
+			if (s != prev_s)
+			{
+				//更新边界
+				if (pt.x < rect.x)
+					rect.x = pt.x;
+				else if (pt.x > rect.width)
+					rect.width = pt.x;
+
+				if (pt.y < rect.y)
+					rect.y = pt.y;
+				else if (pt.y > rect.height)
+					rect.height = pt.y;
+			}
+
+			prev_s = s;
+			pt.x += icvCodeDeltas[s].x;//icvCodeDeltas是预先设置好的偏移量，根据方向s
+			pt.y += icvCodeDeltas[s].y;
+
+			if (i4 == i0 && i3 == i1)  break;
+
+			i3 = i4;
+			s = (s + 4) & 7;
+		}                       /* end of border following loop */
+	}
+
+	rect.width -= rect.x - 1;
+	rect.height -= rect.y - 1;
+	(contour)->rect = rect;
+
+	return 1;
+}
+
+int itcFindContours(ItcMat* src, ItcContour* firstContour)
+{
+	int step = src->step;
+	char *img0 = (char*)(src->data.ptr);
+	char *img = (char*)(src->data.ptr + step);
+	
+	int width = src->cols - 1;
+	int height = src->rows - 1;
+
+	ItcPoint lnbd = itcPoint(0, 1);	//记录上一次扫描到边缘点的位置
+	int x = 1;						//扫描起始位置
+	int y = 1;
+	int prev = img[x - 1];
+
+	int count = 0;
+	for (; y < height; y++, img += step)		//行，从上至下
+	{
+		for (x = 1; x < width; x++)				//列，从左至右
+		{
+			int p = img[x];
+			if (p != prev)						//找到一个边缘点
+			{
+				int is_hole = 0;
+				ItcPoint origin;				//扫描起点
+				if (!(prev == 0 && p == 1))		//如果没有找到外轮廓（0->1，注意区分左右型边缘，因为外轮廓的右边缘也是1->0，要与孔进行区分）
+				{
+					//检查是否是孔
+					if (p != 0 || prev < 1)		//孔应该是(p=0 && prev>=1)
+						goto resume_scan;		//跳出扫描器
+					is_hole = 1;				//设置孔标志
+				}
+				count++;
+				ItcContour contour;
+				contour.flags = is_hole;
+				//跟踪边缘的起点
+				origin.y = y;
+				origin.x = x - is_hole;			//不管是外轮廓还是孔，边缘（扫描起点）都取不为0的像素
+				itcFetchContourEx(img + x - is_hole, step, itcPoint(origin.x, origin.y), &contour, 126);
+				lnbd.x = x - is_hole;			//当前扫描到边缘点的位置，用于下次扫描判断是否有包含关系
+			resume_scan:
+				prev = img[x];		//不能直接等于p,因为itcFetchContourEx会改变当前扫描过的点
+				if (prev & -2)		//只保存已知的边缘
+				{
+					lnbd.x = x;		//记录当前扫描到边缘点的位置，用于下一扫描使用
+				}
+			}
+		}
+		lnbd.x = 0;
+		lnbd.y = y + 1;
+		prev = 0;
+	}
+	return count;
 }

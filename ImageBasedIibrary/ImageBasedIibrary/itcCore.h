@@ -9,8 +9,11 @@
 #define itcCore_h__
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+#include <assert.h>
 
-#include "itctypes.h"
+#include "itcdatastructs.h"
 
 typedef __int64 int64;
 typedef unsigned __int64 uint64;
@@ -96,8 +99,8 @@ typedef unsigned short ushort;
 #define ITC_64FC4 ITC_MAKETYPE(ITC_64F,4)
 #define ITC_64FC(n) ITC_MAKETYPE(ITC_64F,(n))
 
-#define ITC_AUTO_STEP  0x7fffffff
-#define ITC_WHOLE_ARR  ITCSlice( 0, 0x3fffffff )
+//#define ITC_AUTO_STEP  0x7fffffff
+//#define ITC_WHOLE_ARR  ITCSlice( 0, 0x3fffffff )
 
 #define ITC_MAT_CN_MASK          ((ITC_CN_MAX - 1) << ITC_CN_SHIFT)							//通道掩码
 #define ITC_MAT_CN(flags)        ((((flags) & ITC_MAT_CN_MASK) >> ITC_CN_SHIFT) + 1)		//获得通道数（第4到12位）
@@ -107,21 +110,21 @@ typedef unsigned short ushort;
 #define ITC_MAT_CONT_FLAG        (1 << ITC_MAT_CONT_FLAG_SHIFT)								//第15位
 #define ITC_IS_MAT_CONT(flags)   ((flags) & ITC_MAT_CONT_FLAG)
 #define ITC_IS_CONT_MAT          ITC_IS_MAT_CONT
-#define ITC_SUBMAT_FLAG_SHIFT    15
-#define ITC_SUBMAT_FLAG          (1 << ITC_SUBMAT_FLAG_SHIFT)								//第16位
-#define ITC_IS_SUBMAT(flags)     ((flags) & ITC_MAT_SUBMAT_FLAG)
+//#define ITC_SUBMAT_FLAG_SHIFT    15
+//#define ITC_SUBMAT_FLAG          (1 << ITC_SUBMAT_FLAG_SHIFT)								//第16位,未明白含义
+//#define ITC_IS_SUBMAT(flags)     ((flags) & ITC_MAT_SUBMAT_FLAG)
 
-#define ITC_MAGIC_MASK       0xFFFF0000
+#define ITC_MAGIC_MASK       0xFFFF0000		//用于判断是否是Mat结构
 #define ITC_MAT_MAGIC_VAL    0x42420000
 
 #define ITC_MALLOC_ALIGN    16				//用于对其Mat数据指针
-#define INT_MAX         2147483647
+#define INT_MAX         2147483647			//32位整型能表示的最大数值
 #define NULL	0
 
 #define ITC_AUTOSTEP  0x7fffffff
 
 #define ITC_ERROR_(errors) printf("error:%s\n",errors);
-
+#define ITC_ERROR_DETAIL(errors,info) printf("code:%s,err:%s",errors,info);
 typedef struct ItcMat
 {
 	int type;
@@ -253,6 +256,13 @@ ICV_DEF_BIN_ARI_ALL( ITC_SUB_R, Sub )			//定义sub操作的函数
 
 void itcSub(ItcMat* src1,ItcMat* src2,ItcMat* dst);			//dst=src1-src2
 
-void itcUpdateMHI(ItcMat* src1, ItcMat* src2, ItcMat* mhi, int diffThreshold, ItcMat* maskT, int Threshold);//输入连续两帧图像，生成mhi图，diffThreshold用于过滤帧差大小,Threshold用于生成掩码是过滤mhi的值
+//输入连续两帧图像，生成mhi图
+void itcUpdateMHI(ItcMat* src1,//当前帧
+	ItcMat* src2,		//上一帧
+	ItcMat* mhi,		//运动历史图像
+	int diffThreshold,	//用于过滤帧差大小
+	ItcMat* maskT,		//掩码图像，用于轮廓分析
+	int Threshold);		//用于生成掩码,mhi大于该值才把对应的maskT置为1
 
+int itcFindContours(ItcMat* src1, ItcContour* firstContour);
 #endif // itcCore_h__
