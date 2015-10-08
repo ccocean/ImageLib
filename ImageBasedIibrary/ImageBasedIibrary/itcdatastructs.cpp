@@ -1315,7 +1315,15 @@ void itcSeqRemove(ItcSeq *seq, int index)
 	//__END__;
 }
 
+/****************************************************************************************\
+*                             Sequence Writer implementation                             *
+\****************************************************************************************/
+
 /* initializes sequence writer */
+/*
+	将writer和seq绑定，通过宏ITC_WRITE_SEQ_ELEM（）向seq序列中写入值
+	ITC_WRITE_SEQ_ELEM(elem,writer);
+*/
 void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer)
 {
 	//CV_FUNCNAME("cvStartAppendToSeq");
@@ -1337,7 +1345,11 @@ void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer)
 	//__END__;
 }
 
+
 /* initializes sequence writer */
+/*
+	新建一个序列seq并将其与writer绑定
+*/
 void itcStartWriteSeq(int seq_flags, int header_size,
 int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer)
 {
@@ -1395,7 +1407,11 @@ void itcFlushSeqWriter(ItcSeqWriter * writer)
 	//__END__;
 }
 
+
 /* calls icvFlushSeqWriter and finishes writing process */
+/*
+	关闭写入序列，此时无法通过宏向seq里写入元素
+*/
 ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer)
 {
 	ItcSeq *seq = 0;
@@ -1435,7 +1451,42 @@ ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer)
 	return seq;
 }
 
+/* creates new sequence block */
+void itcCreateSeqBlock(ItcSeqWriter * writer)
+{
+	//CV_FUNCNAME("cvCreateSeqBlock");
+
+	//__BEGIN__;
+
+	ItcSeq *seq;
+
+	if (!writer || !writer->seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	seq = writer->seq;
+
+	itcFlushSeqWriter(writer);
+
+	//CV_CALL(icvGrowSeq(seq, 0));
+	itcGrowSeq(seq, 0);
+
+	writer->block = seq->first->prev;
+	writer->ptr = seq->ptr;
+	writer->block_max = seq->block_max;
+
+	//__END__;
+}
+
+/****************************************************************************************\
+*                               Sequence Reader implementation                           *
+\****************************************************************************************/
+
 /* initializes sequence reader */
+/*
+	将seq和reader绑定，通过宏ITC_READ_SEQ_ELEM（）来从序列seq中读取数据元素。
+	reverse代表是否逆序读取，0代表从尾到头，非0位从头到尾
+*/
 void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse)
 {
 	ItcSeqBlock *first_block;
@@ -1495,6 +1546,177 @@ void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse)
 
 	//__END__;
 }
+
+/* changes the current reading block to the previous or to the next */
+void itcChangeSeqBlock(void* _reader, int direction)
+{
+	//CV_FUNCNAME("cvChangeSeqBlock");
+
+	//__BEGIN__;
+
+	ItcSeqReader* reader = (ItcSeqReader*)_reader;
+
+	if (!reader)
+		ITC_ERROR_(ITC_StsNullPtr);
+	//CV_ERROR(CV_StsNullPtr, "");
+
+	if (direction > 0)
+	{
+		reader->block = reader->block->next;
+		reader->ptr = reader->block->data;
+	}
+	else
+	{
+		reader->block = reader->block->prev;
+		reader->ptr = ITC_GET_LAST_ELEM(reader->seq, reader->block);
+	}
+	reader->block_min = reader->block->data;
+	reader->block_max = reader->block_min + reader->block->count * reader->seq->elem_size;
+
+	//__END__;
+}
+
+/* returns the current reader position */
+/*
+	函数cvGetSeqReaderPos放回当前reader的位置在(0到reader->seq->total-1之间)
+*/
+int itcGetSeqReaderPos(ItcSeqReader* reader)
+{
+	int elem_size;
+	int index = -1;
+
+	//CV_FUNCNAME("cvGetSeqReaderPos");
+
+	//__BEGIN__;
+
+	if (!reader || !reader->ptr)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	elem_size = reader->seq->elem_size;
+	if (elem_size <= ITC_SHIFT_TAB_MAX && (index = itcPower2ShiftTab[elem_size - 1]) >= 0)
+		index = (int)((reader->ptr - reader->block_min) >> index);
+	else
+		index = (int)((reader->ptr - reader->block_min) / elem_size);
+
+	index += reader->block->start_index - reader->delta_index;
+
+	//__END__;
+
+	return index;
+}
+
+/* sets reader position to given absolute or relative
+(relatively to the current one) position */
+/*
+	功能
+	函数itcSetSeqReaderPos移动读取器到指定的位置
+	格式
+	void itcSetSeqReaderPos(CvSeqReader* reader,int  index, int is_relative = 0);
+	参数
+	reader 读取器的状态
+	index 索引的位置.如果使用绝对位置,则实际位置为index % reader->seq->total.
+	is_relative 如果不为0,则索引(index)值为相对位置
+	说明
+	函数itcSetSeqReaderPos将读取器的位置移动到绝对位置,或相对于当前位置的相对位置上.
+*/
+void itcSetSeqReaderPos(ItcSeqReader* reader, int index, int is_relative)
+{
+	//CV_FUNCNAME("cvSetSeqReaderPos");
+
+	//__BEGIN__;
+
+	ItcSeqBlock *block;
+	int elem_size, count, total;
+
+	if (!reader || !reader->seq)
+		ITC_ERROR_(ITC_StsNullPtr);
+		//CV_ERROR(CV_StsNullPtr, "");
+
+	total = reader->seq->total;
+	elem_size = reader->seq->elem_size;
+
+	if (!is_relative)
+	{
+		if (index < 0)
+		{
+			if (index < -total)
+				ITC_ERROR_(ITC_StsOutOfRange);
+				//CV_ERROR(CV_StsOutOfRange, "");
+			index += total;
+		}
+		else if (index >= total)
+		{
+			index -= total;
+			if (index >= total)
+				ITC_ERROR_(ITC_StsOutOfRange);
+				//CV_ERROR(CV_StsOutOfRange, "");
+		}
+
+		block = reader->seq->first;
+		if (index >= (count = block->count))
+		{
+			if (index + index <= total)
+			{
+				do
+				{
+					block = block->next;
+					index -= count;
+				} while (index >= (count = block->count));
+			}
+			else
+			{
+				do
+				{
+					block = block->prev;
+					total -= block->count;
+				} while (index < total);
+				index -= total;
+			}
+		}
+		reader->ptr = block->data + index * elem_size;
+		if (reader->block != block)
+		{
+			reader->block = block;
+			reader->block_min = block->data;
+			reader->block_max = block->data + block->count * elem_size;
+		}
+	}
+	else
+	{
+		char* ptr = reader->ptr;
+		index *= elem_size;
+		block = reader->block;
+
+		if (index > 0)
+		{
+			while (ptr + index >= reader->block_max)
+			{
+				int delta = (int)(reader->block_max - ptr);
+				index -= delta;
+				reader->block = block = block->next;
+				reader->block_min = ptr = block->data;
+				reader->block_max = block->data + block->count*elem_size;
+			}
+			reader->ptr = ptr + index;
+		}
+		else
+		{
+			while (ptr + index < reader->block_min)
+			{
+				int delta = (int)(ptr - reader->block_min);
+				index += delta;
+				reader->block = block = block->prev;
+				reader->block_min = block->data;
+				reader->block_max = ptr = block->data + block->count*elem_size;
+			}
+			reader->ptr = ptr + index;
+		}
+	}
+
+	//__END__;
+}
+
 
 /* adds several elements to the end or in the beginning of sequence */
 /*
@@ -1679,34 +1901,7 @@ void itcClearSeq(ItcSeq *seq)
 	//__END__;
 }
 
-/* changes the current reading block to the previous or to the next */
-void itcChangeSeqBlock(void* _reader, int direction)
-{
-	//CV_FUNCNAME("cvChangeSeqBlock");
 
-	//__BEGIN__;
-
-	ItcSeqReader* reader = (ItcSeqReader*)_reader;
-
-	if (!reader)
-		ITC_ERROR_(ITC_StsNullPtr);
-		//CV_ERROR(CV_StsNullPtr, "");
-
-	if (direction > 0)
-	{
-		reader->block = reader->block->next;
-		reader->ptr = reader->block->data;
-	}
-	else
-	{
-		reader->block = reader->block->prev;
-		reader->ptr = ITC_GET_LAST_ELEM(reader->seq, reader->block);
-	}
-	reader->block_min = reader->block->data;
-	reader->block_max = reader->block_min + reader->block->count * reader->seq->elem_size;
-
-	//__END__;
-}
 
 //int
 //itcSliceLength( CvSlice slice, const CvSeq* seq )
