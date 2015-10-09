@@ -1,86 +1,17 @@
+
 #ifndef _ITCTYPE_H_
 #define _ITCTYPE_H_
 
-#include <assert.h>
+#include "itcerror.h"
 #include "limits.h"
+#include "itctype.h"
 #include <assert.h>
-#include <iostream>
+#include <string.h>
 #include <stdlib.h>
 #include <malloc.h>
-#include "itcerror.h"
-#include "itctype.h"
+
 
 #pragma once
-/****************************************************************************************\
-*                             Common macros and inline functions                         *
-\****************************************************************************************/
-
-#define itcFree(ptr) (itcFree_(*(ptr)), *(ptr)=0)
-
-/* maximum size of dynamic memory buffer.
-cvAlloc reports an error if a larger block is requested. */
-#define  ITC_MAX_ALLOC_SIZE    (((size_t)1 << (sizeof(size_t)*8-2)))  //ÅÐ¶ÏÊÇ·ñÔ½½ç
-/* the alignment of all the allocated buffers */
-#define  ITC_MALLOC_ALIGN    32
-// pointers to allocation functions, initially set to default
-static void* p_cvAllocUserData = 0;
-/* default storage block size */
-#define  ITC_STORAGE_BLOCK_SIZE   ((1<<16) - 128)
-/* default alignment for dynamic data strucutures, resided in storages. */
-#define  ITC_STRUCT_ALIGN    ((int)sizeof(double))
-
-#define ITC_GET_LAST_ELEM( seq, block ) \
-	((block)->data + ((block)->count - 1)*((seq)->elem_size))
-
-#define ITC_FREE_PTR(storage)  \
-	((char*)(storage)->top + (storage)->block_size - (storage)->free_space)
-/* 0x3a50 = 11 10 10 01 01 00 00 ~ array of log2(sizeof(arr_type_elem)) */
-#define ITC_ELEM_SIZE(type) \
-	(ITC_MAT_CN(type) << ((((sizeof(size_t) / 4 + 1) * 16384 | 0x3a50) >> ITC_MAT_DEPTH(type) * 2) & 3))
-#define ITC_SHIFT_TAB_MAX 32
-static const char itcPower2ShiftTab[] =
-{
-	0, 1, -1, 2, -1, -1, -1, 3, -1, -1, -1, -1, -1, -1, -1, 4,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5
-};
-
-#define ITC_MEMCPY_AUTO( dst, src, len )                                             \
-{                                                                                   \
-	size_t _icv_memcpy_i_, _icv_memcpy_len_ = (len);                                \
-	char* _icv_memcpy_dst_ = (char*)(dst);                                          \
-	const char* _icv_memcpy_src_ = (const char*)(src);                              \
-if ((_icv_memcpy_len_ & (sizeof(int)-1)) == 0)                                 \
-{                                                                               \
-	assert(((size_t)_icv_memcpy_src_&(sizeof(int)-1)) == 0 && \
-	((size_t)_icv_memcpy_dst_&(sizeof(int)-1)) == 0);                  \
-for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_;                 \
-	_icv_memcpy_i_ += sizeof(int))                                           \
-{                                                                           \
-	*(int*)(_icv_memcpy_dst_ + _icv_memcpy_i_) = \
-	*(const int*)(_icv_memcpy_src_ + _icv_memcpy_i_);                         \
-	}                                                                           \
-	}                                                                               \
-	else                                                                            \
-{                                                                               \
-for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_; _icv_memcpy_i_++)\
-	_icv_memcpy_dst_[_icv_memcpy_i_] = _icv_memcpy_src_[_icv_memcpy_i_];    \
-	}                                                                               \
-}
-
-
-//error code
-#define  ITC_OK 0
-#define  ITC_StsBadSize    -201 /* the input/output structure size is incorrect  */
-#define  ITC_StsOutOfRange -211  /* some of parameters are out of range */
-#define  ITC_StsNoMem -4	/* insufficient memory */
-#define  ITC_StsNullPtr  -27 /* null pointer */
-#define  ITC_BADARG_ERR   -49  //ipp comp
-
-
-/****************************************************************************************\
-*                                    Sequence types                                      *
-\****************************************************************************************/
-#define ITC_SEQ_ELTYPE_GENERIC        0
 
 inline int itcRound(double a)
 {
@@ -512,8 +443,6 @@ typedef struct ItcSeqReader
 }
 ItcSeqReader;
 
-#define ITC_SEQ_ELTYPE_POINT          ITC_32SC2  /* (x,y) */
-
 /****************************************************************************************/
 /*                                Operations on sequences                               */
 /****************************************************************************************/
@@ -672,7 +601,6 @@ void itcRestoreMemStoragePos(ItcMemStorage * storage, ItcMemStoragePos * pos);
 void* itcMemStorageAlloc(ItcMemStorage* storage, size_t size);
 ItcSeq *itcCreateSeq(int seq_flags, int header_size, int elem_size, ItcMemStorage * storage);
 void itcSetSeqBlockSize(ItcSeq *seq, int delta_elements);
-
 int itcSeqElemIdx(const ItcSeq* seq, const void* _element, ItcSeqBlock** _block);
 static void itcGrowSeq(ItcSeq *seq, int in_front_of);
 char* itcSeqPush(ItcSeq *seq, void *element);
@@ -683,15 +611,13 @@ void itcSeqPopFront(ItcSeq *seq, void *element);
 char* itcSeqInsert(ItcSeq *seq, int before_index, void *element);
 void itcSeqRemove(ItcSeq *seq, int index);
 void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer);
-void itcStartWriteSeq(int seq_flags, int header_size,
-	int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer);
+void itcStartWriteSeq(int seq_flags, int header_size,int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer);
 void itcFlushSeqWriter(ItcSeqWriter * writer);
 ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer);
 void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse);
 void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front);
 void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front);
 void itcClearSeq(ItcSeq *seq);
-
 int itcGetSeqReaderPos(ItcSeqReader* reader);
 void itcSetSeqReaderPos(ItcSeqReader* reader, int index, int is_relative);
 
