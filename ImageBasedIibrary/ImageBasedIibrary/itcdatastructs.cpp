@@ -8,7 +8,7 @@
 #include <malloc.h>
 
 
-#define cvFree(ptr) (cvFree_(*(ptr)), *(ptr)=0)
+#define itcFree(ptr) (itcFree_(*(ptr)), *(ptr)=0)
 
 /* maximum size of dynamic memory buffer.
    cvAlloc reports an error if a larger block is requested. */
@@ -116,6 +116,8 @@ static int
 	itcDefaultFree( void* ptr, void* )
 {
 	// Pointer must be aligned by CV_MALLOC_ALIGN
+		std::cout << (size_t)ptr << std::endl;
+		std::cout << (ITC_MALLOC_ALIGN - 1) << std::endl;
 	if( ((size_t)ptr & (ITC_MALLOC_ALIGN-1)) != 0 )
 		return ITC_BADARG_ERR;
 	free( *((char**)ptr - 1) );
@@ -279,8 +281,8 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 		//如果没有parent则逐个释放掉storage中每个block的内存
 		else
 		{
-			//cvFree( &temp );
-			itcFree_(&temp);
+			itcFree( &temp );
+			//itcFree_(&temp);
 		}
 	}
 
@@ -313,7 +315,7 @@ void
 	if( st )
 	{
 		itcDestroyMemStorage(st);
-		itcFree_(&st);
+		itcFree(&st);
 		//CV_CALL( icvDestroyMemStorage( st ));
 		//cvFree( &st );
 	}
@@ -482,6 +484,9 @@ itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos )
 }
 
 /* Allocates continuous buffer of the specified size in the storage */
+/*
+	该方法是从已分配的storage中申请size大小的空间
+*/
 void*
 	itcMemStorageAlloc( ItcMemStorage* storage, size_t size )
 {
