@@ -116,8 +116,6 @@ static int
 	itcDefaultFree( void* ptr, void* )
 {
 	// Pointer must be aligned by CV_MALLOC_ALIGN
-		std::cout << (size_t)ptr << std::endl;
-		std::cout << (ITC_MALLOC_ALIGN - 1) << std::endl;
 	if( ((size_t)ptr & (ITC_MALLOC_ALIGN-1)) != 0 )
 		return ITC_BADARG_ERR;
 	free( *((char**)ptr - 1) );

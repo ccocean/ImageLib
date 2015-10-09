@@ -49,6 +49,7 @@ ItcMat*	itcCreateMat( int height, int width, int type )
 
 static void iicvCheckHuge( ItcMat* arr )
 {
+	//检查需要分配的空间是否过大
 	if( (int64)arr->step*arr->rows > INT_MAX )	//不超出最大分配大小
 		arr->type &= ~ITC_MAT_CONT_FLAG;		//设置为不连续
 }
@@ -58,16 +59,16 @@ ItcMat*	itcCreateMatHeader( int rows, int cols, int type )
 	type = ITC_MAT_TYPE(type);
 
 	if( rows < 0 || cols <= 0 )
-		ITC_ERROR_("Non-positive width or height");//
+		ITC_ERROR_("Non-positive width or height");				//
 
 	int min_step = ITC_ELEM_SIZE(type)*cols;
 	if( min_step <= 0 )
-		ITC_ERROR_("Invalid matrix type");//
+		ITC_ERROR_("Invalid matrix type");						//
 
 	ItcMat* arr = (ItcMat*)malloc( sizeof(*arr));
 
 	arr->step = min_step;
-	arr->type = ITC_MAT_MAGIC_VAL | type | ITC_MAT_CONT_FLAG;//ITC_MAT_MAGIC_VAL为Mat结构的标志，用于判断是否是mat结构
+	arr->type = ITC_MAT_MAGIC_VAL | type | ITC_MAT_CONT_FLAG;	//ITC_MAT_MAGIC_VAL为Mat结构的标志，用于判断是否是mat结构
 	arr->rows = rows;
 	arr->cols = cols;
 	arr->data.ptr = NULL;
@@ -269,19 +270,23 @@ static const ItcPoint icvCodeDeltas[8] =
 static int itcFetchContourEx(char*		ptr,
 int							step,
 ItcPoint					pt,
-ItcContour*					contour,
+ItcSeq*					contour,
 int							nbd)
 {
 	int         deltas[16];
 	char        *i0 = ptr, *i1, *i3, *i4;
 	ItcRect      rect;
 	int         prev_s = -1, s, s_end;
+	ItcSeqWriter writer;
 
 	assert(1 < nbd && nbd < 128);
 
 	/* initialize local state */
 	ITC_INIT_3X3_DELTAS(deltas, step, 1);
 	memcpy(deltas + 8, deltas, 8 * sizeof(deltas[0]));
+
+	/* initialize writer */
+	itcStartAppendToSeq((ItcSeq*)contour, &writer);
 
 	rect.x = rect.width = pt.x;
 	rect.y = rect.height = pt.y;
@@ -299,7 +304,7 @@ int							nbd)
 	if (s == s_end)						//扫了一圈没有找到其他边缘，说明是单一一个点
 	{
 		*i0 = (char)(nbd | 0x80);		//把char类型最高位置为1,因为单点也是一个右边缘点
-		//CV_WRITE_SEQ_ELEM(pt, writer);//保存点
+		//ITC_WRITE_SEQ_ELEM(pt, writer);//保存点
 	}
 	else
 	{
@@ -330,7 +335,7 @@ int							nbd)
 
 			if (s != prev_s)//压缩同方向的点
 			{
-				//CV_WRITE_SEQ_ELEM(pt, writer);//保存点
+				//ITC_WRITE_SEQ_ELEM(pt, writer);//保存点
 			}
 
 			if (s != prev_s)
@@ -360,12 +365,13 @@ int							nbd)
 
 	rect.width -= rect.x - 1;
 	rect.height -= rect.y - 1;
-	(contour)->rect = rect;
+	((ItcContour*)(contour))->rect = rect;
+	itcEndWriteSeq(&writer);
 
 	return 1;
 }
 
-int itcFindContours(ItcMat* src, ItcContour* firstContour)
+int itcFindContours(ItcMat* src, ItcContour** pContour, ItcMemStorage*  storage)
 {
 	int step = src->step;
 	char *img0 = (char*)(src->data.ptr);
@@ -397,13 +403,25 @@ int itcFindContours(ItcMat* src, ItcContour* firstContour)
 					is_hole = 1;				//设置孔标志
 				}
 				count++;
-				ItcContour contour;
-				contour.flags = is_hole;
+				ItcSeq* contour = itcCreateSeq(0, sizeof(ItcContour), sizeof(ItcPoint), storage);
+				contour->flags = is_hole;
 				//跟踪边缘的起点
 				origin.y = y;
 				origin.x = x - is_hole;			//不管是外轮廓还是孔，边缘（扫描起点）都取不为0的像素
-				itcFetchContourEx(img + x - is_hole, step, itcPoint(origin.x, origin.y), &contour, 126);
+				itcFetchContourEx(img + x - is_hole, step, itcPoint(origin.x, origin.y), contour, 126);
 				lnbd.x = x - is_hole;			//当前扫描到边缘点的位置，用于下次扫描判断是否有包含关系
+
+				if ((*pContour) == NULL)
+				{
+					(*pContour) = (ItcContour*)contour;
+				}
+				else
+				{
+					//插入
+					contour->h_next = (*pContour)->h_next;
+					(*pContour)->h_next = contour;
+					
+				}
 			resume_scan:
 				prev = img[x];		//不能直接等于p,因为itcFetchContourEx会改变当前扫描过的点
 				if (prev & -2)		//只保存已知的边缘

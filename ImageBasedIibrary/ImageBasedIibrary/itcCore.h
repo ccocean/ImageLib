@@ -1,10 +1,13 @@
-/*******************************************************************************
-文件名称：itcCore.h 
-功    能：图像算法基础数据结构
-时    间：9/25/2015 XUE
-版    本：1.0
-注    意：
-*******************************************************************************/
+/************************************************************************** 
+    *  @Copyright (c) 2015, XueYB, All rights reserved. 
+ 
+    *  @file     : itcCore.h 
+    *  @version  : ver 1.0 
+ 
+    *  @author   : XueYB 
+    *  @date     : 2015/10/09 11:19 
+    *  @brief    : brief 
+**************************************************************************/
 #ifndef itcCore_h__
 #define itcCore_h__
 #include <stdlib.h>
@@ -111,13 +114,12 @@ typedef unsigned short ushort;
 #define ITC_IS_MAT_CONT(flags)   ((flags) & ITC_MAT_CONT_FLAG)
 #define ITC_IS_CONT_MAT          ITC_IS_MAT_CONT
 //#define ITC_SUBMAT_FLAG_SHIFT    15
-//#define ITC_SUBMAT_FLAG          (1 << ITC_SUBMAT_FLAG_SHIFT)								//第16位,未明白含义
+//#define ITC_SUBMAT_FLAG          (1 << ITC_SUBMAT_FLAG_SHIFT)								//第16位,未明白含义，也未使用
 //#define ITC_IS_SUBMAT(flags)     ((flags) & ITC_MAT_SUBMAT_FLAG)
 
 #define ITC_MAGIC_MASK       0xFFFF0000		//用于判断是否是Mat结构
 #define ITC_MAT_MAGIC_VAL    0x42420000
 
-#define ITC_MALLOC_ALIGN    16				//用于对其Mat数据指针
 #define INT_MAX         2147483647			//32位整型能表示的最大数值
 #define NULL	0
 
@@ -163,22 +165,22 @@ ItcMat;
 	((const ItcMat*)(mat))->cols > 0 && ((const ItcMat*)(mat))->rows > 0)		//判断是否是Mat
 
 #define ITC_IS_MAT(mat) \
-	(ITC_IS_MAT_HDR(mat) && ((const ItcMat*)(mat))->data.ptr != NULL)//是否有数据
+	(ITC_IS_MAT_HDR(mat) && ((const ItcMat*)(mat))->data.ptr != NULL)			//判断是否有数据
 
 #define ITC_IS_MASK_ARR(mat) \
 	(((mat)->type & (ITC_MAT_TYPE_MASK & ~ITC_8SC1)) == 0)
 
 #define ITC_ARE_TYPES_EQ(mat1, mat2) \
-	((((mat1)->type ^ (mat2)->type) & ITC_MAT_TYPE_MASK) == 0)//判断mat1和mat2类型（通道数和深度）是否相同
+	((((mat1)->type ^ (mat2)->type) & ITC_MAT_TYPE_MASK) == 0)					//判断mat1和mat2类型（通道数和深度）是否相同
 
 #define ITC_ARE_CNS_EQ(mat1, mat2) \
-	((((mat1)->type ^ (mat2)->type) & ITC_MAT_CN_MASK) == 0)//判断mat1和mat2通道数是否相等
+	((((mat1)->type ^ (mat2)->type) & ITC_MAT_CN_MASK) == 0)					//判断mat1和mat2通道数是否相等
 
 #define ITC_ARE_DEPTHS_EQ(mat1, mat2) \
-	((((mat1)->type ^ (mat2)->type) & ITC_MAT_DEPTH_MASK) == 0)//判断mat1和mat2深度是否相等
+	((((mat1)->type ^ (mat2)->type) & ITC_MAT_DEPTH_MASK) == 0)					//判断mat1和mat2深度是否相等
 
 #define ITC_ARE_SIZES_EQ(mat1, mat2) \
-	((mat1)->height == (mat2)->height && (mat1)->width == (mat2)->width)//判断mat1和mat2尺寸是否相等
+	((mat1)->height == (mat2)->height && (mat1)->width == (mat2)->width)		//判断mat1和mat2尺寸是否相等
 
 #define ITC_IS_MAT_CONST(mat)  \
 	(((mat)->height|(mat)->width) == 1)
@@ -187,7 +189,7 @@ ItcMat;
 	(ITC_MAT_CN(type) << ((((sizeof(size_t)/4+1)*0x4000|0x3a50) >> ITC_MAT_DEPTH(type)*2) & 3))	//每一个元素有n个通道，每个通道占s个字节，那么一个元素的大小就为n*s,其中s的取值为1，2，4，8，用位操作《取代*则为0，1，2，3
 																								//0x3a50中，每两个位对应一个深度的s,最高两位对应ITC_USRTYPE1，size_t只对最高两位产生影响（因为0x4000）
 /* general-purpose saturation macros */ 
-#define  ITC_CAST_8U(t)  (uchar)(!((t) & ~255) ? (t) : (t) > 0 ? 255 : 0)					//((t) & ~255)不为0说明已经越界
+#define  ITC_CAST_8U(t)  (uchar)(!((t) & ~255) ? (t) : (t) > 0 ? 255 : 0)						//((t) & ~255)不为0说明已经越界
 #define  ITC_CAST_8S(t)  (char)(!(((t)+128) & ~255) ? (t) : (t) > 0 ? 127 : -128)
 #define  ITC_CAST_16U(t) (ushort)(!((t) & ~65535) ? (t) : (t) > 0 ? 65535 : 0)
 #define  ITC_CAST_16S(t) (short)(!(((t)+32768) & ~65535) ? (t) : (t) > 0 ? 32767 : -32768)
@@ -196,22 +198,20 @@ ItcMat;
 #define  ITC_CAST_32F(t) (float)(t)
 #define  ITC_CAST_64F(t) (double)(t)
 
-static void iicvCheckHuge( ItcMat* arr );//检查需要分配的空间是否过大
-
-ItcMat itcMat( int rows, int cols, int type, void* data);	//手动分配数据创建Mat,注意不能用itcReleaseMat释放
-ItcMat*	itcCreateMat( int height, int width, int type );	//创建Mat
-ItcMat*	itcCreateMatHeader( int rows, int cols, int type );	//创建Mat头
+ItcMat	itcMat( int rows, int cols, int type, void* data);									//手动分配数据创建Mat,注意不能用itcReleaseMat释放
+ItcMat*	itcCreateMat( int height, int width, int type );									//创建Mat
+ItcMat*	itcCreateMatHeader( int rows, int cols, int type );									//创建Mat头
 ItcMat*	itcInitMatHeader( ItcMat* arr, int rows, int cols, int type, void* data, int step );//有Mat头后初始化
-void  itcReleaseMat( ItcMat** mat );						//释放Mat,包括头和数据
+void	itcReleaseMat( ItcMat** mat );														//释放Mat,包括头和数据
 
 
 /*------------------------------------矩阵基本运算-------------------------------------------*/
 
-typedef struct ItcFuncTable
-{
-	void*   fn_2d[ITC_DEPTH_MAX];
-}
-ItcFuncTable;
+// typedef struct ItcFuncTable	//函数指针，根据深度的不同指向不同，暂未使用
+// {
+// 	void*   fn_2d[ITC_DEPTH_MAX];
+// }
+// ItcFuncTable;
 
 #define ICV_DEF_BIN_ARI_OP_2D( __op__, name, type, worktype, cast_macro )   \
 static void  name													        \
@@ -250,9 +250,9 @@ ICV_DEF_BIN_ARI_OP_2D( __op__, icv##name##_32f_C1R, float, float, ITC_CAST_32F )
 ICV_DEF_BIN_ARI_OP_2D( __op__, icv##name##_64f_C1R, double, double, ITC_CAST_64F )
 
 #undef ITC_SUB_R
-#define ITC_SUB_R(a,b) ((a) - (b))				//定义sub操作
+#define ITC_SUB_R(a,b) ((a) - (b))							//定义sub操作
 
-ICV_DEF_BIN_ARI_ALL( ITC_SUB_R, Sub )			//定义sub操作的函数
+ICV_DEF_BIN_ARI_ALL( ITC_SUB_R, Sub )						//定义sub操作的函数
 
 void itcSub(ItcMat* src1,ItcMat* src2,ItcMat* dst);			//dst=src1-src2
 
@@ -264,5 +264,6 @@ void itcUpdateMHI(ItcMat* src1,//当前帧
 	ItcMat* maskT,		//掩码图像，用于轮廓分析
 	int Threshold);		//用于生成掩码,mhi大于该值才把对应的maskT置为1
 
-int itcFindContours(ItcMat* src1, ItcContour* firstContour);
+//轮廓检测
+int itcFindContours(ItcMat* src1, ItcContour** pContour, ItcMemStorage*  storage);
 #endif // itcCore_h__
