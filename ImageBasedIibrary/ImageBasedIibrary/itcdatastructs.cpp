@@ -158,10 +158,6 @@ ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 	storage->parent = parent;
 
 	//__END__;
-
-	if (cvGetErrStatus() < 0)
-		itcFree(&storage);
-
 	return storage;
 }
 
@@ -485,7 +481,7 @@ ItcSeq *
 		int elemtype = ITC_MAT_TYPE(seq_flags);
 		int typesize = ITC_ELEM_SIZE(elemtype);
 
-		if (elemtype != CV_SEQ_ELTYPE_GENERIC &&
+		if (elemtype != ITC_SEQ_ELTYPE_GENERIC &&
 			typesize != 0 && typesize != elem_size)
 			ITC_ERROR_DETAIL(ITC_StsBadSize, "Specified element size doesn't match to the size of the specified element type \
 			(try to use 0 for element type)");

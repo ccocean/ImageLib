@@ -3,12 +3,12 @@
 
 #include <assert.h>
 #include "limits.h"
-#include "itcCore.h"
 #include <assert.h>
 #include <iostream>
 #include <stdlib.h>
 #include <malloc.h>
 #include "itcerror.h"
+#include "itctype.h"
 
 #pragma once
 /****************************************************************************************\
