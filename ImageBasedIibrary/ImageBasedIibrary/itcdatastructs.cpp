@@ -1,76 +1,11 @@
 #pragma once
 #include "itcdatastructs.h"
-#include "limits.h"
-#include "itcCore.h"
-#include <assert.h>
-#include <iostream>
-#include <stdlib.h>
-#include <malloc.h>
 
 
-#define itcFree(ptr) (itcFree_(*(ptr)), *(ptr)=0)
-
-/* maximum size of dynamic memory buffer.
-   cvAlloc reports an error if a larger block is requested. */
-#define  ITC_MAX_ALLOC_SIZE    (((size_t)1 << (sizeof(size_t)*8-2)))  //判断是否越界
-/* the alignment of all the allocated buffers */
-#define  ITC_MALLOC_ALIGN    32
-/* default storage block size */
-#define  ITC_STORAGE_BLOCK_SIZE   ((1<<16) - 128)
-/* default alignment for dynamic data strucutures, resided in storages. */
-#define  ITC_STRUCT_ALIGN    ((int)sizeof(double))
-
-#define ITC_GET_LAST_ELEM( seq, block ) \
-	((block)->data + ((block)->count - 1)*((seq)->elem_size))
-
-#define ITC_FREE_PTR(storage)  \
-	((char*)(storage)->top + (storage)->block_size - (storage)->free_space)
-/* 0x3a50 = 11 10 10 01 01 00 00 ~ array of log2(sizeof(arr_type_elem)) */
-#define ITC_ELEM_SIZE(type) \
-	(ITC_MAT_CN(type) << ((((sizeof(size_t)/4+1)*16384|0x3a50) >> ITC_MAT_DEPTH(type)*2) & 3))
-#define ITC_SHIFT_TAB_MAX 32
-static const char itcPower2ShiftTab[] =
-{
-	0, 1, -1, 2, -1, -1, -1, 3, -1, -1, -1, -1, -1, -1, -1, 4,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5
-};
-
-#define ITC_MEMCPY_AUTO( dst, src, len )                                             \
-{                                                                                   \
-	size_t _icv_memcpy_i_, _icv_memcpy_len_ = (len);                                \
-	char* _icv_memcpy_dst_ = (char*)(dst);                                          \
-	const char* _icv_memcpy_src_ = (const char*)(src);                              \
-if ((_icv_memcpy_len_ & (sizeof(int)-1)) == 0)                                 \
-{                                                                               \
-	assert(((size_t)_icv_memcpy_src_&(sizeof(int)-1)) == 0 && \
-	((size_t)_icv_memcpy_dst_&(sizeof(int)-1)) == 0);                  \
-for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_;                 \
-	_icv_memcpy_i_ += sizeof(int))                                           \
-{                                                                           \
-	*(int*)(_icv_memcpy_dst_ + _icv_memcpy_i_) = \
-	*(const int*)(_icv_memcpy_src_ + _icv_memcpy_i_);                         \
-	}                                                                           \
-	}                                                                               \
-	else                                                                            \
-{                                                                               \
-for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_; _icv_memcpy_i_++)\
-	_icv_memcpy_dst_[_icv_memcpy_i_] = _icv_memcpy_src_[_icv_memcpy_i_];    \
-	}                                                                               \
-}
 
 
-//error code
-#define  ITC_OK 0
-#define  ITC_StsBadSize    -201 /* the input/output structure size is incorrect  */
-#define  ITC_StsOutOfRange -211  /* some of parameters are out of range */
-#define  ITC_StsNoMem -4	/* insufficient memory */
-#define  ITC_StsNullPtr  -27 /* null pointer */
-#define  ITC_BADARG_ERR   -49  //ipp comp
 
-/* the alignment of all the allocated buffers */
-#define  ITC_MALLOC_ALIGN    32
-// pointers to allocation functions, initially set to default
-static void* p_cvAllocUserData = 0;
+
 
 
 
@@ -116,8 +51,6 @@ static int
 	itcDefaultFree( void* ptr, void* )
 {
 	// Pointer must be aligned by CV_MALLOC_ALIGN
-		std::cout << (size_t)ptr << std::endl;
-		std::cout << (ITC_MALLOC_ALIGN - 1) << std::endl;
 	if( ((size_t)ptr & (ITC_MALLOC_ALIGN-1)) != 0 )
 		return ITC_BADARG_ERR;
 	free( *((char**)ptr - 1) );
@@ -138,12 +71,10 @@ void*  itcAlloc( size_t size )
 
 	if ((size_t)size > ITC_MAX_ALLOC_SIZE)
 		ITC_ERROR_(ITC_StsOutOfRange);
-		//std::cout<<"err: "<<ITC_StsOutOfRange<<std::endl;
 
 	ptr = itcDefaultAlloc( size, p_cvAllocUserData );
 	if( !ptr )
 		ITC_ERROR_(ITC_StsNoMem);
-		//std::cout<<"err: "<<ITC_StsNoMem<<std::endl;
 
 	//__END__;
 
@@ -161,7 +92,6 @@ void  itcFree_( void* ptr )
 		int status = itcDefaultFree( ptr, p_cvAllocUserData );
 		if (status < 0)
 			printf("Deallocation error\n");
-			//std::cout<<"Deallocation error"<<std::endl;
 	}
 
 	//__END__;
@@ -180,7 +110,6 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 
 	if (!storage)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	if( block_size <= 0 )
 		block_size = ITC_STORAGE_BLOCK_SIZE;//block_size==0分配块大小默认为65408
@@ -223,7 +152,6 @@ ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 
 	if (!parent)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	//CV_CALL( storage = cvCreateMemStorage(parent->block_size));
 	storage = itcCreateMemStorage(parent->block_size);
@@ -231,8 +159,8 @@ ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 
 	//__END__;
 
-	//if( cvGetErrStatus() < 0 )
-		//cvFree( &storage );
+	if (cvGetErrStatus() < 0)
+		itcFree(&storage);
 
 	return storage;
 }
@@ -251,7 +179,6 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 
 	if (!storage)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	if( storage->parent )
 		dst_top = storage->parent->top;
@@ -306,7 +233,6 @@ void
 
 	if( !storage )
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	//为什么不直接释放内存？
 	st = *storage;
@@ -336,7 +262,6 @@ void
 
 	if( !storage )
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	if( storage->parent )
 	{
@@ -363,7 +288,6 @@ itcGoNextMemBlock( ItcMemStorage * storage )
     
 	if (!storage)
 		ITC_ERROR_(ITC_StsNullPtr);
-        //std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
     if( !storage->top || !storage->top->next )
     {
@@ -429,7 +353,6 @@ void
 
 	if( !storage || !pos )
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	pos->top = storage->top;
 	pos->free_space = storage->free_space;
@@ -447,10 +370,8 @@ itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos )
 
     if( !storage || !pos )
 		ITC_ERROR_(ITC_StsNullPtr);
-        //std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
     if( pos->free_space > storage->block_size )
 		ITC_ERROR_(ITC_StsBadSize);
-		//std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
         //CV_ERROR( CV_StsBadSize, "" );
 
     /*
@@ -499,12 +420,10 @@ void*
 	if( !storage )
 		ITC_ERROR_(ITC_StsNullPtr);
 		//CV_ERROR( CV_StsNullPtr, "NULL storage pointer" );
-		//std::cout<<"err: "<<ITC_StsNullPtr<<" Null storage pointer"<<std::endl;
 
 	if( size > INT_MAX )
 		ITC_ERROR_(ITC_StsOutOfRange);
 		//CV_ERROR( CV_StsOutOfRange, "Too large memory block is requested" );
-		//std::cout<<"err: "<<ITC_StsOutOfRange<<" Too large memory block is requested"<<std::endl;
 
 	assert( storage->free_space % ITC_STRUCT_ALIGN == 0 );
 
@@ -514,7 +433,6 @@ void*
 		if (max_free_space < size)
 			//CV_ERROR( CV_StsOutOfRange, "requested size is negative or too big" );
 			ITC_ERROR_DETAIL(ITC_StsOutOfRange, "Too large memory block is requested");
-			//std::cout<<"err: "<<ITC_StsOutOfRange<<" Too large memory block is requested"<<std::endl;
 
 		//CV_CALL( icvGoNextMemBlock( storage ));
 		itcGoNextMemBlock(storage);
@@ -553,10 +471,8 @@ ItcSeq *
 
 	if (!storage)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 	if( header_size < (int)sizeof( ItcSeq ) || elem_size <= 0 )
 		ITC_ERROR_(ITC_StsBadSize);
-		//std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
 
 	/* allocate sequence header */
 	//CV_CALL( seq = (CvSeq*)cvMemStorageAlloc( storage, header_size ));
@@ -573,7 +489,6 @@ ItcSeq *
 			typesize != 0 && typesize != elem_size)
 			ITC_ERROR_DETAIL(ITC_StsBadSize, "Specified element size doesn't match to the size of the specified element type \
 			(try to use 0 for element type)");
-			//std::cout<<"err: "<<ITC_StsBadSize<<"Specified element size doesn't match to the size of the specified element type (try to use 0 for element type)"<<std::endl;
 			//CV_ERROR( CV_StsBadSize,
 			//"Specified element size doesn't match to the size of the specified element type "
 			//"(try to use 0 for element type)" );
@@ -603,10 +518,8 @@ itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
 	
 	if (!seq || !seq->storage)
 		ITC_ERROR_(ITC_StsNullPtr);
-        //std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 	if (delta_elements < 0)
 		ITC_ERROR_(ITC_StsBadSize);
-        //std::cout<<"err: "<<ITC_StsBadSize<<std::endl;
 
     useful_block_size = itcAlignLeft(seq->storage->block_size - sizeof(ItcMemBlock) -
                                     sizeof(ItcSeqBlock), ITC_STRUCT_ALIGN);
@@ -622,7 +535,6 @@ itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
         delta_elements = useful_block_size / elem_size;
 		if (delta_elements == 0)
 			ITC_ERROR_DETAIL(ITC_StsBadSize, "Storage block size is too small to fit the sequence elements");
-			//std::cout<<"err: "<<ITC_StsBadSize<<"Storage block size is too small to fit the sequence elements"<<std::endl;
             //CV_ERROR( CV_StsOutOfRange, "Storage block size is too small "
                                        // "to fit the sequence elements" );
     }
@@ -692,7 +604,6 @@ int
 
 	if (!seq || !element)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 
 	block = first_block = seq->first;
 	elem_size = seq->elem_size;
@@ -740,7 +651,6 @@ char*
 
 	if( !seq )
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
 		//CV_ERROR( CV_StsNullPtr, "" );
 
 	elem_size = seq->elem_size;
@@ -784,11 +694,9 @@ void itcSeqPop(ItcSeq *seq, void *element)
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout << "err: " << ITC_StsNullPtr << std::endl;
 		//CV_ERROR(ITC_StsNullPtr, "");
 	if (seq->total <= 0)
 		ITC_ERROR_(ITC_StsBadSize);
-		//std::cout << "err: " << ITC_StsBadSize << std::endl;
 		//CV_ERROR(ITC_StsBadSize, "");
 
 	elem_size = seq->elem_size;
@@ -822,7 +730,6 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
         //CV_ERROR( CV_StsNullPtr, "" );
     block = seq->free_blocks;
 
@@ -837,7 +744,6 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
 
         if( !storage )
 			ITC_ERROR_(ITC_StsNullPtr);
-			//std::cout<<"err: "<<ITC_StsNullPtr<<std::endl;
             //CV_ERROR( CV_StsNullPtr, "The sequence has NULL storage pointer" );
 
         /* if there is a free space just after last allocated block
@@ -1021,7 +927,6 @@ char* itcSeqPushFront(ItcSeq *seq, void *element)
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout << "err: " << ITC_StsNullPtr << std::endl;
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	elem_size = seq->elem_size;
@@ -1064,11 +969,9 @@ void itcSeqPopFront(ItcSeq *seq, void *element)
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout << "err: " << ITC_StsNullPtr << std::endl;
 		//CV_ERROR(CV_StsNullPtr, "");
 	if (seq->total <= 0)
 		ITC_ERROR_(ITC_StsBadSize);
-		//std::cout << "err: " << ITC_StsBadSize << std::endl;
 		//CV_ERROR(CV_StsBadSize, "");
 
 	elem_size = seq->elem_size;
@@ -1110,7 +1013,6 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout << "err: " << ITC_StsNullPtr << std::endl;
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	total = seq->total;
@@ -1119,7 +1021,6 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 
 	if ((unsigned)before_index > (unsigned)total)
 		ITC_ERROR_DETAIL(ITC_StsOutOfRange, "Invalid index");
-		//std::cout << "err: " << ITC_StsOutOfRange <<"Invalid index"<< std::endl;
 		//CV_ERROR(CV_StsOutOfRange, "");
 
 	if (before_index == total)
@@ -1242,7 +1143,6 @@ void itcSeqRemove(ItcSeq *seq, int index)
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
-		//std::cout << "err: " << ITC_StsNullPtr << std::endl;
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	total = seq->total;
@@ -1252,7 +1152,6 @@ void itcSeqRemove(ItcSeq *seq, int index)
 
 	if ((unsigned)index >= (unsigned)total)
 		ITC_ERROR_DETAIL(ITC_StsOutOfRange, "Invalid index");
-		//std::cout << "err: " << ITC_StsOutOfRange << "Invalid index" << std::endl;
 		//CV_ERROR(CV_StsOutOfRange, "Invalid index");
 
 	if (index == total - 1)

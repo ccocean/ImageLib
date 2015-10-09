@@ -2,93 +2,85 @@
 #define _ITCTYPE_H_
 
 #include <assert.h>
+#include "limits.h"
+#include "itcCore.h"
+#include <assert.h>
+#include <iostream>
+#include <stdlib.h>
+#include <malloc.h>
+#include "itcerror.h"
 
 #pragma once
 /****************************************************************************************\
 *                             Common macros and inline functions                         *
 \****************************************************************************************/
 
+#define itcFree(ptr) (itcFree_(*(ptr)), *(ptr)=0)
 
-#define ITC_CN_MAX     64
-#define ITC_CN_SHIFT   3
-#define ITC_DEPTH_MAX  (1 << ITC_CN_SHIFT)
+/* maximum size of dynamic memory buffer.
+cvAlloc reports an error if a larger block is requested. */
+#define  ITC_MAX_ALLOC_SIZE    (((size_t)1 << (sizeof(size_t)*8-2)))  //判断是否越界
+/* the alignment of all the allocated buffers */
+#define  ITC_MALLOC_ALIGN    32
+// pointers to allocation functions, initially set to default
+static void* p_cvAllocUserData = 0;
+/* default storage block size */
+#define  ITC_STORAGE_BLOCK_SIZE   ((1<<16) - 128)
+/* default alignment for dynamic data strucutures, resided in storages. */
+#define  ITC_STRUCT_ALIGN    ((int)sizeof(double))
 
-#define ITC_8U   0
-#define ITC_8S   1
-#define ITC_16U  2
-#define ITC_16S  3
-#define ITC_32S  4
-#define ITC_32F  5
-#define ITC_64F  6
-#define ITC_USRTYPE1 7
+#define ITC_GET_LAST_ELEM( seq, block ) \
+	((block)->data + ((block)->count - 1)*((seq)->elem_size))
 
-#define ITC_MAKETYPE(depth,cn) ((depth) + (((cn)-1) << ITC_CN_SHIFT))
-#define ITC_MAKE_TYPE ITC_MAKETYPE
+#define ITC_FREE_PTR(storage)  \
+	((char*)(storage)->top + (storage)->block_size - (storage)->free_space)
+/* 0x3a50 = 11 10 10 01 01 00 00 ~ array of log2(sizeof(arr_type_elem)) */
+#define ITC_ELEM_SIZE(type) \
+	(ITC_MAT_CN(type) << ((((sizeof(size_t) / 4 + 1) * 16384 | 0x3a50) >> ITC_MAT_DEPTH(type) * 2) & 3))
+#define ITC_SHIFT_TAB_MAX 32
+static const char itcPower2ShiftTab[] =
+{
+	0, 1, -1, 2, -1, -1, -1, 3, -1, -1, -1, -1, -1, -1, -1, 4,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5
+};
 
-#define ITC_8UC1 ITC_MAKETYPE(ITC_8U,1)
-#define ITC_8UC2 ITC_MAKETYPE(ITC_8U,2)
-#define ITC_8UC3 ITC_MAKETYPE(ITC_8U,3)
-#define ITC_8UC4 ITC_MAKETYPE(ITC_8U,4)
-#define ITC_8UC(n) ITC_MAKETYPE(ITC_8U,(n))
+#define ITC_MEMCPY_AUTO( dst, src, len )                                             \
+{                                                                                   \
+	size_t _icv_memcpy_i_, _icv_memcpy_len_ = (len);                                \
+	char* _icv_memcpy_dst_ = (char*)(dst);                                          \
+	const char* _icv_memcpy_src_ = (const char*)(src);                              \
+if ((_icv_memcpy_len_ & (sizeof(int)-1)) == 0)                                 \
+{                                                                               \
+	assert(((size_t)_icv_memcpy_src_&(sizeof(int)-1)) == 0 && \
+	((size_t)_icv_memcpy_dst_&(sizeof(int)-1)) == 0);                  \
+for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_;                 \
+	_icv_memcpy_i_ += sizeof(int))                                           \
+{                                                                           \
+	*(int*)(_icv_memcpy_dst_ + _icv_memcpy_i_) = \
+	*(const int*)(_icv_memcpy_src_ + _icv_memcpy_i_);                         \
+	}                                                                           \
+	}                                                                               \
+	else                                                                            \
+{                                                                               \
+for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_; _icv_memcpy_i_++)\
+	_icv_memcpy_dst_[_icv_memcpy_i_] = _icv_memcpy_src_[_icv_memcpy_i_];    \
+	}                                                                               \
+}
 
-#define ITC_8SC1 ITC_MAKETYPE(ITC_8S,1)
-#define ITC_8SC2 ITC_MAKETYPE(ITC_8S,2)
-#define ITC_8SC3 ITC_MAKETYPE(ITC_8S,3)
-#define ITC_8SC4 ITC_MAKETYPE(ITC_8S,4)
-#define ITC_8SC(n) ITC_MAKETYPE(ITC_8S,(n))
 
-#define ITC_16UC1 ITC_MAKETYPE(ITC_16U,1)
-#define ITC_16UC2 ITC_MAKETYPE(ITC_16U,2)
-#define ITC_16UC3 ITC_MAKETYPE(ITC_16U,3)
-#define ITC_16UC4 ITC_MAKETYPE(ITC_16U,4)
-#define ITC_16UC(n) ITC_MAKETYPE(ITC_16U,(n))
-
-#define ITC_16SC1 ITC_MAKETYPE(ITC_16S,1)
-#define ITC_16SC2 ITC_MAKETYPE(ITC_16S,2)
-#define ITC_16SC3 ITC_MAKETYPE(ITC_16S,3)
-#define ITC_16SC4 ITC_MAKETYPE(ITC_16S,4)
-#define ITC_16SC(n) ITC_MAKETYPE(ITC_16S,(n))
-
-#define ITC_32SC1 ITC_MAKETYPE(ITC_32S,1)
-#define ITC_32SC2 ITC_MAKETYPE(ITC_32S,2)
-#define ITC_32SC3 ITC_MAKETYPE(ITC_32S,3)
-#define ITC_32SC4 ITC_MAKETYPE(ITC_32S,4)
-#define ITC_32SC(n) ITC_MAKETYPE(ITC_32S,(n))
-
-#define ITC_32FC1 ITC_MAKETYPE(ITC_32F,1)
-#define ITC_32FC2 ITC_MAKETYPE(ITC_32F,2)
-#define ITC_32FC3 ITC_MAKETYPE(ITC_32F,3)
-#define ITC_32FC4 ITC_MAKETYPE(ITC_32F,4)
-#define ITC_32FC(n) ITC_MAKETYPE(ITC_32F,(n))
-
-#define ITC_64FC1 ITC_MAKETYPE(ITC_64F,1)
-#define ITC_64FC2 ITC_MAKETYPE(ITC_64F,2)
-#define ITC_64FC3 ITC_MAKETYPE(ITC_64F,3)
-#define ITC_64FC4 ITC_MAKETYPE(ITC_64F,4)
-#define ITC_64FC(n) ITC_MAKETYPE(ITC_64F,(n))
-
-#define ITC_AUTO_STEP  0x7fffffff
-#define ITC_WHOLE_ARR  itcSlice( 0, 0x3fffffff )
-
-#define ITC_MAT_CN_MASK          ((ITC_CN_MAX - 1) << ITC_CN_SHIFT)
-#define ITC_MAT_CN(flags)        ((((flags) & ITC_MAT_CN_MASK) >> ITC_CN_SHIFT) + 1)
-#define ITC_MAT_DEPTH_MASK       (ITC_DEPTH_MAX - 1)
-#define ITC_MAT_DEPTH(flags)     ((flags) & ITC_MAT_DEPTH_MASK)
-#define ITC_MAT_TYPE_MASK        (ITC_DEPTH_MAX*ITC_CN_MAX - 1)
-#define ITC_MAT_TYPE(flags)      ((flags) & ITC_MAT_TYPE_MASK)
-#define ITC_MAT_CONT_FLAG_SHIFT  14
-#define ITC_MAT_CONT_FLAG        (1 << ITC_MAT_CONT_FLAG_SHIFT)
-#define ITC_IS_MAT_CONT(flags)   ((flags) & ITC_MAT_CONT_FLAG)
-#define ITC_IS_CONT_MAT          ITC_IS_MAT_CONT
-#define ITC_MAT_TEMP_FLAG_SHIFT  15
-#define ITC_MAT_TEMP_FLAG        (1 << ITC_MAT_TEMP_FLAG_SHIFT)
-#define ITC_IS_TEMP_MAT(flags)   ((flags) & ITC_MAT_TEMP_FLAG)
+//error code
+#define  ITC_OK 0
+#define  ITC_StsBadSize    -201 /* the input/output structure size is incorrect  */
+#define  ITC_StsOutOfRange -211  /* some of parameters are out of range */
+#define  ITC_StsNoMem -4	/* insufficient memory */
+#define  ITC_StsNullPtr  -27 /* null pointer */
+#define  ITC_BADARG_ERR   -49  //ipp comp
 
 
 /****************************************************************************************\
 *                                    Sequence types                                      *
 \****************************************************************************************/
-#define CV_SEQ_ELTYPE_GENERIC        0
+#define ITC_SEQ_ELTYPE_GENERIC        0
 
 inline int itcRound(double a)
 {
@@ -270,9 +262,9 @@ typedef struct ItcMemStorage
 	int free_space;  /* free space in the current block */
 }ItcMemStorage;
 
-#define CV_IS_STORAGE(storage)  \
+#define ITC_IS_STORAGE(storage)  \
 	((storage) != NULL &&       \
-	(((ItcMemStorage*)(storage))->signature & CV_MAGIC_MASK) == CV_STORAGE_MAGIC_VAL)
+	(((ItcMemStorage*)(storage))->signature & ITC_MAGIC_MASK) == ITC_STORAGE_MAGIC_VAL)
 
 typedef struct ItcMemStoragePos
 {
@@ -282,7 +274,7 @@ typedef struct ItcMemStoragePos
 
 /*********************************** Sequence *******************************************/
 #define ITC_SEQ_MAGIC_VAL             0x42990000  //稠密序列  队列，栈，向量
-#define ITC_SET_MAGIC_VAL             0x42980000  //稀疏序列  图，点集，哈希表
+
 typedef struct ItcSeqBlock
 {
     struct ItcSeqBlock*  prev; /* previous sequence block */
@@ -325,6 +317,165 @@ ItcSeq;
 #define ITC_TYPE_NAME_SEQ             "opencv-sequence"
 #define ITC_TYPE_NAME_SEQ_TREE        "opencv-sequence-tree"
 
+/*************************************** Set ********************************************/
+/*
+Set.
+Order is not preserved. There can be gaps between sequence elements.
+After the element has been inserted it stays in the same place all the time.
+The MSB(most-significant or sign bit) of the first field (flags) is 0 iff the element exists.
+*/
+#define ITC_SET_MAGIC_VAL             0x42980000  //稀疏序列  图，点集，哈希表
+
+#define ITC_SET_ELEM_FIELDS(elem_type)   \
+	int  flags;                         \
+struct elem_type* next_free;
+
+typedef struct ItcSetElem
+{
+	ITC_SET_ELEM_FIELDS(ItcSetElem)
+}
+ItcSetElem;
+
+#define ITC_SET_FIELDS()      \
+	ITC_SEQUENCE_FIELDS()     \
+	ItcSetElem* free_elems;   \
+	int active_count;
+
+typedef struct ItcSet
+{
+	ITC_SET_FIELDS()
+}
+ItcSet;
+
+#define ITC_SET_ELEM_IDX_MASK   ((1 << 26) - 1)
+#define ITC_SET_ELEM_FREE_FLAG  (1 << (sizeof(int)*8-1))
+
+/* Checks whether the element pointed by ptr belongs to a set or not */
+#define ITC_IS_SET_ELEM( ptr )  (((ItcSetElem*)(ptr))->flags >= 0)
+
+/****************************************************************************************\
+*                                    Sequence types                                      *
+\****************************************************************************************/
+
+//#define CV_SEQ_MAGIC_VAL             0x42990000
+
+#define ITC_IS_SEQ(seq) \
+	((seq) != NULL && (((ItcSeq*)(seq))->flags & ITC_MAGIC_MASK) == ITC_SEQ_MAGIC_VAL)
+
+//#define CV_SET_MAGIC_VAL             0x42980000
+#define ITC_IS_SET(set) \
+	((set) != NULL && (((ItcSet*)(set))->flags & ITC_MAGIC_MASK) == ITC_SET_MAGIC_VAL)
+
+#define ITC_SEQ_ELTYPE_BITS           9
+#define ITC_SEQ_ELTYPE_MASK           ((1 << ITC_SEQ_ELTYPE_BITS) - 1)
+
+#define ITC_SEQ_ELTYPE_POINT          ITC_32SC2  /* (x,y) */
+#define ITC_SEQ_ELTYPE_CODE           ITC_8UC1   /* freeman code: 0..7 */
+#define ITC_SEQ_ELTYPE_GENERIC        0
+#define ITC_SEQ_ELTYPE_PTR            ITC_USRTYPE1
+#define ITC_SEQ_ELTYPE_PPOINT         ITC_SEQ_ELTYPE_PTR  /* &(x,y) */
+#define ITC_SEQ_ELTYPE_INDEX          ITC_32SC1  /* #(x,y) */
+#define ITC_SEQ_ELTYPE_GRAPH_EDGE     0  /* &next_o, &next_d, &vtx_o, &vtx_d */
+#define ITC_SEQ_ELTYPE_GRAPH_VERTEX   0  /* first_edge, &(x,y) */
+#define ITC_SEQ_ELTYPE_TRIAN_ATR      0  /* vertex of the binary tree   */
+#define ITC_SEQ_ELTYPE_CONNECTED_COMP 0  /* connected component  */
+#define ITC_SEQ_ELTYPE_POINT3D        ITC_32FC3  /* (x,y,z)  */
+
+#define ITC_SEQ_KIND_BITS        3
+#define ITC_SEQ_KIND_MASK        (((1 << ITC_SEQ_KIND_BITS) - 1)<<ITC_SEQ_ELTYPE_BITS)
+
+/* types of sequences */
+#define ITC_SEQ_KIND_GENERIC     (0 << ITC_SEQ_ELTYPE_BITS)
+#define ITC_SEQ_KIND_CURVE       (1 << ITC_SEQ_ELTYPE_BITS)
+#define ITC_SEQ_KIND_BIN_TREE    (2 << ITC_SEQ_ELTYPE_BITS)
+
+/* types of sparse sequences (sets) */
+#define ITC_SEQ_KIND_GRAPH       (3 << ITC_SEQ_ELTYPE_BITS)
+#define ITC_SEQ_KIND_SUBDIV2D    (4 << ITC_SEQ_ELTYPE_BITS)
+
+#define ITC_SEQ_FLAG_SHIFT       (ITC_SEQ_KIND_BITS + ITC_SEQ_ELTYPE_BITS)
+
+/* flags for curves */
+#define ITC_SEQ_FLAG_CLOSED     (1 << ITC_SEQ_FLAG_SHIFT)
+#define ITC_SEQ_FLAG_SIMPLE     (2 << ITC_SEQ_FLAG_SHIFT)
+#define ITC_SEQ_FLAG_CONVEX     (4 << ITC_SEQ_FLAG_SHIFT)
+#define ITC_SEQ_FLAG_HOLE       (8 << ITC_SEQ_FLAG_SHIFT)
+
+/* flags for graphs */
+#define ITC_GRAPH_FLAG_ORIENTED (1 << ITC_SEQ_FLAG_SHIFT)
+
+#define ITC_GRAPH               ITC_SEQ_KIND_GRAPH
+#define ITC_ORIENTED_GRAPH      (ITC_SEQ_KIND_GRAPH|ITC_GRAPH_FLAG_ORIENTED)
+
+/* point sets */
+#define ITC_SEQ_POINT_SET       (ITC_SEQ_KIND_GENERIC| ITC_SEQ_ELTYPE_POINT)
+#define ITC_SEQ_POINT3D_SET     (ITC_SEQ_KIND_GENERIC| ITC_SEQ_ELTYPE_POINT3D)
+#define ITC_SEQ_POLYLINE        (ITC_SEQ_KIND_CURVE  | ITC_SEQ_ELTYPE_POINT)
+#define ITC_SEQ_POLYGON         (ITC_SEQ_FLAG_CLOSED | ITC_SEQ_POLYLINE )
+#define ITC_SEQ_CONTOUR         ITC_SEQ_POLYGON
+#define ITC_SEQ_SIMPLE_POLYGON  (ITC_SEQ_FLAG_SIMPLE | ITC_SEQ_POLYGON  )
+
+/* chain-coded curves */
+#define ITC_SEQ_CHAIN           (ITC_SEQ_KIND_CURVE  | ITC_SEQ_ELTYPE_CODE)
+#define ITC_SEQ_CHAIN_CONTOUR   (ITC_SEQ_FLAG_CLOSED | ITC_SEQ_CHAIN)
+
+/* binary tree for the contour */
+#define ITC_SEQ_POLYGON_TREE    (ITC_SEQ_KIND_BIN_TREE  | ITC_SEQ_ELTYPE_TRIAN_ATR)
+
+/* sequence of the connected components */
+#define ITC_SEQ_CONNECTED_COMP  (ITC_SEQ_KIND_GENERIC  | ITC_SEQ_ELTYPE_CONNECTED_COMP)
+
+/* sequence of the integer numbers */
+#define ITC_SEQ_INDEX           (ITC_SEQ_KIND_GENERIC  | ITC_SEQ_ELTYPE_INDEX)
+
+#define ITC_SEQ_ELTYPE( seq )   ((seq)->flags & ITC_SEQ_ELTYPE_MASK)
+#define ITC_SEQ_KIND( seq )     ((seq)->flags & ITC_SEQ_KIND_MASK )
+
+/* flag checking */
+#define ITC_IS_SEQ_INDEX( seq )      ((ITC_SEQ_ELTYPE(seq) == ITC_SEQ_ELTYPE_INDEX) && \
+	(ITC_SEQ_KIND(seq) == ITC_SEQ_KIND_GENERIC))
+
+#define ITC_IS_SEQ_CURVE( seq )      (ITC_SEQ_KIND(seq) == ITC_SEQ_KIND_CURVE)
+#define ITC_IS_SEQ_CLOSED( seq )     (((seq)->flags & ITC_SEQ_FLAG_CLOSED) != 0)
+#define ITC_IS_SEQ_CONVEX( seq )     (((seq)->flags & ITC_SEQ_FLAG_CONVEX) != 0)
+#define ITC_IS_SEQ_HOLE( seq )       (((seq)->flags & ITC_SEQ_FLAG_HOLE) != 0)
+#define ITC_IS_SEQ_SIMPLE( seq )     ((((seq)->flags & ITC_SEQ_FLAG_SIMPLE) != 0) || \
+	ITC_IS_SEQ_CONVEX(seq))
+
+/* type checking macros */
+#define ITC_IS_SEQ_POINT_SET( seq ) \
+	((ITC_SEQ_ELTYPE(seq) == ITC_32SC2 || ITC_SEQ_ELTYPE(seq) == ITC_32FC2))
+
+#define ITC_IS_SEQ_POINT_SUBSET( seq ) \
+	(ITC_IS_SEQ_INDEX(seq) || ITC_SEQ_ELTYPE(seq) == ITC_SEQ_ELTYPE_PPOINT)
+
+#define ITC_IS_SEQ_POLYLINE( seq )   \
+	(ITC_SEQ_KIND(seq) == ITC_SEQ_KIND_CURVE && ITC_IS_SEQ_POINT_SET(seq))
+
+#define ITC_IS_SEQ_POLYGON( seq )   \
+	(ITC_IS_SEQ_POLYLINE(seq) && ITC_IS_SEQ_CLOSED(seq))
+
+#define ITC_IS_SEQ_CHAIN( seq )   \
+	(ITC_SEQ_KIND(seq) == ITC_SEQ_KIND_CURVE && (seq)->elem_size == 1)
+
+#define ITC_IS_SEQ_CONTOUR( seq )   \
+	(ITC_IS_SEQ_CLOSED(seq) && (ITC_IS_SEQ_POLYLINE(seq) || ITC_IS_SEQ_CHAIN(seq)))
+
+#define ITC_IS_SEQ_CHAIN_CONTOUR( seq ) \
+	(ITC_IS_SEQ_CHAIN(seq) && ITC_IS_SEQ_CLOSED(seq))
+
+#define ITC_IS_SEQ_POLYGON_TREE( seq ) \
+	(ITC_SEQ_ELTYPE(seq) == ITC_SEQ_ELTYPE_TRIAN_ATR &&    \
+	ITC_SEQ_KIND(seq) == ITC_SEQ_KIND_BIN_TREE)
+
+#define ITC_IS_GRAPH( seq )    \
+	(ITC_IS_SET(seq) && ITC_SEQ_KIND((ItcSet*)(seq)) == ITC_SEQ_KIND_GRAPH)
+
+#define ITC_IS_GRAPH_ORIENTED( seq )   \
+	(((seq)->flags & ITC_GRAPH_FLAG_ORIENTED) != 0)
+
+#define ITC_IS_SUBDIV2D( seq )  \
+	(ITC_IS_SET(seq) && ITC_SEQ_KIND((ItcSet*)(seq)) == ITC_SEQ_KIND_SUBDIV2D)
 
 /****************************************************************************************/
 /*                            Sequence writer & reader                                  */
@@ -367,21 +518,25 @@ ItcSeqReader;
 /*                                Operations on sequences                               */
 /****************************************************************************************/
 
+char* itcGetSeqElem(const ItcSeq *seq, int index);
+void itcCreateSeqBlock(ItcSeqWriter * writer);
+void itcChangeSeqBlock(void* _reader, int direction);
+
 #define ITC_FRONT 0 //在序列头部添加元素
 #define ITC_BACK 1 //在序列尾部添加元素
 
 #define  ITC_SEQ_ELEM( seq, elem_type, index )                    \
 	/* assert gives some guarantee that <seq> parameter is valid */  \
-	(assert(sizeof((seq)->first[0]) == sizeof(CvSeqBlock) && \
+	(assert(sizeof((seq)->first[0]) == sizeof(ItcSeqBlock) && \
 	(seq)->elem_size == sizeof(elem_type)), \
 	(elem_type*)((seq)->first && (unsigned)index < \
 	(unsigned)((seq)->first->count) ? \
 	(seq)->first->data + (index)* sizeof(elem_type) : \
-	itcGetSeqElem((CvSeq*)(seq), (index))))
+	itcGetSeqElem((ItcSeq*)(seq), (index))))
 #define ITC_GET_SEQ_ELEM( elem_type, seq, index ) ITC_SEQ_ELEM( (seq), elem_type, (index) )
 
 /* macro that adds element to sequence */
-#define CV_WRITE_SEQ_ELEM_VAR( elem_ptr, writer )     \
+#define ITC_WRITE_SEQ_ELEM_VAR( elem_ptr, writer )     \
 {\
 	if ((writer).ptr >= (writer).block_max)          \
 	{                                                 \
@@ -449,18 +604,18 @@ if (((reader).ptr -= (elem_size)) < (reader).block_min) \
 	}                                                                   \
 }
 
-#define ITC_CURRENT_POINT( reader )  (*((CvPoint*)((reader).ptr)))
-#define ITC_PREV_POINT( reader )     (*((CvPoint*)((reader).prev_elem)))
+#define ITC_CURRENT_POINT( reader )  (*((ItcPoint*)((reader).ptr)))
+#define ITC_PREV_POINT( reader )     (*((ItcPoint*)((reader).prev_elem)))
 
 #define ITC_READ_EDGE( pt1, pt2, reader )               \
 {                                                      \
-	assert(sizeof(pt1) == sizeof(CvPoint) && \
-	sizeof(pt2) == sizeof(CvPoint) && \
-	reader.seq->elem_size == sizeof(CvPoint)); \
+	assert(sizeof(pt1) == sizeof(ItcPoint) && \
+	sizeof(pt2) == sizeof(ItcPoint) && \
+	reader.seq->elem_size == sizeof(ItcPoint)); \
 	(pt1) = ITC_PREV_POINT(reader);                   \
 	(pt2) = ITC_CURRENT_POINT(reader);                \
 	(reader).prev_elem = (reader).ptr;                 \
-	ITC_NEXT_SEQ_ELEM(sizeof(CvPoint), (reader));      \
+	ITC_NEXT_SEQ_ELEM(sizeof(ItcPoint), (reader));      \
 }
 
 /*********************************** Chain/Countour *************************************/
@@ -495,7 +650,9 @@ ItcLinkedRunPoint;
 typedef ItcContour ItcPoint2DSeq;
 
 
-// declaration
+/****************************************************************************************/
+/*                                   declaration                                        */
+/****************************************************************************************/
 inline int  itcAlign(int size, int align);
 inline void* itcAlignPtr(const void* ptr, int align);
 inline int itcAlignLeft(int size, int align);
@@ -515,7 +672,7 @@ void itcRestoreMemStoragePos(ItcMemStorage * storage, ItcMemStoragePos * pos);
 void* itcMemStorageAlloc(ItcMemStorage* storage, size_t size);
 ItcSeq *itcCreateSeq(int seq_flags, int header_size, int elem_size, ItcMemStorage * storage);
 void itcSetSeqBlockSize(ItcSeq *seq, int delta_elements);
-char* itcGetSeqElem(const ItcSeq *seq, int index);
+
 int itcSeqElemIdx(const ItcSeq* seq, const void* _element, ItcSeqBlock** _block);
 static void itcGrowSeq(ItcSeq *seq, int in_front_of);
 char* itcSeqPush(ItcSeq *seq, void *element);
@@ -534,7 +691,7 @@ void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse);
 void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front);
 void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front);
 void itcClearSeq(ItcSeq *seq);
-void itcChangeSeqBlock(void* _reader, int direction);
+
 int itcGetSeqReaderPos(ItcSeqReader* reader);
 void itcSetSeqReaderPos(ItcSeqReader* reader, int index, int is_relative);
 
