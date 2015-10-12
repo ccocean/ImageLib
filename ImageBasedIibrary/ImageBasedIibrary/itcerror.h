@@ -14,4 +14,8 @@
 #define ITC_ERROR_(errors) printf("error:%s\n",errors);
 #define ITC_ERROR_DETAIL(errors,info) printf("code:%s,err:%s",errors,info);
 
+#define __BEGIN__       {
+#define __END__         goto exit; exit: ; }
+#define __CLEANUP__
+#define EXIT            goto exit
 #endif // itcerror_h__

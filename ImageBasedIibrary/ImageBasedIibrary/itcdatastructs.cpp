@@ -745,14 +745,13 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
         if( (unsigned)(ITC_FREE_PTR(storage) - seq->block_max) < ITC_STRUCT_ALIGN &&
             storage->free_space >= seq->elem_size && !in_front_of )
         {
-            int delta = storage->free_space / elem_size;
+            int delta = storage->free_space / elem_size;//上次结束的位置跟现在空闲位置相同，就不再新设置一块block，直接在原来的block上扩大存储大小
 
             delta = ITC_MIN( delta, delta_elems ) * elem_size;
-            seq->block_max += delta;
+            seq->block_max += delta;					//拓展空间大小
             storage->free_space = itcAlignLeft((int)(((char*)storage->top + storage->block_size) -
                                               seq->block_max), ITC_STRUCT_ALIGN );
             EXIT;
-			
         }
         else
         {

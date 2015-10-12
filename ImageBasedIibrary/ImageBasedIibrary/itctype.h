@@ -11,6 +11,7 @@
 #ifndef itctype_h_
 #define itctype_h_
 
+#include <stdio.h>
 
 typedef __int64 int64;
 typedef unsigned __int64 uint64;
@@ -157,5 +158,61 @@ typedef unsigned short ushort;
 #define  ITC_CAST_64S(t) (int64)(t)
 #define  ITC_CAST_32F(t) (float)(t)
 #define  ITC_CAST_64F(t) (double)(t)
+
+/****************************************************************************************\
+*                             Common macros and inline functions                         *
+\****************************************************************************************/
+
+#define itcFree(ptr) (itcFree_(*(ptr)), *(ptr)=0)
+
+/* maximum size of dynamic memory buffer.
+cvAlloc reports an error if a larger block is requested. */
+#define  ITC_MAX_ALLOC_SIZE    (((size_t)1 << (sizeof(size_t)*8-2)))  //ÅÐ¶ÏÊÇ·ñÔ½½ç
+/* the alignment of all the allocated buffers */
+#define  ITC_MALLOC_ALIGN    32
+// pointers to allocation functions, initially set to default
+static void* p_cvAllocUserData = 0;
+/* default storage block size */
+#define  ITC_STORAGE_BLOCK_SIZE   ((1<<16) - 128)
+/* default alignment for dynamic data strucutures, resided in storages. */
+#define  ITC_STRUCT_ALIGN    ((int)sizeof(double))
+
+#define ITC_GET_LAST_ELEM( seq, block ) \
+	((block)->data + ((block)->count - 1)*((seq)->elem_size))
+
+#define ITC_FREE_PTR(storage)  \
+	((char*)(storage)->top + (storage)->block_size - (storage)->free_space)
+/* 0x3a50 = 11 10 10 01 01 00 00 ~ array of log2(sizeof(arr_type_elem)) */
+//#define ITC_ELEM_SIZE(type) \
+//	(ITC_MAT_CN(type) << ((((sizeof(size_t) / 4 + 1) * 16384 | 0x3a50) >> ITC_MAT_DEPTH(type) * 2) & 3))
+#define ITC_SHIFT_TAB_MAX 32
+static const char itcPower2ShiftTab[] =
+{
+	0, 1, -1, 2, -1, -1, -1, 3, -1, -1, -1, -1, -1, -1, -1, 4,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5
+};
+
+#define ITC_MEMCPY_AUTO( dst, src, len )                                             \
+{                                                                                   \
+	size_t _icv_memcpy_i_, _icv_memcpy_len_ = (len);                                \
+	char* _icv_memcpy_dst_ = (char*)(dst);                                          \
+	const char* _icv_memcpy_src_ = (const char*)(src);                              \
+if ((_icv_memcpy_len_ & (sizeof(int)-1)) == 0)                                 \
+{                                                                               \
+	assert(((size_t)_icv_memcpy_src_&(sizeof(int)-1)) == 0 && \
+	((size_t)_icv_memcpy_dst_&(sizeof(int)-1)) == 0);                  \
+for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_;                 \
+	_icv_memcpy_i_ += sizeof(int))                                           \
+{                                                                           \
+	*(int*)(_icv_memcpy_dst_ + _icv_memcpy_i_) = \
+	*(const int*)(_icv_memcpy_src_ + _icv_memcpy_i_);                         \
+	}                                                                           \
+	}                                                                               \
+	else                                                                            \
+{                                                                               \
+for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_; _icv_memcpy_i_++)\
+	_icv_memcpy_dst_[_icv_memcpy_i_] = _icv_memcpy_src_[_icv_memcpy_i_];    \
+	}                                                                               \
+}
 
 #endif // itctype_h_

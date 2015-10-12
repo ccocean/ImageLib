@@ -6,7 +6,7 @@
  
     *  @author   : XueYB 
     *  @date     : 2015/10/09 11:19 
-    *  @brief    : Mat结构 
+    *  @brief    : Mat结构和图像基本操作
 **************************************************************************/
 #ifndef itcCore_h__
 #define itcCore_h__

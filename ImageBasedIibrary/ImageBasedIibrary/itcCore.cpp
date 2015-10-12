@@ -304,7 +304,7 @@ int							nbd)
 	if (s == s_end)						//扫了一圈没有找到其他边缘，说明是单一一个点
 	{
 		*i0 = (char)(nbd | 0x80);		//把char类型最高位置为1,因为单点也是一个右边缘点
-		//ITC_WRITE_SEQ_ELEM(pt, writer);//保存点
+		ITC_WRITE_SEQ_ELEM(pt, writer);//保存点
 	}
 	else
 	{
@@ -335,7 +335,7 @@ int							nbd)
 
 			if (s != prev_s)//压缩同方向的点
 			{
-				//ITC_WRITE_SEQ_ELEM(pt, writer);//保存点
+				ITC_WRITE_SEQ_ELEM(pt, writer);//保存点
 			}
 
 			if (s != prev_s)
@@ -419,8 +419,7 @@ int itcFindContours(ItcMat* src, ItcContour** pContour, ItcMemStorage*  storage)
 				{
 					//插入
 					contour->h_next = (*pContour)->h_next;
-					(*pContour)->h_next = contour;
-					
+					(*pContour)->h_next = contour;			
 				}
 			resume_scan:
 				prev = img[x];		//不能直接等于p,因为itcFetchContourEx会改变当前扫描过的点
