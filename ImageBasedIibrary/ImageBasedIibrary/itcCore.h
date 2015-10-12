@@ -119,5 +119,10 @@ void itcUpdateMHI(ItcMat* src1,//当前帧
 	int Threshold);		//用于生成掩码,mhi大于该值才把对应的maskT置为1
 
 //轮廓检测
-int itcFindContours(ItcMat* src1, ItcContour** pContour, ItcMemStorage*  storage);
+int itcFindContours(ItcMat* src1,	//输入二值图像（0，1），4周边界必须为0，否则会越界
+	ItcContour** pContour,			//输出的轮廓
+	ItcMemStorage*  storage);		//存储器
+
+//轮廓筛选和合并
+
 #endif // itcCore_h__
