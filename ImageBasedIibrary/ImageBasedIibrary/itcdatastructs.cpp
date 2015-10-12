@@ -2,6 +2,13 @@
 #include "itcdatastructs.h"
 
 
+
+
+
+
+
+
+
 inline int  itcAlign(int size, int align)
 {
 	assert((align&(align-1))==0 && size<INT_MAX);
@@ -60,7 +67,7 @@ void*  itcAlloc( size_t size )
 
 	//CV_FUNCNAME( "cvAlloc" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if ((size_t)size > ITC_MAX_ALLOC_SIZE)
 		ITC_ERROR_(ITC_StsOutOfRange);
@@ -69,7 +76,7 @@ void*  itcAlloc( size_t size )
 	if( !ptr )
 		ITC_ERROR_(ITC_StsNoMem);
 
-	__END__;
+	//__END__;
 
 	return ptr;
 }
@@ -78,7 +85,7 @@ void  itcFree_( void* ptr )
 {
 	//CV_FUNCNAME( "cvFree_" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if( ptr )
 	{
@@ -87,7 +94,7 @@ void  itcFree_( void* ptr )
 			printf("Deallocation error\n");
 	}
 
-	__END__;
+	//__END__;
 }
 
 /****************************************************************************************\
@@ -99,7 +106,7 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 {
 	//CV_FUNCNAME( "icvInitMemStorage " );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!storage)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -114,7 +121,7 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 	storage->signature = ITC_STORAGE_MAGIC_VAL;
 	storage->block_size = block_size;
 
-	__END__;
+	//__END__;
 }
 
 /* creates root memory storage */
@@ -141,7 +148,7 @@ ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 	ItcMemStorage *storage = 0;
 	//CV_FUNCNAME( "cvCreateChildMemStorage" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!parent)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -150,11 +157,7 @@ ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 	storage = itcCreateMemStorage(parent->block_size);
 	storage->parent = parent;
 
-	__END__;
-
-	/*if (cvGetErrStatus() < 0)
-		itcFree(&storage);*/
-
+	//__END__;
 	return storage;
 }
 
@@ -163,7 +166,7 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 {
 	//CV_FUNCNAME( "icvDestroyMemStorage" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	int k = 0;
 
@@ -209,7 +212,7 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 	storage->top = storage->bottom = 0;
 	storage->free_space = 0;
 
-	__END__;
+	//__END__;
 }
 
 /* releases memory storage */
@@ -222,7 +225,7 @@ void
 	ItcMemStorage *st;
 	//CV_FUNCNAME( "cvReleaseMemStorage" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if( !storage )
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -239,7 +242,7 @@ void
 		//cvFree( &st );
 	}
 
-	__END__;
+	//__END__;
 }
 
 /* clears memory storage (returns blocks to the parent if any) */
@@ -251,7 +254,7 @@ void
 {
 	//CV_FUNCNAME( "cvClearMemStorage" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if( !storage )
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -267,7 +270,7 @@ void
 		storage->free_space = storage->bottom ? storage->block_size - sizeof(ItcMemBlock) : 0;
 	}
 
-	__END__;
+	//__END__;
 }
 
 /* moves stack pointer to next block.
@@ -277,7 +280,7 @@ itcGoNextMemBlock( ItcMemStorage * storage )
 {
     //CV_FUNCNAME( "icvGoNextMemBlock" );
     
-    __BEGIN__;
+    //__BEGIN__;
     
 	if (!storage)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -333,7 +336,7 @@ itcGoNextMemBlock( ItcMemStorage * storage )
     storage->free_space = storage->block_size - sizeof(ItcMemBlock);
     assert( storage->free_space % ITC_STRUCT_ALIGN == 0 );
 
-    __END__;
+    //__END__;
 }
 
 /* remembers memory storage position */
@@ -342,7 +345,7 @@ void
 {
 	//CV_FUNCNAME( "cvSaveMemStoragePos" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if( !storage || !pos )
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -350,7 +353,7 @@ void
 	pos->top = storage->top;
 	pos->free_space = storage->free_space;
 
-	__END__;
+	//__END__;
 }
 
 /* restores memory storage position */
@@ -359,7 +362,7 @@ itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos )
 {
    // CV_FUNCNAME( "cvRestoreMemStoragePos" );
 
-    __BEGIN__;
+    //__BEGIN__;
 
     if( !storage || !pos )
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -394,7 +397,7 @@ itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos )
         storage->free_space = storage->top ? storage->block_size - sizeof(ItcMemBlock) : 0;
     }
 
-    __END__;
+    //__END__;
 }
 
 /* Allocates continuous buffer of the specified size in the storage */
@@ -408,7 +411,7 @@ void*
 
 	//CV_FUNCNAME( "cvMemStorageAlloc" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if( !storage )
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -435,7 +438,7 @@ void*
 	assert( (size_t)ptr % ITC_STRUCT_ALIGN == 0 );
 	storage->free_space = itcAlignLeft(storage->free_space - (int)size, ITC_STRUCT_ALIGN );
 
-	__END__;
+	//__END__;
 
 	return ptr;
 }
@@ -460,7 +463,7 @@ ItcSeq *
 
 	//CV_FUNCNAME( "cvCreateSeq" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!storage)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -492,7 +495,7 @@ ItcSeq *
 	//CV_CALL( cvSetSeqBlockSize( seq, (1 << 10)/elem_size ));
 	itcSetSeqBlockSize(seq, (1 << 10)/elem_size );
 
-	__END__;
+	//__END__;
 
 	return seq;
 }
@@ -507,7 +510,7 @@ itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
 
     //CV_FUNCNAME( "cvSetSeqBlockSize" );
 
-    __BEGIN__;
+    //__BEGIN__;
 	
 	if (!seq || !seq->storage)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -534,7 +537,7 @@ itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
 
     seq->delta_elems = delta_elements;
 
-    __END__;
+    //__END__;
 }
 
 /* finds sequence element by its index */
@@ -593,7 +596,7 @@ int
 
 	//CV_FUNCNAME( "cvSeqElemIdx" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!seq || !element)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -619,7 +622,7 @@ int
 			break;
 	}
 
-	__END__;
+	//__END__;
 
 	return id;
 }
@@ -640,7 +643,7 @@ char*
 
 	//CV_FUNCNAME( "cvSeqPush" );
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if( !seq )
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -663,10 +666,10 @@ char*
 	seq->total++;
 	seq->ptr = ptr + elem_size;
 
-	__END__;
+	//__END__;
 
 	return ptr;
-} //20
+}
 
 /* pops the last element out of the sequence */
 /*
@@ -683,7 +686,7 @@ void itcSeqPop(ItcSeq *seq, void *element)
 
 	//CV_FUNCNAME("cvSeqPop");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -706,7 +709,7 @@ void itcSeqPop(ItcSeq *seq, void *element)
 		assert(seq->ptr == seq->block_max);
 	}
 
-	__END__;
+	//__END__;
 }
 
 /* the function allocates space for at least one more sequence element.
@@ -745,14 +748,13 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
         if( (unsigned)(ITC_FREE_PTR(storage) - seq->block_max) < ITC_STRUCT_ALIGN &&
             storage->free_space >= seq->elem_size && !in_front_of )
         {
-            int delta = storage->free_space / elem_size;
+            int delta = storage->free_space / elem_size;//上次结束的位置跟现在空闲位置相同，就不再新设置一块block，直接在原来的block上扩大存储大小
 
             delta = ITC_MIN( delta, delta_elems ) * elem_size;
-            seq->block_max += delta;
+            seq->block_max += delta;					//拓展空间大小
             storage->free_space = itcAlignLeft((int)(((char*)storage->top + storage->block_size) -
                                               seq->block_max), ITC_STRUCT_ALIGN );
             EXIT;
-			
         }
         else
         {
@@ -849,7 +851,7 @@ static void itcFreeSeqBlock(ItcSeq *seq, int in_front_of)
 {
 	/*CV_FUNCNAME( "icvFreeSeqBlock" );*/
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	ItcSeqBlock *block = seq->first;
 
@@ -901,7 +903,7 @@ static void itcFreeSeqBlock(ItcSeq *seq, int in_front_of)
 	block->next = seq->free_blocks;
 	seq->free_blocks = block;
 
-	__END__;
+	//__END__;
 }
 
 /* pushes element to the front of the sequence */
@@ -917,7 +919,7 @@ char* itcSeqPushFront(ItcSeq *seq, void *element)
 
 	//CV_FUNCNAME("cvSeqPushFront");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -943,7 +945,7 @@ char* itcSeqPushFront(ItcSeq *seq, void *element)
 	block->start_index--;
 	seq->total++;
 
-	__END__;
+	//__END__;
 
 	return ptr;
 }
@@ -959,7 +961,7 @@ void itcSeqPopFront(ItcSeq *seq, void *element)
 
 	//CV_FUNCNAME("cvSeqPopFront");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -982,7 +984,7 @@ void itcSeqPopFront(ItcSeq *seq, void *element)
 		itcFreeSeqBlock(seq, 1);
 	}
 
-	__END__;
+	//__END__;
 }
 
 /* inserts new element in the middle of the sequence */
@@ -1003,7 +1005,7 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 
 	//CV_FUNCNAME("cvSeqInsert");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1113,7 +1115,7 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 		seq->total = total + 1;
 	}
 
-	__END__;
+	//__END__;
 
 	return ret_ptr;
 }
@@ -1133,7 +1135,7 @@ void itcSeqRemove(ItcSeq *seq, int index)
 
 	//CV_FUNCNAME("cvSeqRemove");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1210,7 +1212,7 @@ void itcSeqRemove(ItcSeq *seq, int index)
 			itcFreeSeqBlock(seq, front);
 	}
 
-	__END__;
+	//__END__;
 }
 
 /****************************************************************************************\
@@ -1226,7 +1228,7 @@ void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer)
 {
 	//CV_FUNCNAME("cvStartAppendToSeq");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!seq || !writer)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1240,7 +1242,7 @@ void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer)
 	writer->ptr = seq->ptr;
 	writer->block_max = seq->block_max;
 
-	__END__;
+	//__END__;
 }
 
 
@@ -1255,7 +1257,7 @@ int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer)
 
 	//CV_FUNCNAME("cvStartWriteSeq");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!storage || !writer)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1265,7 +1267,7 @@ int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer)
 	seq = itcCreateSeq(seq_flags, header_size, elem_size, storage);
 	itcStartAppendToSeq(seq, writer);
 
-	__END__;
+	//__END__;
 }
 
 /* updates sequence header */
@@ -1275,7 +1277,7 @@ void itcFlushSeqWriter(ItcSeqWriter * writer)
 
 	//CV_FUNCNAME("cvFlushSeqWriter");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!writer)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1302,7 +1304,7 @@ void itcFlushSeqWriter(ItcSeqWriter * writer)
 		writer->seq->total = total;
 	}
 
-	__END__;
+	//__END__;
 }
 
 
@@ -1316,7 +1318,7 @@ ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer)
 
 	//CV_FUNCNAME("cvEndWriteSeq");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!writer)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1344,7 +1346,7 @@ ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer)
 
 	writer->ptr = 0;
 
-	__END__;
+	//__END__;
 
 	return seq;
 }
@@ -1354,7 +1356,7 @@ void itcCreateSeqBlock(ItcSeqWriter * writer)
 {
 	//CV_FUNCNAME("cvCreateSeqBlock");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	ItcSeq *seq;
 
@@ -1373,7 +1375,7 @@ void itcCreateSeqBlock(ItcSeqWriter * writer)
 	writer->ptr = seq->ptr;
 	writer->block_max = seq->block_max;
 
-	__END__;
+	//__END__;
 }
 
 /****************************************************************************************\
@@ -1399,7 +1401,7 @@ void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse)
 		reader->ptr = reader->block_max = reader->block_min = 0;
 	}
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!seq || !reader)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1442,7 +1444,7 @@ void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse)
 		reader->ptr = reader->prev_elem = reader->block_min = reader->block_max = 0;
 	}
 
-	__END__;
+	//__END__;
 }
 
 /* changes the current reading block to the previous or to the next */
@@ -1450,7 +1452,7 @@ void itcChangeSeqBlock(void* _reader, int direction)
 {
 	//CV_FUNCNAME("cvChangeSeqBlock");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	ItcSeqReader* reader = (ItcSeqReader*)_reader;
 
@@ -1471,7 +1473,7 @@ void itcChangeSeqBlock(void* _reader, int direction)
 	reader->block_min = reader->block->data;
 	reader->block_max = reader->block_min + reader->block->count * reader->seq->elem_size;
 
-	__END__;
+	//__END__;
 }
 
 /* returns the current reader position */
@@ -1485,7 +1487,7 @@ int itcGetSeqReaderPos(ItcSeqReader* reader)
 
 	//CV_FUNCNAME("cvGetSeqReaderPos");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!reader || !reader->ptr)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1499,7 +1501,7 @@ int itcGetSeqReaderPos(ItcSeqReader* reader)
 
 	index += reader->block->start_index - reader->delta_index;
 
-	__END__;
+	//__END__;
 
 	return index;
 }
@@ -1522,7 +1524,7 @@ void itcSetSeqReaderPos(ItcSeqReader* reader, int index, int is_relative)
 {
 	//CV_FUNCNAME("cvSetSeqReaderPos");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	ItcSeqBlock *block;
 	int elem_size, count, total;
@@ -1612,7 +1614,7 @@ void itcSetSeqReaderPos(ItcSeqReader* reader, int index, int is_relative)
 		}
 	}
 
-	__END__;
+	//__END__;
 }
 
 
@@ -1628,7 +1630,7 @@ void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front)
 
 	//CV_FUNCNAME("cvSeqPushMulti");
 
-	__BEGIN__;
+	//__BEGIN__;
 	int elem_size;
 
 	if (!seq)
@@ -1696,7 +1698,7 @@ void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front)
 		}
 	}
 
-	__END__;
+	//__END__;
 }
 
 /* removes several elements from the end of sequence */
@@ -1709,7 +1711,7 @@ void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front)
 
 	//CV_FUNCNAME("cvSeqPopMulti");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1777,7 +1779,7 @@ void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front)
 		}
 	}
 
-	__END__;
+	//__END__;
 }
 
 /* removes all elements from the sequence */
@@ -1790,13 +1792,13 @@ void itcClearSeq(ItcSeq *seq)
 {
 	//CV_FUNCNAME("cvClearSeq");
 
-	__BEGIN__;
+	//__BEGIN__;
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
 	itcSeqPopMulti(seq, 0, seq->total,0);
 
-	__END__;
+	//__END__;
 }
 
 
