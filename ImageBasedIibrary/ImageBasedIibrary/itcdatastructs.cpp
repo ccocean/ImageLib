@@ -26,14 +26,18 @@ inline int
 static void*
 	itcDefaultAlloc( size_t size, void* )
 {
+	//多申请的内存是为了维护内存，这是因为在某些架构上，只有被指定的数（如4,16）整除的地址才能访问，否则会crash或出错和程序变慢
 	char *ptr, *ptr0 = (char*)malloc(
 		(size_t)(size + ITC_MALLOC_ALIGN*((size >= 4096) + 1) + sizeof(char*)));   //多申请了 ITC_MALLOC_ALIGN*((size >= 4096) + 1) + sizeof(char*)大小的内存
+																				   //ITC_MALLOC_ALIGN这里是32， 表示实际存储数据的首地址是32的倍数
+																				   //多申请的sizeof(char*)是用来存储malloc返回的内存首地址，以便在DefaultFree中被正确释放
 
 	if( !ptr0 )
 		return 0;
 
 	// align the pointer
-	ptr = (char*)itcAlignPtr(ptr0 + sizeof(char*) + 1, ITC_MALLOC_ALIGN);   //将指针对齐到ITC_MALLOC_ALIGN，32bit既4个字节，将指针调整到32的整数倍
+	ptr = (char*)itcAlignPtr(ptr0 + sizeof(char*) + 1, ITC_MALLOC_ALIGN);   //将指针对齐到ITC_MALLOC_ALIGN，32bit既4个字节，将指针调整到32的整数倍。\
+																			  假如地址是0或32或64则返回的就是地址本身，如果地址是18就返回32，36就返回64。
 	*(char**)(ptr - sizeof(char*)) = ptr0;	//将ptr0记录到(ptr – sizeof(char*))
 
 	return ptr;
@@ -44,7 +48,7 @@ static int
 	itcDefaultFree( void* ptr, void* )
 {
 	// Pointer must be aligned by CV_MALLOC_ALIGN
-	if( ((size_t)ptr & (ITC_MALLOC_ALIGN-1)) != 0 )
+	if( ((size_t)ptr & (ITC_MALLOC_ALIGN-1)) != 0 )		//将指针对齐到之前多分配的(char*)位置以释放内存
 		return ITC_BADARG_ERR;
 	free( *((char**)ptr - 1) );
 
@@ -451,6 +455,8 @@ void*
 	elem_size 为序列中元素的大小
 	storage 为序列的内存空间
 
+	如果要回收序列中的内存块，必须使用itcClearMemStore
+
 	ItcSeq *runs = itcCreateSeq(ITC_SEQ_ELTYPE_POINT, sizeof(ItcSeq), sizeof(ItcPoint), storage);
 */
 ItcSeq *
@@ -582,6 +588,13 @@ char*
 }
 
 /* calculates index of sequence element */
+/*
+	seq为目标序列
+	_element为元素的执政
+	block可为空，非空时则存放包含所指元素的块的地址
+
+	返回值为对应元素的索引，返回负数则表示无该元素
+*/
 int
 	itcSeqElemIdx( const ItcSeq* seq, const void* _element, ItcSeqBlock** _block )
 {
@@ -745,13 +758,14 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
         if( (unsigned)(ITC_FREE_PTR(storage) - seq->block_max) < ITC_STRUCT_ALIGN &&
             storage->free_space >= seq->elem_size && !in_front_of )
         {
-            int delta = storage->free_space / elem_size;//上次结束的位置跟现在空闲位置相同，就不再新设置一块block，直接在原来的block上扩大存储大小
+            int delta = storage->free_space / elem_size;
 
             delta = ITC_MIN( delta, delta_elems ) * elem_size;
-            seq->block_max += delta;					//拓展空间大小
+            seq->block_max += delta;
             storage->free_space = itcAlignLeft((int)(((char*)storage->top + storage->block_size) -
                                               seq->block_max), ITC_STRUCT_ALIGN );
             EXIT;
+			
         }
         else
         {
