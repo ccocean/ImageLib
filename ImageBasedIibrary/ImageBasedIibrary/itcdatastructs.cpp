@@ -29,6 +29,7 @@ static void*
 	//¶àÉêÇëµÄÄÚ´æÊÇÎªÁËÎ¬»¤ÄÚ´æ£¬ÕâÊÇÒòÎªÔÚÄ³Ð©¼Ü¹¹ÉÏ£¬Ö»ÓÐ±»Ö¸¶¨µÄÊý£¨Èç4,16£©Õû³ýµÄµØÖ·²ÅÄÜ·ÃÎÊ£¬·ñÔò»ácrash»ò³ö´íºÍ³ÌÐò±äÂý
 	char *ptr, *ptr0 = (char*)malloc(
 		(size_t)(size + ITC_MALLOC_ALIGN*((size >= 4096) + 1) + sizeof(char*)));   //¶àÉêÇëÁË ITC_MALLOC_ALIGN*((size >= 4096) + 1) + sizeof(char*)´óÐ¡µÄÄÚ´æ
+																				   //Ç°ÕßÊÇÎªÁË¶ÔÆë¶øÔ¤ÁôµÄ¿Õ¼ä£¬ºóÕßÎª±£´æÒ»¸öÖ¸ÏòÕâÆ¬¿Õ°×¿Õ¼äµÄÖ¸Õë
 																				   //ITC_MALLOC_ALIGNÕâÀïÊÇ32£¬ ±íÊ¾Êµ¼Ê´æ´¢Êý¾ÝµÄÊ×µØÖ·ÊÇ32µÄ±¶Êý
 																				   //¶àÉêÇëµÄsizeof(char*)ÊÇÓÃÀ´´æ´¢malloc·µ»ØµÄÄÚ´æÊ×µØÖ·£¬ÒÔ±ãÔÚDefaultFreeÖÐ±»ÕýÈ·ÊÍ·Å
 
@@ -38,9 +39,10 @@ static void*
 	// align the pointer
 	ptr = (char*)itcAlignPtr(ptr0 + sizeof(char*) + 1, ITC_MALLOC_ALIGN);   //½«Ö¸Õë¶ÔÆëµ½ITC_MALLOC_ALIGN£¬32bit¼È4¸ö×Ö½Ú£¬½«Ö¸Õëµ÷Õûµ½32µÄÕûÊý±¶¡£\
 																			  ¼ÙÈçµØÖ·ÊÇ0»ò32»ò64Ôò·µ»ØµÄ¾ÍÊÇµØÖ·±¾Éí£¬Èç¹ûµØÖ·ÊÇ18¾Í·µ»Ø32£¬36¾Í·µ»Ø64¡£
-	*(char**)(ptr - sizeof(char*)) = ptr0;	//½«ptr0¼ÇÂ¼µ½(ptr ¨C sizeof(char*))
 
-	return ptr;
+	*(char**)(ptr - sizeof(char*)) = ptr0;	//½«ptr0¼ÇÂ¼µ½(ptr ¨C sizeof(char*))£¬·ÖÅäµÄ¿Õ¼äµØÖ·±£´æÔÚÕâ¶ÎÄÚ´æµÄÆðÊ¼Î»ÖÃ¡£
+
+	return ptr;//·µ»ØµÄÎª¿ÉÓÃ¿Õ¼äµØÖ·
 }
 
 // default <free>
@@ -50,7 +52,7 @@ static int
 	// Pointer must be aligned by CV_MALLOC_ALIGN
 	if( ((size_t)ptr & (ITC_MALLOC_ALIGN-1)) != 0 )		//½«Ö¸Õë¶ÔÆëµ½Ö®Ç°¶à·ÖÅäµÄ(char*)Î»ÖÃÒÔÊÍ·ÅÄÚ´æ
 		return ITC_BADARG_ERR;
-	free( *((char**)ptr - 1) );
+	free( *((char**)ptr - 1) );		//	*((char**)ptr-1)ÎªÖ®Ç°¶à·ÖÅäÄÚ´æµÄÖ¸Õë£¬ÓÃfreeº¯ÊýÀ´ÊÍ·ÅËü
 
 	return ITC_OK;
 }
@@ -114,7 +116,7 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 	block_size = itcAlign( block_size, ITC_STRUCT_ALIGN );//´ý·ÖÅä¿Õ¼ä´óÐ¡µ÷ÕûÎª8×Ö½ÚµÄ±¶Êý
 	assert( sizeof(ItcMemBlock) % ITC_STRUCT_ALIGN == 0 );
 
-	memset( storage, 0, sizeof( *storage ));
+	memset( storage, 0, sizeof( *storage ));	//½«storage³õÊ¼»¯
 	storage->signature = ITC_STORAGE_MAGIC_VAL;
 	storage->block_size = block_size;
 
@@ -139,6 +141,8 @@ ItcMemStorage* itcCreateMemStorage(int block_size)//µ±block_size==0Ôò·ÖÅäÆä´óÐ¡Î
 /* creates child memory storage */
 /*
 	´Ó¸¸storage´¦»ñÈ¡×ÓÄÚ´æ¿é
+	×ÓÄÚ´æ¿éµÄºÃ´¦ÊÇ£¬µ±´¦Àí¶¯Ì¬Êý¾ÝÊ±£¬¿ÉÒÔ½«Êý¾Ý·ÅÈë×Ó¿é½øÐÐ²Ù×÷£¬µÃµ½µÄ½á¹û·µ»Ø¸¸¿é²¢ÊÍ·Å¸Ã×Ö¿é£¬
+	Ôò´¦Àí²Ù×÷¹ý³ÌÖÐµÄÁÙÊ±Êý¾ÝÔòÓë×Ó¿éÍ¬Ê±ÊÍ·Å£¬¶ø²»»áÕ¼ÓÃ¸¸¿éµÄ¿Õ¼ä¡£
 */
 ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 {
@@ -193,7 +197,7 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 				temp->next = dst_top->next;
 				if( temp->next )
 					temp->next->prev = temp;
-				dst_top = dst_top->next = temp;
+				dst_top = dst_top->next = temp;//ÒÔÉÏµÄ×÷ÓÃÊÇ½«ÓÐ¸¸¿éµÄÄÚ´æÖÐµÄblock·Å»Ø¸¸¿éµÄtopÖ®ºó
 			}
 			else
 			{
@@ -276,6 +280,9 @@ void
 
 /* moves stack pointer to next block.
    If no blocks, allocate new one and link it to the storage */
+/*
+	itcGoNextMemBlockÊÇÔÚtopÖ®ºóÌí¼ÓÒ»¸öMemBlock£¬²¢¸üÐÂtopÖÁÐÂÌí¼ÓµÄMemBlock£¬¸üÐÂfree_space£¬Î¬»¤Ò»¸öMemBlockµÄË«ÏòÁ´±í
+*/
 static void
 itcGoNextMemBlock( ItcMemStorage * storage )
 {
@@ -341,6 +348,9 @@ itcGoNextMemBlock( ItcMemStorage * storage )
 }
 
 /* remembers memory storage position */
+/*
+	Í¨¹ý´Ëº¯ÊýÀ´±£´æstorageÖÐtopÖ¸ÕëµÄÎ»ÖÃµ½ItcMemStoragePosÖÐ
+*/
 void
 	itcSaveMemStoragePos( const ItcMemStorage * storage, ItcMemStoragePos * pos )
 {
@@ -358,6 +368,9 @@ void
 }
 
 /* restores memory storage position */
+/*
+	Í¨¹ý´Ëº¯Êý´ÓItcMemStoragePosÖÐ»Ö¸´Ö®Ç°±£´æµÄtopÎ»ÖÃ¡£
+*/
 void
 itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos )
 {
@@ -426,18 +439,18 @@ void*
 
 	if( (size_t)storage->free_space < size )
 	{
-		size_t max_free_space = itcAlignLeft(storage->block_size - sizeof(ItcMemBlock), ITC_STRUCT_ALIGN);
-		if (max_free_space < size)
+		size_t max_free_space = itcAlignLeft(storage->block_size - sizeof(ItcMemBlock), ITC_STRUCT_ALIGN);// ¼ÆËã¶ÔÆëºóµÄÊ£Óà¿Õ¼ä×î¶àÄÜ¹»ÓÐ¶à´ó
+		if (max_free_space < size)// Èç¹ûÒª·ÖÅäµÄ¿Õ¼äºÜ´ó»òÕß²ÎÊý´íÎóÊÇ¸ö¸ºÊý
 			//CV_ERROR( CV_StsOutOfRange, "requested size is negative or too big" );
-			ITC_ERROR_DETAIL(ITC_StsOutOfRange, "Too large memory block is requested");
+			ITC_ERROR_DETAIL(ITC_StsOutOfRange, "requested size is negative or too big");
 
 		//CV_CALL( icvGoNextMemBlock( storage ));
-		itcGoNextMemBlock(storage);
+		itcGoNextMemBlock(storage); //´´½¨Ò»¸öÐÂµÄMemBlock
 	}
 
-	ptr = ITC_FREE_PTR(storage);
+	ptr = ITC_FREE_PTR(storage);// ºêº¯ÊýÕÒµ½µ±Ç°free spaceµÄÊ×µØÖ·
 	assert( (size_t)ptr % ITC_STRUCT_ALIGN == 0 );
-	storage->free_space = itcAlignLeft(storage->free_space - (int)size, ITC_STRUCT_ALIGN );
+	storage->free_space = itcAlignLeft(storage->free_space - (int)size, ITC_STRUCT_ALIGN );//²»ÐèÒªÔÙ×öÄÚ´æ·ÖÅä£¬Ö»Òª¸üÐÂfree_space¼´¿É
 
 	__END__;
 
@@ -497,6 +510,9 @@ ItcSeq *
 
 	//CV_CALL( cvSetSeqBlockSize( seq, (1 << 10)/elem_size ));
 	itcSetSeqBlockSize(seq, (1 << 10)/elem_size );
+	// Éè¶¨delta_elems£¬±íÊ¾µ±SeqÖÐµÄ¿Õ¼ä²»×ãÊ±£¬Ôö¼Ó¶à´ó¿Õ¼ä£¬
+	//ÕâÀïÉè¶¨µÄdelta_elemsÊÇ((1<< 10)/elem_size)ºÍcvAlignLeft(seq->storage->block_size- sizeof(CvMemBlock) -sizeof(CvSeqBlock), 
+	//CV_STRUCT_ALIGN)µÄ×îÐ¡Öµ
 
 	__END__;
 
