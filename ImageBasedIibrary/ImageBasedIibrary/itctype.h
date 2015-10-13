@@ -122,11 +122,11 @@ typedef unsigned short ushort;
 
 #define ITC_IS_MAT_HDR(mat) \
 	((mat) != NULL && \
-	(((const ItcMat*)(mat))->type & CV_MAGIC_MASK) == ITC_MAT_MAGIC_VAL && \
-	((const ItcMat*)(mat))->cols > 0 && ((const ItcMat*)(mat))->rows > 0)		//判断是否是Mat
+	(((const Itc_Mat_t*)(mat))->type & CV_MAGIC_MASK) == ITC_MAT_MAGIC_VAL && \
+	((const Itc_Mat_t*)(mat))->cols > 0 && ((const Itc_Mat_t*)(mat))->rows > 0)		//判断是否是Mat
 
 #define ITC_IS_MAT(mat) \
-	(ITC_IS_MAT_HDR(mat) && ((const ItcMat*)(mat))->data.ptr != NULL)			//判断是否有数据
+	(ITC_IS_MAT_HDR(mat) && ((const Itc_Mat_t*)(mat))->data.ptr != NULL)			//判断是否有数据
 
 #define ITC_IS_MASK_ARR(mat) \
 	(((mat)->type & (ITC_MAT_TYPE_MASK & ~ITC_8SC1)) == 0)

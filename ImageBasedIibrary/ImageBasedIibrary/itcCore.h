@@ -20,7 +20,7 @@
 #include "itcerror.h"
 #include "itcdatastructs.h"
 
-typedef struct ItcMat
+typedef struct Itc_Mat
 {
 	int type;
 	int step;
@@ -50,13 +50,13 @@ typedef struct ItcMat
 		int width;
 	};
 }
-ItcMat;
+Itc_Mat_t;
 
-ItcMat	itcMat( int rows, int cols, int type, void* data);									//手动分配数据创建Mat,注意不能用itcReleaseMat释放
-ItcMat*	itcCreateMat( int height, int width, int type );									//创建Mat
-ItcMat*	itcCreateMatHeader( int rows, int cols, int type );									//创建Mat头
-ItcMat*	itcInitMatHeader( ItcMat* arr, int rows, int cols, int type, void* data, int step );//有Mat头后初始化
-void	itcReleaseMat( ItcMat** mat );														//释放Mat,包括头和数据
+Itc_Mat_t	itc_mat(int rows, int cols, int type, void* data);											//手动分配数据创建Mat,注意不能用itcReleaseMat释放
+Itc_Mat_t*	itc_create_mat( int height, int width, int type );											//创建Mat
+Itc_Mat_t*	itc_create_matHeader( int rows, int cols, int type );										//创建Mat头
+Itc_Mat_t*	itc_init_matHeader( Itc_Mat_t* arr, int rows, int cols, int type, void* data, int step );	//有Mat头后初始化
+void	itc_release_mat( Itc_Mat_t** mat );																//释放Mat,包括头和数据
 
 
 /*------------------------------------矩阵基本运算-------------------------------------------*/
@@ -108,21 +108,25 @@ ICV_DEF_BIN_ARI_OP_2D( __op__, icv##name##_64f_C1R, double, double, ITC_CAST_64F
 
 ICV_DEF_BIN_ARI_ALL( ITC_SUB_R, Sub )						//定义sub操作的函数
 
-void itcSub(ItcMat* src1,ItcMat* src2,ItcMat* dst);			//dst=src1-src2
+void track_sub_mat(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* dst);			//dst=src1-src2
 
 //输入连续两帧图像，生成mhi图
-void itcUpdateMHI(ItcMat* src1,//当前帧
-	ItcMat* src2,		//上一帧
-	ItcMat* mhi,		//运动历史图像
-	int diffThreshold,	//用于过滤帧差大小
-	ItcMat* maskT,		//掩码图像，用于轮廓分析
-	int Threshold);		//用于生成掩码,mhi大于该值才把对应的maskT置为1
+void track_update_MHI(Itc_Mat_t* src1,//当前帧
+	Itc_Mat_t* src2,				//上一帧
+	Itc_Mat_t* mhi,					//运动历史图像
+	int diffThreshold,				//用于过滤帧差大小
+	Itc_Mat_t* maskT,				//掩码图像，用于轮廓分析
+	int Threshold);					//用于生成掩码,mhi大于该值才把对应的maskT置为1
 
 //轮廓检测
-int itcFindContours(ItcMat* src1,	//输入二值图像（0，1），4周边界必须为0，否则会越界
-	ItcContour** pContour,			//输出的轮廓
-	ItcMemStorage*  storage);		//存储器
+int track_find_contours(Itc_Mat_t* src1,	//输入二值图像（0，1），4周边界必须为0，否则会越界
+	ItcContour** pContour,				//输出的轮廓
+	ItcMemStorage*  storage);			//存储器
 
-//轮廓筛选和合并
+//轮廓筛选
+int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *rect_arr);
 
+bool track_intersect_rect(ItcRect *rectA, ItcRect *rectB);			//判断两个矩形框是否相交
+
+void track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &Direct);//返回的方向Direct取1,2,3,4分别代表上，下，左，右
 #endif // itcCore_h__

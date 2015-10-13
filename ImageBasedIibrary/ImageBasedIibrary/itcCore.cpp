@@ -1,9 +1,9 @@
 #include "itcCore.h"
 
 
-ItcMat itcMat( int rows, int cols, int type, void* data)
+Itc_Mat_t itc_mat( int rows, int cols, int type, void* data)
 {
-	ItcMat m;
+	Itc_Mat_t m;
 
 	type = ITC_MAT_TYPE(type);					//只截取低12位数据
 	m.type = ITC_MAT_MAGIC_VAL | ITC_MAT_CONT_FLAG | type;
@@ -17,11 +17,11 @@ ItcMat itcMat( int rows, int cols, int type, void* data)
 	return m;
 }
 
-ItcMat*	itcCreateMat( int height, int width, int type )
+Itc_Mat_t*	itc_create_mat( int height, int width, int type )
 {
-	ItcMat* arr = itcCreateMatHeader( height, width, type );
+	Itc_Mat_t* arr = itc_create_matHeader( height, width, type );
 	size_t step, total_size;
-	ItcMat* mat = (ItcMat*)arr;
+	Itc_Mat_t* mat = (Itc_Mat_t*)arr;
 	step = mat->step;
 
 	if( mat->rows == 0 || mat->cols == 0 )
@@ -47,14 +47,14 @@ ItcMat*	itcCreateMat( int height, int width, int type )
 }
 
 
-static void iicvCheckHuge( ItcMat* arr )
+static void iicvCheckHuge( Itc_Mat_t* pMat )
 {
 	//检查需要分配的空间是否过大
-	if( (int64)arr->step*arr->rows > INT_MAX )	//不超出最大分配大小
-		arr->type &= ~ITC_MAT_CONT_FLAG;		//设置为不连续
+	if ((int64)pMat->step*pMat->rows > INT_MAX)	//不超出最大分配大小
+		pMat->type &= ~ITC_MAT_CONT_FLAG;		//设置为不连续
 }
 
-ItcMat*	itcCreateMatHeader( int rows, int cols, int type )
+Itc_Mat_t*	itc_create_matHeader( int rows, int cols, int type )
 {
 	type = ITC_MAT_TYPE(type);
 
@@ -65,21 +65,22 @@ ItcMat*	itcCreateMatHeader( int rows, int cols, int type )
 	if( min_step <= 0 )
 		ITC_ERROR_("Invalid matrix type");						//
 
-	ItcMat* arr = (ItcMat*)malloc( sizeof(*arr));
+	Itc_Mat_t* pMat = (Itc_Mat_t*)malloc(sizeof(*pMat));
+	memset(pMat, 0, sizeof(*pMat));								//
 
-	arr->step = min_step;
-	arr->type = ITC_MAT_MAGIC_VAL | type | ITC_MAT_CONT_FLAG;	//ITC_MAT_MAGIC_VAL为Mat结构的标志，用于判断是否是mat结构
-	arr->rows = rows;
-	arr->cols = cols;
-	arr->data.ptr = NULL;
-	arr->refcount = NULL;
-	arr->hdr_refcount = 1;
+	pMat->step = min_step;
+	pMat->type = ITC_MAT_MAGIC_VAL | type | ITC_MAT_CONT_FLAG;	//ITC_MAT_MAGIC_VAL为Mat结构的标志，用于判断是否是mat结构
+	pMat->rows = rows;
+	pMat->cols = cols;
+	pMat->data.ptr = NULL;
+	pMat->refcount = NULL;
+	pMat->hdr_refcount = 1;
 
-	iicvCheckHuge( arr );
-	return arr;
+	iicvCheckHuge(pMat);
+	return pMat;
 }
 
-ItcMat*	itcInitMatHeader( ItcMat* arr, int rows, int cols, int type, void* data, int step )
+Itc_Mat_t*	itc_init_matHeader( Itc_Mat_t* arr, int rows, int cols, int type, void* data, int step )
 {
 	if( !arr )
 		ITC_ERROR_("矩阵头为空！");
@@ -119,9 +120,9 @@ ItcMat*	itcInitMatHeader( ItcMat* arr, int rows, int cols, int type, void* data,
 	return arr;
 }
 
-void itcReleaseMat(ItcMat** arr)
+void itc_release_mat(Itc_Mat_t** arr)
 {
-	ItcMat *mat=*arr;
+	Itc_Mat_t *mat=*arr;
 	mat->data.ptr = NULL;
 	if( mat->refcount != NULL && --*mat->refcount == 0 )//引用计数为0时才释放数据内存
 		free( mat->refcount );
@@ -130,7 +131,7 @@ void itcReleaseMat(ItcMat** arr)
 	mat = NULL;
 }
 
-void itcSub(ItcMat* src1,ItcMat* src2,ItcMat* dst)
+void itc_sub_mat(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* dst)
 {
 	if( !ITC_ARE_TYPES_EQ( src1, src2 ) || !ITC_ARE_TYPES_EQ( src1, dst ))//检测类型是否一致
 		ITC_ERROR_("矩阵类型不一致");
@@ -174,7 +175,7 @@ void itcSub(ItcMat* src1,ItcMat* src2,ItcMat* dst)
 	}
 }
 
-void itcUpdateMHI(ItcMat* src1, ItcMat* src2, ItcMat* mhi, int diffThreshold, ItcMat* maskT, int Threshold)
+void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diffThreshold, Itc_Mat_t* maskT, int Threshold)
 {
 	if (!ITC_ARE_TYPES_EQ(src1, src2) || !ITC_ARE_TYPES_EQ(src1, mhi))//检测类型是否一致
 		ITC_ERROR_("矩阵类型不一致");
@@ -210,7 +211,8 @@ void itcUpdateMHI(ItcMat* src1, ItcMat* src2, ItcMat* mhi, int diffThreshold, It
 				else
 				{
 					//mhi不能取小于0的值
-					qmhi[j] = ITC_IMAX(qmhi[j], 1);
+					qmhi[j] = qmhi[j] > Threshold ? qmhi[j] : 1;
+					//qmhi[j] = ITC_IMAX(qmhi[j], 1);
 					qmhi[j]--;
 				}
 			}
@@ -238,16 +240,17 @@ void itcUpdateMHI(ItcMat* src1, ItcMat* src2, ItcMat* mhi, int diffThreshold, It
 				int k = abs(qsrc1[j] - qsrc2[j]);
 				if (k > diffThreshold)
 				{
+					qmask[j] = 1;//生成一个二值化掩码
 					qmhi[j] = 255;
 				}
 				else
 				{
 					//mhi不能取小于0的值
-					qmhi[j] = ITC_IMAX(qmhi[j], 1);
+					qmask[j] = qmhi[j] > Threshold;//生成一个二值化掩码
+					qmhi[j] = qmask[j] ? qmhi[j] : 1;
+					//qmhi[j] = ITC_IMAX(qmhi[j], 1);
 					qmhi[j]--;
 				}
-
-				qmask[j] = qmhi[j] > Threshold ? 1 : 0;//生成一个二值化掩码
 			}
 			qsrc1 += src1->step;
 			qsrc2 += src2->step;
@@ -371,7 +374,7 @@ int							nbd)
 	return 1;
 }
 
-int itcFindContours(ItcMat* src, ItcContour** pContour, ItcMemStorage*  storage)
+int track_find_contours(Itc_Mat_t* src, ItcContour** pContour, ItcMemStorage*  storage)
 {
 	int step = src->step;
 	char *img0 = (char*)(src->data.ptr);
@@ -414,12 +417,14 @@ int itcFindContours(ItcMat* src, ItcContour** pContour, ItcMemStorage*  storage)
 				if ((*pContour) == NULL)
 				{
 					(*pContour) = (ItcContour*)contour;
+					(*pContour)->h_prev = (*pContour)->h_next = contour;
 				}
 				else
 				{
 					//插入
 					contour->h_next = (*pContour)->h_next;
-					(*pContour)->h_next = contour;			
+					(*pContour)->h_next = contour;
+					contour->h_prev = (ItcSeq*)(*pContour);
 				}
 			resume_scan:
 				prev = img[x];		//不能直接等于p,因为itcFetchContourEx会改变当前扫描过的点
@@ -434,4 +439,127 @@ int itcFindContours(ItcMat* src, ItcContour** pContour, ItcMemStorage*  storage)
 		prev = 0;
 	}
 	return count;
+}
+
+bool track_intersect_rect(ItcRect *rectA, ItcRect *rectB)
+{
+	int x1_A = rectA->x;
+	int y1_A = rectA->y;
+	int x2_A = rectA->x + rectA->width;
+	int y2_A = rectA->y + rectA->height;
+
+	int x1_B = rectB->x;
+	int y1_B = rectB->y;
+	int x2_B = rectB->x + rectB->width;
+	int y2_B = rectB->y + rectB->height;
+
+	int x1_min = ITC_MIN(x1_A, x1_B);
+	int y1_min = ITC_MIN(y1_A, y1_B);
+	int x1_max = ITC_MAX(x2_A, x2_B);
+	int y1_max = ITC_MAX(y2_A, y2_B);
+
+	if ((rectA->width + rectB->width > x1_max - x1_min)
+		&& (rectA->height + rectB->height > y1_max - y1_min))
+	{
+		//合并到rectA
+		rectA->x = x1_min;
+		rectA->y = y1_min;
+		rectA->width = x1_max - x1_min;
+		rectA->height = y1_max - y1_min;
+		return true;
+	}
+	return false;
+}
+
+int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *rect_arr)
+{
+	if (rect_arr == NULL || *pContour == NULL)
+		return 0;
+
+	int count_rect = 0;
+	
+	ItcContour *Contour = *pContour;
+	do
+	{
+		ItcRect rect = Contour->rect;
+		if (rect.width > size_Threshold && rect.height > size_Threshold)			//筛选
+		{
+			*(rect_arr + count_rect) = rect;
+			count_rect++;
+		}
+		Contour = (ItcContour*)Contour->h_next;
+	}while (Contour != *pContour);
+
+	int i = 0, j = 0;
+	for (i = 0; i < count_rect; i++)
+	{
+		for (j = i+1; j < count_rect; j++)
+		{
+			if (track_intersect_rect(rect_arr + i, rect_arr + j))						//判断是否相交，如果相交则直接合并
+			{
+				count_rect--;
+				*(rect_arr + j) = *(rect_arr + count_rect);
+			}
+		}
+	}
+
+	return count_rect;
+}
+
+void track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
+{
+	int sum_gradientV = 0;		//垂直方向梯度
+	int sum_gradientH = 0;		//水平方向
+
+	int x1 = roi.x;
+	int y1 = roi.y;
+	int x2 = roi.x + roi.width;
+	int y2 = roi.y + roi.height;
+
+	int step = src->step;
+	char *img0 = (char*)(src->data.ptr + step*y1);
+	char *img = (char*)(src->data.ptr + step*(y1+1));
+
+	int i = 0, j = 0;
+	for (int i = y1; i < y2-1; i++)
+	{
+		for (int j = x1; j < x2-1; j++)
+		{
+			if (img0[j] != 0)
+			{
+				if (img[j] != 0)
+					sum_gradientV += img0[j] - img[j];
+				if (img0[j + 1] != 0)
+					sum_gradientH += img0[j] - img0[j+1];
+			}
+		}
+		img0 = img;
+		img += step;
+	}
+	
+	int threshold = roi.width*roi.height/10;
+	if (abs(sum_gradientV) > abs(sum_gradientH))
+	{
+		if (sum_gradientV > threshold)
+		{
+			direct = 2;
+		}
+		else if (sum_gradientV < -threshold)
+		{
+			direct = 1;
+		}	
+	}
+	else
+	{
+		if (sum_gradientH > threshold)
+		{
+			direct = 3;
+		}
+		else if (sum_gradientH < -threshold)
+		{
+			direct = 4;
+		}
+	}
+
+	printf("位置：%d,%d,大小：%d,%d 垂直梯度：%d,水平梯度：%d\n", x1, y1, roi.width, roi.height,sum_gradientV, sum_gradientH);
 }

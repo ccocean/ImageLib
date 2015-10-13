@@ -9,7 +9,7 @@
 #define expand_h__
 #include "imageProcess.h"
 
-CvMat MatToCV(ItcMat src)
+CvMat MatToCV(Itc_Mat_t src)
 {
 	CvMat m;
 
@@ -23,9 +23,9 @@ CvMat MatToCV(ItcMat src)
 	return m;
 };
 
-ItcMat MatToITC(CvMat src)
+Itc_Mat_t MatToITC(CvMat src)
 {
-	ItcMat m;
+	Itc_Mat_t m;
 
 	m.type = src.type;
 	m.cols = src.cols;
