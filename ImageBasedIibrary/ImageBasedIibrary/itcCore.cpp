@@ -441,6 +441,7 @@ int track_find_contours(Itc_Mat_t* src, ItcContour** pContour, ItcMemStorage*  s
 	return count;
 }
 
+#define INTERSECT_TRACK_EXTERN_RECT 5
 bool track_intersect_rect(ItcRect *rectA, ItcRect *rectB)
 {
 	int x1_A = rectA->x;
@@ -458,8 +459,8 @@ bool track_intersect_rect(ItcRect *rectA, ItcRect *rectB)
 	int x1_max = ITC_MAX(x2_A, x2_B);
 	int y1_max = ITC_MAX(y2_A, y2_B);
 
-	if ((rectA->width + rectB->width > x1_max - x1_min)
-		&& (rectA->height + rectB->height > y1_max - y1_min))
+	if ((rectA->width + rectB->width + INTERSECT_TRACK_EXTERN_RECT> x1_max - x1_min)
+		&& (rectA->height + rectB->height + INTERSECT_TRACK_EXTERN_RECT> y1_max - y1_min))
 	{
 		//合并到rectA
 		rectA->x = x1_min;
@@ -506,10 +507,20 @@ int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *
 	return count_rect;
 }
 
+//************************************
+// 函数名称: track_caluclateDirect_ROI
+// 函数说明：本函数假设运动像素速度较小，只计算连续的运动，即时间戳之差为1的运动
+// 作    者：XueYB
+// 作成日期：2015/10/14
+// 返 回 值: 
+// 参    数: 
+//************************************
 void track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 {
 	int sum_gradientV = 0;		//垂直方向梯度
 	int sum_gradientH = 0;		//水平方向
+	int count_changeX = 0;		//统计有偏移的点数量
+	int count_changeY = 0;		//
 
 	int x1 = roi.x;
 	int y1 = roi.y;
@@ -517,49 +528,60 @@ void track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 	int y2 = roi.y + roi.height;
 
 	int step = src->step;
-	char *img0 = (char*)(src->data.ptr + step*y1);
-	char *img = (char*)(src->data.ptr + step*(y1+1));
+	uchar *img0 = (uchar*)(src->data.ptr + step*y1);
+	uchar *img1 = (uchar*)(src->data.ptr + step*(y1 + 1));
 
 	int i = 0, j = 0;
-	for (int i = y1; i < y2-1; i++)
+	for (i = y1; i < y2-1; i++)
 	{
-		for (int j = x1; j < x2-1; j++)
+		uchar last_Value = 0;
+		int startX = x1 - 1;
+		for (j = x1; j < x2-1; j++)
 		{
-			if (img0[j] != 0)
+			int gradientX = img0[j + 1] - img0[j];
+			int gradientY = img1[j] - img0[j];
+			if (gradientX <= 2 && gradientX >= -2)
 			{
-				if (img[j] != 0)
-					sum_gradientV += img0[j] - img[j];
-				if (img0[j + 1] != 0)
-					sum_gradientH += img0[j] - img0[j+1];
+				sum_gradientH += gradientX;
+				count_changeX++;
+			}
+			if (gradientY <= 2 && gradientY >= -2)
+			{
+				sum_gradientV += gradientY;
+				count_changeY++;
 			}
 		}
-		img0 = img;
-		img += step;
-	}
-	
-	int threshold = roi.width*roi.height/10;
-	if (abs(sum_gradientV) > abs(sum_gradientH))
-	{
-		if (sum_gradientV > threshold)
-		{
-			direct = 2;
-		}
-		else if (sum_gradientV < -threshold)
-		{
-			direct = 1;
-		}	
-	}
-	else
-	{
-		if (sum_gradientH > threshold)
-		{
-			direct = 3;
-		}
-		else if (sum_gradientH < -threshold)
-		{
-			direct = 4;
-		}
+		img0 = img1;
+		img1 += step;
 	}
 
-	printf("位置：%d,%d,大小：%d,%d 垂直梯度：%d,水平梯度：%d\n", x1, y1, roi.width, roi.height,sum_gradientV, sum_gradientH);
+	int threshold = (roi.width*roi.height)>>4;
+	if (count_changeX>threshold || count_changeY>threshold)
+	{
+		if (abs(sum_gradientV) > abs(sum_gradientH))
+		{
+			int threshold1 = count_changeY >> 4;
+			if (sum_gradientV > threshold1)
+			{
+				direct = 1;
+			}
+			else if (sum_gradientV < -threshold1)
+			{
+				direct = 2;
+			}
+		}
+		else
+		{
+			int threshold2 = count_changeX >> 4;
+			if (sum_gradientH > threshold2)
+			{
+				direct = 3;
+			}
+			else if (sum_gradientH < -threshold2)
+			{
+				direct = 4;
+			}
+		}
+		printf("位置：%d,%d,运动数：%d,%d 垂直梯度：%d,水平梯度：%d\n", x1, y1, count_changeY, count_changeX, sum_gradientV, sum_gradientH);
+	}
 }
