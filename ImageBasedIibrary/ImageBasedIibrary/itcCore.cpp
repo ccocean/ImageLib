@@ -185,6 +185,8 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 
 	int type = ITC_MAT_TYPE(src1->type);	//类型
 	int depth = ITC_MAT_DEPTH(type);		//深度
+	if (depth != ITC_8U)
+		ITC_ERROR_("数据深度不是uchar");
 	if( ITC_MAT_CN(type)!=1 )				//通道数
 		ITC_ERROR_("通道数不为1");
 
@@ -211,7 +213,7 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 				else
 				{
 					//mhi不能取小于0的值
-					qmhi[j] = qmhi[j] > Threshold ? qmhi[j] : 1;
+					qmhi[j] = qmhi[j] > 210 ? qmhi[j] : 1;
 					//qmhi[j] = ITC_IMAX(qmhi[j], 1);
 					qmhi[j]--;
 				}
@@ -247,7 +249,7 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 				{
 					//mhi不能取小于0的值
 					qmask[j] = qmhi[j] > Threshold;//生成一个二值化掩码
-					qmhi[j] = qmask[j] ? qmhi[j] : 1;
+					qmhi[j] = qmhi[j] > 210 ? qmhi[j] : 1;
 					//qmhi[j] = ITC_IMAX(qmhi[j], 1);
 					qmhi[j]--;
 				}
@@ -472,7 +474,7 @@ bool track_intersect_rect(ItcRect *rectA, ItcRect *rectB)
 	return false;
 }
 
-int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *rect_arr)
+int stuTrack_filtrate_contours(ItcContour** pContour,int* size_Threshold, ItcRect *rect_arr)
 {
 	if (rect_arr == NULL || *pContour == NULL)
 		return 0;
@@ -483,7 +485,10 @@ int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *
 	do
 	{
 		ItcRect rect = Contour->rect;
-		if (rect.width > size_Threshold && rect.height > size_Threshold)			//筛选
+		int centre_x = rect.x + rect.width >> 1;
+		if (rect.width > size_Threshold[centre_x] &&
+			rect.height > size_Threshold[centre_x] &&
+			rect.height > rect.width + (rect.width>>2))					//筛选
 		{
 			*(rect_arr + count_rect) = rect;
 			count_rect++;
@@ -492,11 +497,52 @@ int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *
 	}while (Contour != *pContour);
 
 	int i = 0, j = 0;
+	if (count_rect < 100)
+	{
+		for (i = 0; i < count_rect; i++)
+		{
+			for (j = i + 1; j < count_rect; j++)
+			{
+				if (track_intersect_rect(rect_arr + i, rect_arr + j))		//判断是否相交，如果相交则直接合并
+				{
+					count_rect--;
+					*(rect_arr + j) = *(rect_arr + count_rect);
+					j--;
+				}
+			}
+		}
+	}
+
+	return count_rect;
+}
+
+int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *rect_arr)
+{
+	if (rect_arr == NULL || *pContour == NULL)
+		return 0;
+
+	int count_rect = 0;
+
+	ItcContour *Contour = *pContour;
+	do
+	{
+		ItcRect rect = Contour->rect;
+		int centre_x = rect.x + rect.width >> 1;
+		if (rect.width > size_Threshold &&
+			rect.height > size_Threshold)					//筛选
+		{
+			*(rect_arr + count_rect) = rect;
+			count_rect++;
+		}
+		Contour = (ItcContour*)Contour->h_next;
+	} while (Contour != *pContour);
+
+	int i = 0, j = 0;
 	for (i = 0; i < count_rect; i++)
 	{
-		for (j = i+1; j < count_rect; j++)
+		for (j = i + 1; j < count_rect; j++)
 		{
-			if (track_intersect_rect(rect_arr + i, rect_arr + j))						//判断是否相交，如果相交则直接合并
+			if (track_intersect_rect(rect_arr + i, rect_arr + j))		//判断是否相交，如果相交则直接合并
 			{
 				count_rect--;
 				*(rect_arr + j) = *(rect_arr + count_rect);
@@ -515,10 +561,11 @@ int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *
 // 返 回 值: 
 // 参    数: 
 //************************************
-void track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
+int track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 {
 	int sum_gradientV = 0;		//垂直方向梯度
 	int sum_gradientH = 0;		//水平方向
+	int count_change = 0;
 	int count_changeX = 0;		//统计有偏移的点数量
 	int count_changeY = 0;		//
 
@@ -538,32 +585,38 @@ void track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 		int startX = x1 - 1;
 		for (j = x1; j < x2-1; j++)
 		{
-			int gradientX = img0[j + 1] - img0[j];
-			int gradientY = img1[j] - img0[j];
-			if (gradientX <= 2 && gradientX >= -2)
+			if (img1[j] != 0)
 			{
-				sum_gradientH += gradientX;
-				count_changeX++;
-			}
-			if (gradientY <= 2 && gradientY >= -2)
-			{
-				sum_gradientV += gradientY;
-				count_changeY++;
+				int gradientX = img0[j + 1] - img0[j];
+				int gradientY = img1[j] - img0[j];
+				if (gradientX <= 1 && gradientX >= -1)
+				{
+					sum_gradientH += gradientX;
+					count_changeX++;
+				}
+				if (gradientY <= 1 && gradientY >= -1)
+				{
+					sum_gradientV += gradientY;
+					count_changeY++;
+				}
+				count_change++;
 			}
 		}
 		img0 = img1;
 		img1 += step;
 	}
 
-	int threshold = (roi.width*roi.height)>>4;
-	if (count_changeX>threshold || count_changeY>threshold)
+	int threshold = (roi.width*roi.height) >> 2;
+	if (count_change>threshold)
 	{
 		if (abs(sum_gradientV) > abs(sum_gradientH))
 		{
 			int threshold1 = count_changeY >> 4;
 			if (sum_gradientV > threshold1)
 			{
+				//printf("位置：%d,%d,大小：%d,%d 垂直梯度：%d,水平梯度：%d\n", x1, y1, roi.width, roi.height, sum_gradientV, sum_gradientH);
 				direct = 1;
+				return 1;
 			}
 			else if (sum_gradientV < -threshold1)
 			{
@@ -581,7 +634,195 @@ void track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 			{
 				direct = 4;
 			}
+		}		
+	}
+	return 0;
+}
+
+void track_update_midValueBK(Itc_Mat_t* mat, Itc_Mat_t* matBK)
+{
+	if (!ITC_ARE_TYPES_EQ(mat, matBK))		//检测类型是否一致
+		ITC_ERROR_("矩阵类型不一致");
+
+	if (!ITC_ARE_SIZES_EQ(mat, matBK))		//检查大小是否一致
+		ITC_ERROR_("矩阵大小不一致");
+
+	int type = ITC_MAT_TYPE(mat->type);		//类型
+	int depth = ITC_MAT_DEPTH(type);		//深度
+	if (depth != ITC_8U)
+		ITC_ERROR_("数据深度不是uchar");
+	if (ITC_MAT_CN(type) != 1)				//通道数
+		ITC_ERROR_("通道数不为1");
+
+	ItcSize sizeMat;
+	sizeMat.width = mat->cols;
+	sizeMat.height = mat->rows;
+
+	int i = 0;
+	int j = 0;
+	uchar *qmat = mat->data.ptr;
+	uchar *qmBK = matBK->data.ptr;
+
+	for (i = 0; i < sizeMat.height; i++)
+	{
+		for (j = 0; j < sizeMat.width; j++)
+		{
+			int matValue = qmBK[j];
+			int diff = abs(matValue - qmat[j]);
+			if (diff<250)
+			{
+				if (qmat[j]>qmBK[j])
+				{
+					qmBK[j] = ITC_CAST_8U(++matValue);
+				}
+				else if (qmat[j] < qmBK[j])
+				{
+					qmBK[j] = ITC_CAST_8U(--matValue);
+				}
+			}
+			else
+			{
+				qmBK[j] = qmat[j];
+			}
 		}
-		printf("位置：%d,%d,运动数：%d,%d 垂直梯度：%d,水平梯度：%d\n", x1, y1, count_changeY, count_changeX, sum_gradientV, sum_gradientH);
+		qmat += mat->step;
+		qmBK += matBK->step;
 	}
 }
+
+void stuTrack_matching_ROI(ItcRect roi, Teack_Stand_t teack_stand[], int &count_trackObj)
+{
+	int x = roi.x + (roi.width >> 1);
+	int y = roi.y + (roi.height >> 1);
+	if (count_trackObj > 0)
+	{
+		int min_ID = 0;
+		int min_distance = INT_MAX;
+		int distance = 0;
+		for (int i = 0; i < count_trackObj; i++)
+		{
+			distance = (x - teack_stand[i].centre.x)*(x - teack_stand[i].centre.x) + (y - teack_stand[i].centre.y)*(y - teack_stand[i].centre.y);
+			if (min_distance>distance)
+			{
+				min_distance = distance;
+				min_ID = i;
+			}
+		}
+		int threshold = (teack_stand[min_ID].roi.width * teack_stand[min_ID].roi.height)>>2;
+		if (min_distance<threshold)
+		{
+			//teack_stand[min_ID].roi.x = ITC_IMIN(roi.x, teack_stand[min_ID].roi.x);
+			//teack_stand[min_ID].roi.y = ITC_IMAX(roi.y, teack_stand[min_ID].roi.y);
+			//teack_stand[min_ID].roi.width = ITC_IMAX(roi.width, teack_stand[min_ID].roi.width);
+			//teack_stand[min_ID].roi.height = ITC_IMAX(roi.height, teack_stand[min_ID].roi.height);
+			track_intersect_rect(&teack_stand[min_ID].roi, &roi);
+			teack_stand[count_trackObj].centre = itcPoint(x, y);
+			teack_stand[min_ID].count_teack++;
+			teack_stand[min_ID].flag_matching = 1;
+			return;
+		}
+	}
+
+	//add
+	teack_stand[count_trackObj].centre = itcPoint(x, y);
+	teack_stand[count_trackObj].roi = roi;
+	teack_stand[count_trackObj].count_teack = 1;
+	teack_stand[count_trackObj].count_up = 0;
+	teack_stand[count_trackObj].count_down = 0;
+	teack_stand[count_trackObj].flag_Stand = 0;
+	teack_stand[count_trackObj].flag_matching = 1;
+	count_trackObj++;
+}
+
+void stuTrack_analyze_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand[], int &count_trackObj)
+{
+	int i = 0;
+	int direct = 0;
+	for (int i = 0; i < count_trackObj; i++)
+	{
+		if (teack_stand[i].flag_Stand==0)
+		{
+			if(!teack_stand[i].flag_matching)
+			{
+				if (track_calculateDirect_ROI(mhi, teack_stand[i].roi, direct))
+					teack_stand[i].count_up++;
+				else
+					teack_stand[i].count_up--;
+			}
+			
+			if (stuTrack_judgeStand_ROI(mhi, teack_stand[i]))	//确定是否站立
+			{	
+				teack_stand[i].flag_Stand = 1;
+			}
+			else
+			{
+				if (teack_stand[i].count_up < 0)				//删除非站立roi
+				{
+					teack_stand[i] = teack_stand[--count_trackObj];
+					i--;
+				}
+			}
+		}
+		else
+		{
+			//检测有没有坐下
+			track_calculateDirect_ROI(mhi, teack_stand[i].roi, direct);
+			if (direct == 2)
+			{
+				teack_stand[i].count_down++;
+				if (teack_stand[i].count_down>2)
+				{
+					teack_stand[i] = teack_stand[--count_trackObj];
+					i--;
+				}
+			}
+		}
+		teack_stand[i].flag_matching = 0;
+	}
+}
+
+bool stuTrack_judgeStand_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand)
+{
+	int ratio_lengthWidth = (teack_stand.roi.width > teack_stand.roi.height) ? (teack_stand.roi.width / teack_stand.roi.height) : (teack_stand.roi.height / teack_stand.roi.width);
+	if ((teack_stand.count_up + teack_stand.count_teack) > 4 && ratio_lengthWidth<2)
+	{
+		int x1 = teack_stand.roi.x;
+		int y1 = teack_stand.roi.y;
+		int width =teack_stand.roi.width/3;
+		int height = ITC_IMIN(teack_stand.roi.height, teack_stand.roi.width/2);
+
+		int step = mhi->step;
+		uchar *img = (uchar*)(mhi->data.ptr + step*(y1 + teack_stand.roi.height - height));
+
+		int sum_value[3] = { 0,0,0 };
+		int x2 = x1 + width;
+		int i = 0, j = 0;
+		for (i = 0; i < height; i++)
+		{
+			x1 = teack_stand.roi.x;
+			x2 = x1 + width;
+			for (j = x1; j < x2; j++)
+			{
+				sum_value[0] += (img[j]>0 ? 1 : 0);
+			}
+			x1 = x2;
+			x2 += width;
+			for (j = x1; j < x2; j++)
+			{
+				sum_value[1] += (img[j]>0 ? 1 : 0);
+			}
+			x1 = x2;
+			x2 += width;
+			for (j = x1; j < x2; j++)
+			{
+				sum_value[2] += (img[j]>0 ? 1 : 0);
+			}
+			img += step;
+		}
+		printf("比例：%d,%d,%d\n", sum_value[0], sum_value[1], sum_value[2]);
+		if (sum_value[1]/2>sum_value[0] + sum_value[2])
+			return true;
+	}
+	return false;
+}
+
