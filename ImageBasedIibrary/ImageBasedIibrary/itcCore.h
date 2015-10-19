@@ -12,6 +12,7 @@
 #define itcCore_h__
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>

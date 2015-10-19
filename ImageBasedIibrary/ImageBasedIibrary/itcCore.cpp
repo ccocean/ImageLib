@@ -563,6 +563,77 @@ int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *
 //************************************
 int track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 {
+	//int sum_gradientV = 0;		//垂直方向梯度
+	//int sum_gradientH = 0;		//水平方向
+	//int count_change = 0;
+	//int count_changeX = 0;		//统计有偏移的点数量
+	//int count_changeY = 0;		//
+	//int x1 = roi.x;
+	//int y1 = roi.y;
+	//int x2 = roi.x + roi.width;
+	//int y2 = roi.y + roi.height;
+	//int step = src->step;
+	//uchar *img0 = (uchar*)(src->data.ptr + step*y1);
+	//uchar *img1 = (uchar*)(src->data.ptr + step*(y1 + 1));
+	//int i = 0, j = 0;
+	//for (i = y1; i < y2-1; i++)
+	//{
+	//	uchar last_Value = 0;
+	//	int startX = x1 - 1;
+	//	for (j = x1; j < x2-1; j++)
+	//	{
+	//		if (img1[j] != 0)
+	//		{
+	//			int gradientX = img0[j + 1] - img0[j];
+	//			int gradientY = img1[j] - img0[j];
+	//			if (gradientX <= 1 && gradientX >= -1)
+	//			{
+	//				sum_gradientH += gradientX;
+	//				count_changeX++;
+	//			}
+	//			if (gradientY <= 1 && gradientY >= -1)
+	//			{
+	//				sum_gradientV += gradientY;
+	//				count_changeY++;
+	//			}
+	//			count_change++;
+	//		}
+	//	}
+	//	img0 = img1;
+	//	img1 += step;
+	//}
+
+	//int threshold = (roi.width*roi.height) >> 2;
+	//if (count_change>threshold)
+	//{
+	//	if (abs(sum_gradientV) > abs(sum_gradientH))
+	//	{
+	//		int threshold1 = count_changeY >> 4;
+	//		if (sum_gradientV > threshold1)
+	//		{
+	//			//printf("位置：%d,%d,大小：%d,%d 垂直梯度：%d,水平梯度：%d\n", x1, y1, roi.width, roi.height, sum_gradientV, sum_gradientH);
+	//			direct = 1;
+	//			return 1;
+	//		}
+	//		else if (sum_gradientV < -threshold1)
+	//		{
+	//			direct = 2;
+	//		}
+	//	}
+	//	else
+	//	{
+	//		int threshold2 = count_changeX >> 4;
+	//		if (sum_gradientH > threshold2)
+	//		{
+	//			direct = 3;
+	//		}
+	//		else if (sum_gradientH < -threshold2)
+	//		{
+	//			direct = 4;
+	//		}
+	//	}		
+	//}
+
 	int sum_gradientV = 0;		//垂直方向梯度
 	int sum_gradientH = 0;		//水平方向
 	int count_change = 0;
@@ -573,69 +644,146 @@ int track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 	int y1 = roi.y;
 	int x2 = roi.x + roi.width;
 	int y2 = roi.y + roi.height;
-
 	int step = src->step;
-	uchar *img0 = (uchar*)(src->data.ptr + step*y1);
-	uchar *img1 = (uchar*)(src->data.ptr + step*(y1 + 1));
 
 	int i = 0, j = 0;
-	for (i = y1; i < y2-1; i++)
+
+	int flag_signLase = 0;			//用于标记当前是上升还是下降
+	int flag_signCurr = 0;
+	uchar last_Value = 0;
+	int startY = y1 - 1;
+	int startX = x1 - 1;
+	uchar *img0 = (uchar*)(src->data.ptr + step*y1);
+	uchar *img1 = img0;
+	
+	//计算水平方向速度
+	for (i = y1; i < y2; i++)
 	{
-		uchar last_Value = 0;
-		int startX = x1 - 1;
-		for (j = x1; j < x2-1; j++)
+		flag_signLase = 0;				//用于标记当前是上升还是下降
+		flag_signCurr = 0;
+		last_Value = 0;
+		startX = x1 - 1;
+		for (j = x1; j < x2; j++)
 		{
-			if (img1[j] != 0)
+			if (img1[j] != last_Value)	//检测到一个变化点
 			{
-				int gradientX = img0[j + 1] - img0[j];
-				int gradientY = img1[j] - img0[j];
-				if (gradientX <= 1 && gradientX >= -1)
+				if (last_Value != 0)	//last_Value=0,说明当前是一个起点，只需标记startX=j即可
 				{
-					sum_gradientH += gradientX;
-					count_changeX++;
+					flag_signCurr = img1[j] - last_Value;					//计算当前方向
+					if (flag_signLase != 0)
+					{
+						//已经确定当前梯度的方向
+						if (flag_signLase>0)
+						{
+							if (flag_signCurr > 0 && img1[j] != 0)				//方向一致的才有效
+							{
+								sum_gradientH += (j - startX) / flag_signCurr;
+								count_changeX++;
+							}
+						}
+						else
+						{
+							if (flag_signCurr < 0 && img1[j] != 0)
+							{
+								sum_gradientH += (j - startX) / flag_signCurr;
+								count_changeX++;
+							}
+							else if (img1[j] == 0)				//结束位置如果是降序的，那么是有效的
+							{
+								sum_gradientH += (j - startX) / flag_signLase;
+								count_changeX++;
+							}
+						}
+					}
+					else
+					{
+						//还未确定当前梯度的方向
+						if (flag_signCurr > 0)					//起点位置如果是升序的，那么是有效的
+						{
+							sum_gradientH += (j - startX) / flag_signCurr;
+							count_changeX++;
+						}
+					}
+					flag_signLase = flag_signCurr;
 				}
-				if (gradientY <= 1 && gradientY >= -1)
-				{
-					sum_gradientV += gradientY;
-					count_changeY++;
-				}
-				count_change++;
+				startX = j;
+				last_Value = img1[j];
 			}
 		}
-		img0 = img1;
 		img1 += step;
 	}
-
-	int threshold = (roi.width*roi.height) >> 2;
-	if (count_change>threshold)
+	
+	for (j = x1; j < x2; j++)
 	{
-		if (abs(sum_gradientV) > abs(sum_gradientH))
+		flag_signLase = 0;				//用于标记当前是上升还是下降
+		flag_signCurr = 0;
+		last_Value = 0;
+		startY = y1 - 1;
+		img1 = img0;
+		for (i = y1; i < y2; i++)
 		{
-			int threshold1 = count_changeY >> 4;
-			if (sum_gradientV > threshold1)
+			if (img1[j] != last_Value)
 			{
-				//printf("位置：%d,%d,大小：%d,%d 垂直梯度：%d,水平梯度：%d\n", x1, y1, roi.width, roi.height, sum_gradientV, sum_gradientH);
-				direct = 1;
-				return 1;
+				if (last_Value != 0)	//last_Value=0,说明当前是一个起点，只需标记startX=j即可
+				{
+					flag_signCurr = img1[j] - last_Value;
+					if (flag_signLase != 0)
+					{
+						//已经确定当前梯度的方向
+						if (flag_signLase > 0)
+						{
+							if (flag_signCurr > 0 && img1[j] != 0)			//方向一致的才有效
+							{
+								sum_gradientV += (i - startY) / flag_signCurr;
+								count_changeY++;
+							}
+						}
+						else
+						{
+							if (flag_signCurr < 0 && img1[j] != 0)
+							{
+								sum_gradientV += (i - startY) / flag_signCurr;
+								count_changeY++;
+							}
+							else if (img1[j] == 0)
+							{
+								sum_gradientV += (i - startY) / flag_signLase;
+								count_changeY++;
+							}
+						}
+					}
+					else
+					{
+						//还未确定当前梯度的方向
+						if (flag_signCurr > 0)
+						{
+							sum_gradientV += (i - startY) / flag_signCurr;
+							count_changeY++;
+						}
+					}
+					flag_signLase = flag_signCurr;
+				}
+				startY = i;
+				last_Value = img1[j];
 			}
-			else if (sum_gradientV < -threshold1)
-			{
-				direct = 2;
-			}
+			img1 += step;
 		}
-		else
-		{
-			int threshold2 = count_changeX >> 4;
-			if (sum_gradientH > threshold2)
-			{
-				direct = 3;
-			}
-			else if (sum_gradientH < -threshold2)
-			{
-				direct = 4;
-			}
-		}		
 	}
+
+	float gradientH = 0, gradientV = 0;
+	if (count_changeX > 0)
+		gradientH = sum_gradientH / (float)count_changeX;
+	if (count_changeY)
+		gradientV = sum_gradientV / (float)count_changeY;
+	float angle = (int)(atan2(gradientV, gradientH) * 180 / ITC_PI);
+	angle = angle < 0 ? angle + 360 : angle;
+
+	if (abs(angle - direct)<25 && abs(gradientV)>0.5)
+	{
+		printf("1位置：%d,%d 角度：%.2f，垂直梯度：%.2f-%d,水平梯度：%.2f-%d\n", x1, y1, angle, gradientV, count_changeY, gradientH, count_changeX);
+		return 1;
+	}
+	printf("0位置：%d,%d 角度：%.2f，垂直梯度：%.2f-%d,水平梯度：%.2f-%d\n", x1, y1, angle, gradientV, count_changeY, gradientH, count_changeX);
 	return 0;
 }
 
@@ -744,6 +892,7 @@ void stuTrack_analyze_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand[], int &coun
 		{
 			if(!teack_stand[i].flag_matching)
 			{
+				direct = 90;
 				if (track_calculateDirect_ROI(mhi, teack_stand[i].roi, direct))
 					teack_stand[i].count_up++;
 				else
@@ -752,6 +901,7 @@ void stuTrack_analyze_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand[], int &coun
 			
 			if (stuTrack_judgeStand_ROI(mhi, teack_stand[i]))	//确定是否站立
 			{	
+				printf("起立：%d,%d\n", teack_stand[i].roi.x, teack_stand[i].roi.y);
 				teack_stand[i].flag_Stand = 1;
 			}
 			else
@@ -760,20 +910,23 @@ void stuTrack_analyze_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand[], int &coun
 				{
 					teack_stand[i] = teack_stand[--count_trackObj];
 					i--;
+					continue;
 				}
 			}
 		}
 		else
 		{
 			//检测有没有坐下
-			track_calculateDirect_ROI(mhi, teack_stand[i].roi, direct);
-			if (direct == 2)
+			direct = 270;
+			if (track_calculateDirect_ROI(mhi, teack_stand[i].roi, direct))
 			{
 				teack_stand[i].count_down++;
-				if (teack_stand[i].count_down>2)
+				if (teack_stand[i].count_down>3)
 				{
+					printf("坐下：%d,%d\n", teack_stand[i].roi.x, teack_stand[i].roi.y);
 					teack_stand[i] = teack_stand[--count_trackObj];
 					i--;
+					continue;
 				}
 			}
 		}
@@ -783,45 +936,53 @@ void stuTrack_analyze_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand[], int &coun
 
 bool stuTrack_judgeStand_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand)
 {
-	int ratio_lengthWidth = (teack_stand.roi.width > teack_stand.roi.height) ? (teack_stand.roi.width / teack_stand.roi.height) : (teack_stand.roi.height / teack_stand.roi.width);
-	if ((teack_stand.count_up + teack_stand.count_teack) > 4 && ratio_lengthWidth<2)
+	double ratio_lengthWidth = (teack_stand.roi.width > teack_stand.roi.height) ? (((double)teack_stand.roi.width) / teack_stand.roi.height) : (((double)teack_stand.roi.height) / teack_stand.roi.width);
+	if ((teack_stand.count_up + teack_stand.count_teack) > 4 && ratio_lengthWidth <= 2.1)
 	{
-		int x1 = teack_stand.roi.x;
-		int y1 = teack_stand.roi.y;
-		int width =teack_stand.roi.width/3;
-		int height = ITC_IMIN(teack_stand.roi.height, teack_stand.roi.width/2);
+		//int x1 = teack_stand.roi.x;
+		//int y1 = teack_stand.roi.y;
+		//int width = teack_stand.roi.width / 3;
+		//int height = ITC_IMIN(teack_stand.roi.height, teack_stand.roi.width / 2);
 
-		int step = mhi->step;
-		uchar *img = (uchar*)(mhi->data.ptr + step*(y1 + teack_stand.roi.height - height));
+		////if (x1 < mhi->cols / 3)
+		////{
+		////	x1 = ITC_IMAX(x1 - width, 0);
+		////}
+		////else if (x1 + teack_stand.roi.width > mhi->cols - mhi->cols / 3)
+		////{
+		////	x1 = ITC_IMIN(x1 + width, mhi->cols - teack_stand.roi.width - 1);
+		////}
+		//int step = mhi->step;
+		//uchar *img = (uchar*)(mhi->data.ptr + step*(y1 + teack_stand.roi.height - height));
 
-		int sum_value[3] = { 0,0,0 };
-		int x2 = x1 + width;
-		int i = 0, j = 0;
-		for (i = 0; i < height; i++)
-		{
-			x1 = teack_stand.roi.x;
-			x2 = x1 + width;
-			for (j = x1; j < x2; j++)
-			{
-				sum_value[0] += (img[j]>0 ? 1 : 0);
-			}
-			x1 = x2;
-			x2 += width;
-			for (j = x1; j < x2; j++)
-			{
-				sum_value[1] += (img[j]>0 ? 1 : 0);
-			}
-			x1 = x2;
-			x2 += width;
-			for (j = x1; j < x2; j++)
-			{
-				sum_value[2] += (img[j]>0 ? 1 : 0);
-			}
-			img += step;
-		}
-		printf("比例：%d,%d,%d\n", sum_value[0], sum_value[1], sum_value[2]);
-		if (sum_value[1]/2>sum_value[0] + sum_value[2])
+		//int sum_value[3] = { 0, 0, 0 };
+		//int x2 = x1 + width;
+		//int i = 0, j = 0;
+		//for (i = 0; i < height; i++)
+		//{
+		//	x2 = x1 + width;
+		//	for (j = x1; j < x2; j++)
+		//	{
+		//		sum_value[0] += (img[j]>0 ? 1 : 0);
+		//	}
+		//	x2 += width;
+		//	for (; j < x2; j++)
+		//	{
+		//		sum_value[1] += (img[j]>0 ? 1 : 0);
+		//	}
+		//	x2 += width;
+		//	for (; j < x2; j++)
+		//	{
+		//		sum_value[2] += (img[j]>0 ? 1 : 0);
+		//	}
+		//	img += step;
+		//}
+		//if (sum_value[1] > sum_value[0] + sum_value[2])
+		//{
+		//	printf("起立，比例：%d,%d,%d\n", sum_value[0], sum_value[1], sum_value[2]);
 			return true;
+		//}
+		//printf("未起立，比例：%d,%d,%d\n", sum_value[0], sum_value[1], sum_value[2]);
 	}
 	return false;
 }
