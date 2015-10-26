@@ -21,18 +21,6 @@
 #include "itcerror.h"
 #include "itcdatastructs.h"
 
-typedef struct Teack_Stand_t
-{
-	int direction;
-	ItcPoint centre;
-	ItcRect roi;
-	int count_teack;	//
-	int count_up;		//
-	int count_down;		//
-	int flag_Stand;		//
-	int flag_matching;	//Æ¥Åä±êÖ¾
-}Teack_Stand_t;
-
 typedef struct Itc_Mat
 {
 	int type;
@@ -139,16 +127,10 @@ int track_find_contours(Itc_Mat_t* src1,	//ÊäÈë¶şÖµÍ¼Ïñ£¨0£¬1£©£¬4ÖÜ±ß½ç±ØĞëÎª0£
 
 int track_filtrate_contours(ItcContour** pContour,int size_Threshold, ItcRect *rect_arr);
 
-bool track_intersect_rect(ItcRect *rectA, ItcRect *rectB);					//ÅĞ¶ÏÁ½¸ö¾ØĞÎ¿òÊÇ·ñÏà½»
+bool track_intersect_rect(ItcRect *rectA, ItcRect *rectB, int expand_dis);	//ÅĞ¶ÏÁ½¸ö¾ØĞÎ¿òÊÇ·ñÏà½»
 
-int track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct);	//
+int track_calculateDirect_ROI(Itc_Mat_t* mhi, ItcRect roi, int &direct);	//·µ»ØroiÇøÓòÄÚµÄÄ¿±êÕûÌåÔË¶¯·½Ïò£¬
 
 void track_update_midValueBK(Itc_Mat_t* mat, Itc_Mat_t* matBK);				//ÓÃÖĞÖµ·¨¸üĞÂ±³¾°
 
-int stuTrack_filtrate_contours(ItcContour** pContour, int size_Threshold[], ItcRect *rect_arr);			//ÂÖÀªÉ¸Ñ¡
-void stuTrack_matching_ROI(Itc_Mat_t* mhi, ItcRect roi, Teack_Stand_t teack_stand[], int &count_trackObj, int direct_threshold[], int direct_range);	//Æ¥Åäroi
-void stuTrack_analyze_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand[], int &count_trackObj, int direct_threshold[], int direct_range);
-bool stuTrack_judgeStand_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand);								//ÅĞ¶ÏÊÇ·ñÆğÁ¢
-
-void stuTrack_proStandDown_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand[], int &count_trackObj, ItcRect rect_arr[], int count_rect, int direct_threshold[],int direct_range);
 #endif // itcCore_h__

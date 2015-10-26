@@ -64,5 +64,6 @@ using namespace std;
 #endif //OPENCV_249_BUILD
 
 #include "itcCore.h"
+#include "stuTrack_track_img.h"
 
 #endif // imageProcess_h__

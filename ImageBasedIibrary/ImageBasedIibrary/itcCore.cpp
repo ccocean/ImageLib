@@ -426,7 +426,7 @@ int track_find_contours(Itc_Mat_t* src, ItcContour** pContour, ItcMemStorage*  s
 					//插入
 					contour->h_next = (*pContour)->h_next;
 					(*pContour)->h_next = contour;
-					contour->h_prev = (ItcSeq*)(*pContour);
+					contour->h_prev = (*pContour)->h_prev;
 				}
 			resume_scan:
 				prev = img[x];		//不能直接等于p,因为itcFetchContourEx会改变当前扫描过的点
@@ -484,7 +484,6 @@ int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *
 	do
 	{
 		ItcRect rect = Contour->rect;
-		int centre_x = rect.x + rect.width >> 1;
 		if (rect.width > size_Threshold &&
 			rect.height > size_Threshold)					//筛选
 		{
@@ -518,7 +517,7 @@ int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *
 // 返 回 值: 
 // 参    数: 
 //************************************
-int track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
+int track_calculateDirect_ROI(Itc_Mat_t* mhi, ItcRect roi, int &direct)
 {
 	//int sum_gradientV = 0;		//垂直方向梯度
 	//int sum_gradientH = 0;		//水平方向
@@ -600,7 +599,7 @@ int track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 	int y1 = roi.y;
 	int x2 = roi.x + roi.width;
 	int y2 = roi.y + roi.height;
-	int step = src->step;
+	int step = mhi->step;
 
 	int i = 0, j = 0;
 
@@ -609,7 +608,7 @@ int track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 	uchar last_Value = 0;
 	int startY = y1 - 1;
 	int startX = x1 - 1;
-	uchar *img0 = (uchar*)(src->data.ptr + step*y1);
+	uchar *img0 = (uchar*)(mhi->data.ptr + step*y1);
 	uchar *img1 = img0;
 	
 	int k_int_enhance = 10;	//用于提高除法精度
@@ -641,7 +640,7 @@ int track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 							}
 							else
 							{
-								if (flag_signCurr > 0)
+								if (flag_signCurr > 0)				//flag_signCurr > 0说明flag_signLase<0
 								{
 									sum_gradientH += (k - startX) / flag_signCurr;
 									count_changeX++;
@@ -740,7 +739,7 @@ int track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 							}
 							else 
 							{
-								if (flag_signCurr > 0)//flag_signCurr > 0说明flag_signLase<0
+								if (flag_signCurr > 0)				//flag_signCurr > 0说明flag_signLase<0
 								{
 									sum_gradientV += (k - startY) / flag_signCurr;
 									count_changeY++;
@@ -825,12 +824,20 @@ int track_calculateDirect_ROI(Itc_Mat_t* src, ItcRect roi, int &direct)
 	float angle = (int)(atan2(gradientV, gradientH) * 180 / ITC_PI);
 	angle = angle < 0 ? angle + 360 : angle;
 	direct = (int)angle;
-	if (abs(gradientV)>0.4 && count_change>threshold)
+	if (count_change>threshold)
 	{
-		printf("1位置：%d,%d 角度：%.2f，垂直梯度：%.2f-%d,水平梯度：%.2f-%d\n", x1, y1, angle, gradientV, count_changeY, gradientH, count_changeX);
-		return 1;
+		float gradientV_abs = abs(gradientV);
+		float gradientH_abs = abs(gradientH);
+		if (gradientV_abs>gradientH_abs)
+		{
+			if (gradientV_abs > 0.5)
+				return 1;
+		}
+		else if (gradientH_abs > 0.5)
+		{
+			return 2;
+		}
 	}
-	printf("0位置：%d,%d 角度：%.2f，垂直梯度：%.2f-%d,水平梯度：%.2f-%d\n", x1, y1, angle, gradientV, count_changeY, gradientH, count_changeX);
 	return 0;
 }
 
@@ -885,239 +892,4 @@ void track_update_midValueBK(Itc_Mat_t* mat, Itc_Mat_t* matBK)
 	}
 }
 
-int stuTrack_filtrate_contours(ItcContour** pContour, int size_Threshold[], ItcRect *rect_arr)
-{
-	if (rect_arr == NULL || *pContour == NULL)
-		return 0;
-
-	int count_rect = 0;
-
-	ItcContour *Contour = *pContour;
-	do
-	{
-		ItcRect rect = Contour->rect;
-		int centre_y = rect.y + (rect.height >> 1);
-		if (rect.width > size_Threshold[centre_y] &&
-			rect.height > size_Threshold[centre_y] &&
-			rect.height > rect.width)					//筛选
-		{
-			*(rect_arr + count_rect) = rect;
-			count_rect++;
-		}
-		Contour = (ItcContour*)Contour->h_next;
-	} while (Contour != *pContour);
-
-	int i = 0, j = 0;
-	if (count_rect < 100)
-	{
-		for (i = 0; i < count_rect; i++)
-		{
-			for (j = i + 1; j < count_rect; j++)
-			{
-				if (track_intersect_rect(rect_arr + i, rect_arr + j,-1))		//判断是否相交，如果相交则直接合并
-				{
-					count_rect--;
-					*(rect_arr + j) = *(rect_arr + count_rect);
-					j--;
-				}
-			}
-		}
-	}
-
-	return count_rect;
-}
-
-void stuTrack_matching_ROI(Itc_Mat_t* mhi, ItcRect roi, Teack_Stand_t teack_stand[], int &count_trackObj, int direct_threshold[], int direct_range)
-{
-	int standard_direct = direct_threshold[roi.x + roi.width / 2];
-	int direct = 0;
-	int x = roi.x + (roi.width >> 1);
-	int y = roi.y + (roi.height >> 1);
-	
-	int flag_ROI = track_calculateDirect_ROI(mhi, roi, direct);
-	if (count_trackObj > 0)
-	{
-		int min_ID = 0;
-		int min_distance = INT_MAX;
-		int distance = 0;
-		for (int i = 0; i < count_trackObj; i++)
-		{
-			distance = (x - teack_stand[i].centre.x)*(x - teack_stand[i].centre.x) + (y - teack_stand[i].centre.y)*(y - teack_stand[i].centre.y);
-			if (min_distance>distance)
-			{
-				min_distance = distance;
-				min_ID = i;
-			}
-		}
-
-		int threshold = (teack_stand[min_ID].roi.width * teack_stand[min_ID].roi.height) >> 3;
-		ItcRect _roi = roi;
-		bool intersect_flag = track_intersect_rect(&_roi, &teack_stand[min_ID].roi, -3);
-		if (min_distance < threshold && (flag_ROI == 1))
-		{
-			if ((abs(teack_stand[min_ID].direction - direct) < direct_range))
-			{
-				printf("匹配+\n");
-				teack_stand[min_ID].count_up++;
-			}
-			else
-			{
-				teack_stand[min_ID].count_up--;
-			}
-			teack_stand[min_ID].direction = (teack_stand[min_ID].direction + direct) / 2;
-			teack_stand[min_ID].direction = ITC_IMAX(teack_stand[min_ID].direction, standard_direct - direct_range/2);
-			teack_stand[min_ID].direction = ITC_IMIN(teack_stand[min_ID].direction, standard_direct + direct_range/2);
-			teack_stand[min_ID].roi = _roi;
-			teack_stand[min_ID].count_teack++;
-			teack_stand[min_ID].centre = itcPoint(_roi.x + (_roi.width >> 1), _roi.y + (_roi.height >> 1));
-			teack_stand[min_ID].flag_matching = 1;
-			return;
-		}
-		else if (intersect_flag)
-		{
-			//如果两个roi是相交的,但是距离不符合，说明新的roi包围住了teack_stand的roi,那就忽略这个
-			teack_stand[min_ID].count_up = 0;
-		}
-	}
-
-	//add
-	if ((abs(standard_direct - direct)< direct_range+5) && (flag_ROI == 1))
-	{
-		direct = ITC_IMAX(direct, standard_direct - direct_range / 2);
-		teack_stand[count_trackObj].direction = ITC_IMIN(direct, standard_direct + direct_range / 2);
-		teack_stand[count_trackObj].centre = itcPoint(x, y);
-		teack_stand[count_trackObj].roi = roi;
-		teack_stand[count_trackObj].count_teack = 1;
-		teack_stand[count_trackObj].count_up = 1;
-		teack_stand[count_trackObj].count_down = 0;
-		teack_stand[count_trackObj].flag_Stand = 0;
-		teack_stand[count_trackObj].flag_matching = 1;
-		count_trackObj++;
-	}
-}
-
-void stuTrack_analyze_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand[], int &count_trackObj, int direct_threshold[], int direct_range)
-{
-	int i = 0;
-	int direct = 0;
-	int standard_direct = 0;
-	int flag_ROI = 0;
-	for (int i = 0; i < count_trackObj; i++)
-	{
-		if (teack_stand[i].flag_Stand==0)
-		{
-			if(!teack_stand[i].flag_matching)
-			{
-				standard_direct = direct_threshold[teack_stand[i].roi.x + teack_stand[i].roi.width / 2];
-				flag_ROI = track_calculateDirect_ROI(mhi, teack_stand[i].roi, direct);
-				if ((abs(teack_stand[i].direction - direct) < direct_range) && (flag_ROI == 1))
-				{	
-					printf("非匹配+\n");
-					teack_stand[i].count_up++;
-				}
-				else
-				{
-					teack_stand[i].count_up--;
-				}
-			}
-			
-			if (stuTrack_judgeStand_ROI(mhi, teack_stand[i]))	//确定是否站立
-			{	
-				printf("起立：%d,%d\n", teack_stand[i].roi.x, teack_stand[i].roi.y);
-				teack_stand[i].flag_Stand = 1;
-			}
-			else
-			{
-				if (teack_stand[i].count_up - teack_stand[i].count_teack< 0)				//删除非站立roi
-				{
-					teack_stand[i] = teack_stand[--count_trackObj];
-					i--;
-					continue;
-				}
-			}
-		}
-		else
-		{
-			//检测有没有坐下
-			standard_direct = direct_threshold[teack_stand[i].roi.x + teack_stand[i].roi.width / 2] + 180;
-			standard_direct = standard_direct > 360 ? standard_direct - 360 : standard_direct;
-			flag_ROI = track_calculateDirect_ROI(mhi, teack_stand[i].roi, direct);
-			if ((abs(standard_direct - direct)< direct_range + 30) && (flag_ROI == 1))
-			{
-				teack_stand[i].count_down++;
-				if (teack_stand[i].count_down>4)
-				{
-					printf("坐下：%d,%d\n", teack_stand[i].roi.x, teack_stand[i].roi.y);
-					teack_stand[i] = teack_stand[--count_trackObj];
-					i--;
-					continue;
-				}
-			}
-		}
-		teack_stand[i].flag_matching = 0;
-	}
-}
-
-bool stuTrack_judgeStand_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand)
-{
-	double ratio_lengthWidth = (teack_stand.roi.width > teack_stand.roi.height) ? (((double)teack_stand.roi.width) / teack_stand.roi.height) : (((double)teack_stand.roi.height) / teack_stand.roi.width);
-	if (teack_stand.count_up > 5 
-		&& teack_stand.count_teack > 3
-		&& ratio_lengthWidth <= 2.1)
-	{
-		//int x1 = teack_stand.roi.x;
-		//int y1 = teack_stand.roi.y;
-		//int width = teack_stand.roi.width / 3;
-		//int height = ITC_IMIN(teack_stand.roi.height, teack_stand.roi.width / 2);
-		////if (x1 < mhi->cols / 3)
-		////{
-		////	x1 = ITC_IMAX(x1 - width, 0);
-		////}
-		////else if (x1 + teack_stand.roi.width > mhi->cols - mhi->cols / 3)
-		////{
-		////	x1 = ITC_IMIN(x1 + width, mhi->cols - teack_stand.roi.width - 1);
-		////}
-		//int step = mhi->step;
-		//uchar *img = (uchar*)(mhi->data.ptr + step*(y1 + teack_stand.roi.height - height));
-		//int sum_value[3] = { 0, 0, 0 };
-		//int x2 = x1 + width;
-		//int i = 0, j = 0;
-		//for (i = 0; i < height; i++)
-		//{
-		//	x2 = x1 + width;
-		//	for (j = x1; j < x2; j++)
-		//	{
-		//		sum_value[0] += (img[j]>0 ? 1 : 0);
-		//	}
-		//	x2 += width;
-		//	for (; j < x2; j++)
-		//	{
-		//		sum_value[1] += (img[j]>0 ? 1 : 0);
-		//	}
-		//	x2 += width;
-		//	for (; j < x2; j++)
-		//	{
-		//		sum_value[2] += (img[j]>0 ? 1 : 0);
-		//	}
-		//	img += step;
-		//}
-		//if (sum_value[1] > sum_value[0] + sum_value[2])
-		//{
-		//	printf("起立，比例：%d,%d,%d\n", sum_value[0], sum_value[1], sum_value[2]);
-			return true;
-		//}
-		//printf("未起立，比例：%d,%d,%d\n", sum_value[0], sum_value[1], sum_value[2]);
-	}
-	return false;
-}
-
-void stuTrack_proStandDown_ROI(Itc_Mat_t* mhi, Teack_Stand_t teack_stand[], int &count_trackObj, ItcRect rect_arr[], int count_rect, int direct_threshold[], int direct_range)
-{
-	int i = 0;
-	for (i = 0; i < count_rect; i++)
-	{
-		stuTrack_matching_ROI(mhi, rect_arr[i], teack_stand, count_trackObj, direct_threshold, direct_range);
-	}
-	stuTrack_analyze_ROI(mhi, teack_stand, count_trackObj, direct_threshold, direct_range);			//分析预选的起立roi
-}
 
