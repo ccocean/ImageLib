@@ -1,4 +1,5 @@
 
+#pragma once
 #ifndef _ITCTYPE_H_
 #define _ITCTYPE_H_
 
@@ -9,160 +10,98 @@
 #include <string.h>
 #include <stdlib.h>
 #include <malloc.h>
+#include <stdio.h>
+#include <ctype.h>
 
 
-#pragma once
 
-inline int itcRound(double a)
+typedef void ItcArr;
+
+typedef union Track_32suf_t
 {
-	return (int)(a+0.5);
+	int i;
+	unsigned u;
+	float f;
 }
+Track_32suf_t;
+
+
 
 /*************************************** ItcRect *****************************************/
 
-typedef struct ItcRect
+typedef struct Track_Rect_t
 {
 	int x;
 	int y;
 	int width;
 	int height;
-}ItcRect;
+}Track_Rect_t;
 
-inline ItcRect  itcRect(int x, int y, int width, int height)
-{
-	ItcRect r;
 
-	r.x=x;
-	r.y=y;
-	r.width=width;
-	r.height=height;
-
-	return r;
-}
 
 /*************************************** ItcPoint *****************************************/
 
-typedef struct ItcPoint
+typedef struct Track_Point_t
 {
 	int x;
 	int y;
-}ItcPoint;
+}Track_Point_t;
 
-inline ItcPoint itcPoint(int x, int y)
-{
-	ItcPoint p;
-	p.x=x;
-	p.y=y;
-
-	return p;
-}
-
-typedef struct ItcPoint2D32f
+typedef struct Track_Point2D32f_t
 {
 	float x;
 	float y;
-}ItcPoint2D32f;
+}Track_Point2D32f_t;
 
 
-inline  ItcPoint2D32f  itcPoint2D32f( double x, double y )
-{
-	ItcPoint2D32f p;
-
-	p.x = (float)x;
-	p.y = (float)y;
-
-	return p;
-}
 
 
-inline  ItcPoint2D32f  itcPointTo32f( ItcPoint point )
-{
-	return itcPoint2D32f( (float)point.x, (float)point.y );
-}
+//_inline  Track_Point_t  itcPointFrom32f(Track_Point2D32f_t point);
 
 
-inline  ItcPoint  itcPointFrom32f( ItcPoint2D32f point )
-{
-	ItcPoint ipt;
-	ipt.x = itcRound(point.x);
-	ipt.y = itcRound(point.y);
-
-	return ipt;
-}
-
-
-typedef struct ItcPoint3D32f
+typedef struct Track_Point3D32f_t
 {
 	float x;
 	float y;
 	float z;
-}ItcPoint3D32f;
+}Track_Point3D32f_t;
 
 
-inline  ItcPoint3D32f  itcPoint3D32f( double x, double y, double z )
-{
-	ItcPoint3D32f p;
-
-	p.x = (float)x;
-	p.y = (float)y;
-	p.z = (float)z;
-
-	return p;
-}
+//_inline  Track_Point3D32f_t  itcPoint3D32f(double x, double y, double z);
 
 
-typedef struct ItcPoint2D64f
+typedef struct Track_Point2D64f_t
 {
 	double x;
 	double y;
-}ItcPoint2D64f;
+}Track_Point2D64f_t;
 
 
-inline  ItcPoint2D64f  itcPoint2D64f( double x, double y )
-{
-	ItcPoint2D64f p;
-
-	p.x = x;
-	p.y = y;
-
-	return p;
-}
+//_inline  Track_Point2D64f_t  itcPoint2D64f(double x, double y);
 
 
-typedef struct ItcPoint3D64f
+typedef struct Track_Point3D64f_t
 {
 	double x;
 	double y;
 	double z;
 }
-ItcPoint3D64f;
+Track_Point3D64f_t;
 
 
-inline  ItcPoint3D64f  itcPoint3D64f( double x, double y, double z )
-{
-	ItcPoint3D64f p;
-
-	p.x = x;
-	p.y = y;
-	p.z = z;
-
-	return p;
-}
+//_inline  Track_Point3D64f_t  itcPoint3D64f(double x, double y, double z);
 
 /******************************** CvSize's & CvBox **************************************/
 
-typedef struct ItcSize
+typedef struct Track_Size_t
 {
 	int width;
 	int height;
-}ItcSize;
+}Track_Size_t;
 
-inline ItcSize itcSize(int width, int height)
-{
-	ItcSize s;
-	s.width=width;
-	s.height=height;
-}
+//_inline Track_Size_t itcSize(int width, int height);
+
+
 
 
 /****************************************************************************************\
@@ -174,47 +113,50 @@ inline ItcSize itcSize(int width, int height)
 #define ITC_MAGIC_MASK       0xFFFF0000
 #define ITC_MAT_MAGIC_VAL    0x42420000
 
-typedef struct ItcMemBlock
+typedef struct Track_MemBlock_t
 {
-	struct ItcMemBlock*  prev;
-	struct ItcMemBlock*  next;
+	//struct 
+	struct Track_MemBlock_t*  prev;
+	//struct 
+	struct Track_MemBlock_t*  next;
 }
-ItcMemBlock;
+Track_MemBlock_t;
 
 #define ITC_STORAGE_MAGIC_VAL    0x42890000
 
-typedef struct ItcMemStorage
+typedef struct Track_MemStorage_t
 {
 	int signature;
-	ItcMemBlock* bottom;/* first allocated block */
-	ItcMemBlock* top;   /* current memory block - top of the stack */
-	struct  ItcMemStorage* parent; /* borrows new blocks from */
+	Track_MemBlock_t* bottom;/* first allocated block */
+	Track_MemBlock_t* top;   /* current memory block - top of the stack */
+	//struct  
+	struct Track_MemStorage_t* parent; /* borrows new blocks from */
 	int block_size;  /* block size */
 	int free_space;  /* free space in the current block */
-}ItcMemStorage;
+}Track_MemStorage_t;
 
 #define ITC_IS_STORAGE(storage)  \
 	((storage) != NULL &&       \
-	(((ItcMemStorage*)(storage))->signature & ITC_MAGIC_MASK) == ITC_STORAGE_MAGIC_VAL)
+	(((Track_MemStorage_t*)(storage))->signature & ITC_MAGIC_MASK) == ITC_STORAGE_MAGIC_VAL)
 
-typedef struct ItcMemStoragePos
+typedef struct Track_MemStoragePos_t
 {
-	ItcMemBlock* top;
+	Track_MemBlock_t* top;
 	int free_space;
-}ItcMemStoragePos;
+}Track_MemStoragePos_t;
 
 /*********************************** Sequence *******************************************/
 #define ITC_SEQ_MAGIC_VAL             0x42990000  //稠密序列  队列，栈，向量
 
-typedef struct ItcSeqBlock
+typedef struct Track_SeqBlock_t
 {
-    struct ItcSeqBlock*  prev; /* previous sequence block */
-    struct ItcSeqBlock*  next; /* next sequence block */
+    struct Track_SeqBlock_t*  prev; /* previous sequence block */
+    struct Track_SeqBlock_t*  next; /* next sequence block */
     int    start_index;       /* index of the first element in the block +
                                  sequence->first->start_index */
     int    count;             /* number of elements in the block */
     char*  data;              /* pointer to the first element of the block */
-}ItcSeqBlock;
+}Track_SeqBlock_t;
 
 #define ITC_TREE_NODE_FIELDS(node_type)                          \
 	int       flags;         /* micsellaneous flags */          \
@@ -229,21 +171,21 @@ struct    node_type* v_next  /* 2nd next sequence */
    Elements can be dynamically inserted to or deleted from the sequence.
 */
 #define ITC_SEQUENCE_FIELDS()                                            \
-    ITC_TREE_NODE_FIELDS(ItcSeq);                                         \
+	ITC_TREE_NODE_FIELDS(Track_Seq_t);                                         \
     int       total;          /* total number of elements */            \
     int       elem_size;      /* size of sequence element in bytes */   \
     char*     block_max;      /* maximal bound of the last block */     \
     char*     ptr;            /* current write pointer */               \
     int       delta_elems;    /* how many elements allocated when the seq grows */  \
-    ItcMemStorage* storage;    /* where the seq is stored */             \
-    ItcSeqBlock* free_blocks;  /* free blocks list */                    \
-    ItcSeqBlock* first; /* pointer to the first sequence block */
+    Track_MemStorage_t* storage;    /* where the seq is stored */             \
+    Track_SeqBlock_t* free_blocks;  /* free blocks list */                    \
+    Track_SeqBlock_t* first; /* pointer to the first sequence block */
 
-typedef struct ItcSeq
+typedef struct Track_Seq_t
 {
     ITC_SEQUENCE_FIELDS()
 }
-ItcSeq;
+Track_Seq_t;
 
 #define ITC_TYPE_NAME_SEQ             "opencv-sequence"
 #define ITC_TYPE_NAME_SEQ_TREE        "opencv-sequence-tree"
@@ -261,28 +203,27 @@ The MSB(most-significant or sign bit) of the first field (flags) is 0 iff the el
 	int  flags;                         \
 struct elem_type* next_free;
 
-typedef struct ItcSetElem
+typedef struct Track_SetElem_t
 {
-	ITC_SET_ELEM_FIELDS(ItcSetElem)
-}
-ItcSetElem;
+	ITC_SET_ELEM_FIELDS(Track_SetElem_t)
+}Track_SetElem_t;
 
 #define ITC_SET_FIELDS()      \
 	ITC_SEQUENCE_FIELDS()     \
-	ItcSetElem* free_elems;   \
+	Track_SetElem_t* free_elems;   \
 	int active_count;
 
-typedef struct ItcSet
+typedef struct Track_Set_t
 {
 	ITC_SET_FIELDS()
 }
-ItcSet;
+Track_Set_t;
 
 #define ITC_SET_ELEM_IDX_MASK   ((1 << 26) - 1)
 #define ITC_SET_ELEM_FREE_FLAG  (1 << (sizeof(int)*8-1))
 
 /* Checks whether the element pointed by ptr belongs to a set or not */
-#define ITC_IS_SET_ELEM( ptr )  (((ItcSetElem*)(ptr))->flags >= 0)
+#define ITC_IS_SET_ELEM( ptr )  (((Track_SetElem_t*)(ptr))->flags >= 0)
 
 /****************************************************************************************\
 *                                    Sequence types                                      *
@@ -414,22 +355,22 @@ ItcSet;
 
 #define ITC_SEQ_WRITER_FIELDS()                                     \
 	int          header_size;                                      \
-	ItcSeq*       seq;        /* the sequence written */            \
-	ItcSeqBlock*  block;      /* current block */                   \
+	Track_Seq_t*       seq;        /* the sequence written */            \
+	Track_SeqBlock_t*  block;      /* current block */                   \
 	char*        ptr;        /* pointer to free space */           \
 	char*        block_min;  /* pointer to the beginning of block*/\
 	char*        block_max;  /* pointer to the end of block */
 
-typedef struct ItcSeqWriter
+typedef struct Track_SeqWriter_t
 {
 	ITC_SEQ_WRITER_FIELDS()
 }
-ItcSeqWriter;
+Track_SeqWriter_t;
 
 #define ITC_SEQ_READER_FIELDS()                                      \
 	int          header_size;                                       \
-	ItcSeq*       seq;        /* sequence, beign read */             \
-	ItcSeqBlock*  block;      /* current block */                    \
+	Track_Seq_t*       seq;        /* sequence, beign read */             \
+	Track_SeqBlock_t*  block;      /* current block */                    \
 	char*        ptr;        /* pointer to element be read next */  \
 	char*        block_min;  /* pointer to the beginning of block */\
 	char*        block_max;  /* pointer to the end of block */      \
@@ -437,19 +378,19 @@ ItcSeqWriter;
 	char*        prev_elem;  /* pointer to previous element */
 
 
-typedef struct ItcSeqReader
+typedef struct Track_SeqReader_t
 {
 	ITC_SEQ_READER_FIELDS()
 }
-ItcSeqReader;
+Track_SeqReader_t;
 
 /****************************************************************************************/
 /*                                Operations on sequences                               */
 /****************************************************************************************/
 
-char* itcGetSeqElem(const ItcSeq *seq, int index);
-void itcCreateSeqBlock(ItcSeqWriter * writer);
-void itcChangeSeqBlock(void* _reader, int direction);
+//char* itcGetSeqElem(const Track_Seq_t *seq, int index);
+//void itcCreateSeqBlock(Track_SeqWriter_t * writer);
+//void itcChangeSeqBlock(void* _reader, int direction);
 
 #define ITC_FRONT 0 //在序列头部添加元素
 #define ITC_BACK 1 //在序列尾部添加元素
@@ -486,6 +427,8 @@ void itcChangeSeqBlock(void* _reader, int direction);
 	memcpy((writer).ptr, &(elem), sizeof(elem));      \
 	(writer).ptr += sizeof(elem);                     \
 }
+
+#define ITC_GET_WRITTEN_ELEM( writer ) ((writer).ptr - (writer).seq->elem_size)
 
 /* move reader position forward */
 #define ITC_NEXT_SEQ_ELEM( elem_size, reader )                 \
@@ -533,92 +476,113 @@ if (((reader).ptr -= (elem_size)) < (reader).block_min) \
 	}                                                                   \
 }
 
-#define ITC_CURRENT_POINT( reader )  (*((ItcPoint*)((reader).ptr)))
-#define ITC_PREV_POINT( reader )     (*((ItcPoint*)((reader).prev_elem)))
+#define ITC_CURRENT_POINT( reader )  (*((Track_Point_t*)((reader).ptr)))
+#define ITC_PREV_POINT( reader )     (*((Track_Point_t*)((reader).prev_elem)))
 
 #define ITC_READ_EDGE( pt1, pt2, reader )               \
 {                                                      \
-	assert(sizeof(pt1) == sizeof(ItcPoint) && \
-	sizeof(pt2) == sizeof(ItcPoint) && \
-	reader.seq->elem_size == sizeof(ItcPoint)); \
+	assert(sizeof(pt1) == sizeof(Track_Point_t) && \
+	sizeof(pt2) == sizeof(Track_Point_t) && \
+	reader.seq->elem_size == sizeof(Track_Point_t)); \
 	(pt1) = ITC_PREV_POINT(reader);                   \
 	(pt2) = ITC_CURRENT_POINT(reader);                \
 	(reader).prev_elem = (reader).ptr;                 \
-	ITC_NEXT_SEQ_ELEM(sizeof(ItcPoint), (reader));      \
+	ITC_NEXT_SEQ_ELEM(sizeof(Track_Point_t), (reader));      \
 }
 
 /*********************************** Chain/Countour *************************************/
 
-typedef struct ItcChain
+typedef struct Track_Chain_t
 {
 	ITC_SEQUENCE_FIELDS()
-		ItcPoint  origin;
-}ItcChain;
+		Track_Point_t  origin;
+}Track_Chain_t;
 
 #define ITC_CONTOUR_FIELDS()  \
 	ITC_SEQUENCE_FIELDS()     \
-	ItcRect rect;             \
+	Track_Rect_t rect;             \
 	int color;               \
 	int reserved[3];
 
-typedef struct ItcContour
+typedef struct Track_Contour_t
 {
 	ITC_CONTOUR_FIELDS()
 }
-ItcContour;
+Track_Contour_t;
 
 
-typedef  struct ItcLinkedRunPoint
+typedef  struct Track_LinkedRunPoint_t
 {
-	struct ItcLinkedRunPoint* link;
-	struct ItcLinkedRunPoint* next;
-	ItcPoint pt;
+	struct Track_LinkedRunPoint_t* link;
+	struct Track_LinkedRunPoint_t* next;
+	Track_Point_t pt;
 }
-ItcLinkedRunPoint;
+Track_LinkedRunPoint_t;
 
-typedef ItcContour ItcPoint2DSeq;
+typedef Track_Contour_t Track_Point2DSeq_t;
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 /****************************************************************************************/
 /*                                   declaration                                        */
 /****************************************************************************************/
-inline int  itcAlign(int size, int align);
-inline void* itcAlignPtr(const void* ptr, int align);
-inline int itcAlignLeft(int size, int align);
+int itcRound(double a);
+int itcFloor(double val);
+Track_Rect_t  itcRect(int x, int y, int width, int height);
+Track_Point_t itcPoint(int x, int y);
+Track_Point2D32f_t  itcPoint2D32f(double x, double y);
+Track_Point2D32f_t  itcPointTo32f(Track_Point_t point);
+Track_Point_t  itcPointFrom32f(Track_Point2D32f_t point);
+Track_Point3D32f_t  itcPoint3D32f(double x, double y, double z);
+Track_Point3D64f_t  itcPoint3D64f(double x, double y, double z);
+Track_Point2D64f_t  itcPoint2D64f(double x, double y);
+Track_Size_t itcSize(int width, int height);
+
+char* itcGetSeqElem(const Track_Seq_t *seq, int index);
+void itcCreateSeqBlock(Track_SeqWriter_t * writer);
+void itcChangeSeqBlock(void* _reader, int direction);
+
+_inline int  itcAlign(int size, int align);
+_inline void* itcAlignPtr(const void* ptr, int align);
+_inline int itcAlignLeft(int size, int align);
 static void* itcDefaultAlloc(size_t size, void*);
 static int itcDefaultFree(void* ptr, void*);
 void*  itcAlloc(size_t size);
 void  itcFree_(void* ptr);
-static void itcInitMemStorage(ItcMemStorage* storage, int block_size);
-ItcMemStorage* itcCreateMemStorage(int block_size);
-ItcMemStorage* itcCreateChildMemStorage(ItcMemStorage * parent);
-static void itcDestroyMemStorage(ItcMemStorage* storage);
-void itcReleaseMemStorage(ItcMemStorage** storage);
-void itcClearMemStorage(ItcMemStorage * storage);
-static void itcGoNextMemBlock(ItcMemStorage * storage);
-void itcSaveMemStoragePos(const ItcMemStorage * storage, ItcMemStoragePos * pos);
-void itcRestoreMemStoragePos(ItcMemStorage * storage, ItcMemStoragePos * pos);
-void* itcMemStorageAlloc(ItcMemStorage* storage, size_t size);
-ItcSeq *itcCreateSeq(int seq_flags, int header_size, int elem_size, ItcMemStorage * storage);
-void itcSetSeqBlockSize(ItcSeq *seq, int delta_elements);
-int itcSeqElemIdx(const ItcSeq* seq, const void* _element, ItcSeqBlock** _block);
-static void itcGrowSeq(ItcSeq *seq, int in_front_of);
-char* itcSeqPush(ItcSeq *seq, void *element);
-void itcSeqPop(ItcSeq *seq, void *element);
-static void itcFreeSeqBlock(ItcSeq *seq, int in_front_of);
-char* itcSeqPushFront(ItcSeq *seq, void *element);
-void itcSeqPopFront(ItcSeq *seq, void *element);
-char* itcSeqInsert(ItcSeq *seq, int before_index, void *element);
-void itcSeqRemove(ItcSeq *seq, int index);
-void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer);
-void itcStartWriteSeq(int seq_flags, int header_size,int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer);
-void itcFlushSeqWriter(ItcSeqWriter * writer);
-ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer);
-void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse);
-void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front);
-void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front);
-void itcClearSeq(ItcSeq *seq);
-int itcGetSeqReaderPos(ItcSeqReader* reader);
-void itcSetSeqReaderPos(ItcSeqReader* reader, int index, int is_relative);
+static void itcInitMemStorage(Track_MemStorage_t* storage, int block_size);
+Track_MemStorage_t* itcCreateMemStorage(int block_size);
+Track_MemStorage_t* itcCreateChildMemStorage(Track_MemStorage_t * parent);
+static void itcDestroyMemStorage(Track_MemStorage_t* storage);
+void itcReleaseMemStorage(Track_MemStorage_t** storage);
+void itcClearMemStorage(Track_MemStorage_t * storage);
+static void itcGoNextMemBlock(Track_MemStorage_t * storage);
+void itcSaveMemStoragePos(const Track_MemStorage_t * storage, Track_MemStoragePos_t * pos);
+void itcRestoreMemStoragePos(Track_MemStorage_t * storage, Track_MemStoragePos_t * pos);
+void* itcMemStorageAlloc(Track_MemStorage_t* storage, size_t size);
+Track_Seq_t *itcCreateSeq(int seq_flags, int header_size, int elem_size, Track_MemStorage_t * storage);
+void itcSetSeqBlockSize(Track_Seq_t *seq, int delta_elements);
+int itcSeqElemIdx(const Track_Seq_t* seq, const void* _element, Track_SeqBlock_t** _block);
+static void itcGrowSeq(Track_Seq_t *seq, int in_front_of);
+char* itcSeqPush(Track_Seq_t *seq, void *element);
+void itcSeqPop(Track_Seq_t *seq, void *element);
+static void itcFreeSeqBlock(Track_Seq_t *seq, int in_front_of);
+char* itcSeqPushFront(Track_Seq_t *seq, void *element);
+void itcSeqPopFront(Track_Seq_t *seq, void *element);
+char* itcSeqInsert(Track_Seq_t *seq, int before_index, void *element);
+void itcSeqRemove(Track_Seq_t *seq, int index);
+void itcStartAppendToSeq(Track_Seq_t *seq, Track_SeqWriter_t * writer);
+void itcStartWriteSeq(int seq_flags, int header_size, int elem_size, Track_MemStorage_t * storage, Track_SeqWriter_t * writer);
+void itcFlushSeqWriter(Track_SeqWriter_t * writer);
+Track_Seq_t * itcEndWriteSeq(Track_SeqWriter_t * writer);
+void itcStartReadSeq(const Track_Seq_t *seq, Track_SeqReader_t * reader, int reverse);
+void itcSeqPushMulti(Track_Seq_t *seq, void *_elements, int count, int front);
+void itcSeqPopMulti(Track_Seq_t *seq, void *_elements, int count, int front);
+void itcClearSeq(Track_Seq_t *seq);
+int itcGetSeqReaderPos(Track_SeqReader_t* reader);
+void itcSetSeqReaderPos(Track_SeqReader_t* reader, int index, int is_relative);
+#ifdef __cplusplus
+}
+#endif
 
 #endif // !1

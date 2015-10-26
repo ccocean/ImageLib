@@ -37,8 +37,7 @@ static void*
 		return 0;
 
 	// align the pointer
-	ptr = (char*)itcAlignPtr(ptr0 + sizeof(char*) + 1, ITC_MALLOC_ALIGN);   //½«Ö¸Õë¶ÔÆëµ½ITC_MALLOC_ALIGN£¬32bit¼È4¸ö×Ö½Ú£¬½«Ö¸Õëµ÷Õûµ½32µÄÕûÊý±¶¡£\
-																			  ¼ÙÈçµØÖ·ÊÇ0»ò32»ò64Ôò·µ»ØµÄ¾ÍÊÇµØÖ·±¾Éí£¬Èç¹ûµØÖ·ÊÇ18¾Í·µ»Ø32£¬36¾Í·µ»Ø64¡£
+	ptr = (char*)itcAlignPtr(ptr0 + sizeof(char*) + 1, ITC_MALLOC_ALIGN);   //½«Ö¸Õë¶ÔÆëµ½ITC_MALLOC_ALIGN£¬32bit¼È4¸ö×Ö½Ú£¬½«Ö¸Õëµ÷Õûµ½32µÄÕûÊý±¶¡£¼ÙÈçµØÖ·ÊÇ0»ò32»ò64Ôò·µ»ØµÄ¾ÍÊÇµØÖ·±¾Éí£¬Èç¹ûµØÖ·ÊÇ18¾Í·µ»Ø32£¬36¾Í·µ»Ø64¡£
 
 	*(char**)(ptr - sizeof(char*)) = ptr0;	//½«ptr0¼ÇÂ¼µ½(ptr ¨C sizeof(char*))£¬·ÖÅäµÄ¿Õ¼äµØÖ·±£´æÔÚÕâ¶ÎÄÚ´æµÄÆðÊ¼Î»ÖÃ¡£
 
@@ -101,7 +100,7 @@ void  itcFree_( void* ptr )
 \****************************************************************************************/
 
 /* initializes allocated storage */
-static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
+static void itcInitMemStorage( Track_MemStorage_t* storage, int block_size )
 {
 	//CV_FUNCNAME( "icvInitMemStorage " );
 
@@ -114,7 +113,7 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 		block_size = ITC_STORAGE_BLOCK_SIZE;//block_size==0·ÖÅä¿é´óÐ¡Ä¬ÈÏÎª65408
 
 	block_size = itcAlign( block_size, ITC_STRUCT_ALIGN );//´ý·ÖÅä¿Õ¼ä´óÐ¡µ÷ÕûÎª8×Ö½ÚµÄ±¶Êý
-	assert( sizeof(ItcMemBlock) % ITC_STRUCT_ALIGN == 0 );
+	assert( sizeof(Track_MemBlock_t) % ITC_STRUCT_ALIGN == 0 );
 
 	memset( storage, 0, sizeof( *storage ));	//½«storage³õÊ¼»¯
 	storage->signature = ITC_STORAGE_MAGIC_VAL;
@@ -127,11 +126,11 @@ static void itcInitMemStorage( ItcMemStorage* storage, int block_size )
 /*
 	ÎªItcMemStorageÉêÇëÄÚ´æ£¬block_sizeÎª´óÐ¡£¬0ÎªÄ¬ÈÏÖµ£¬Ä¬ÈÏ´óÐ¡Îª65408
 */
-ItcMemStorage* itcCreateMemStorage(int block_size)//µ±block_size==0Ôò·ÖÅäÆä´óÐ¡ÎªÄ¬ÈÏÖµ
+Track_MemStorage_t* itcCreateMemStorage(int block_size)//µ±block_size==0Ôò·ÖÅäÆä´óÐ¡ÎªÄ¬ÈÏÖµ
 {
-	ItcMemStorage *storage = 0;
+	Track_MemStorage_t *storage = 0;
 
-	storage=(ItcMemStorage *) itcAlloc(sizeof(ItcMemStorage));
+	storage = (Track_MemStorage_t *)itcAlloc(sizeof(Track_MemStorage_t));
 
 	itcInitMemStorage( storage, block_size );
 
@@ -144,9 +143,9 @@ ItcMemStorage* itcCreateMemStorage(int block_size)//µ±block_size==0Ôò·ÖÅäÆä´óÐ¡Î
 	×ÓÄÚ´æ¿éµÄºÃ´¦ÊÇ£¬µ±´¦Àí¶¯Ì¬Êý¾ÝÊ±£¬¿ÉÒÔ½«Êý¾Ý·ÅÈë×Ó¿é½øÐÐ²Ù×÷£¬µÃµ½µÄ½á¹û·µ»Ø¸¸¿é²¢ÊÍ·Å¸Ã×Ö¿é£¬
 	Ôò´¦Àí²Ù×÷¹ý³ÌÖÐµÄÁÙÊ±Êý¾ÝÔòÓë×Ó¿éÍ¬Ê±ÊÍ·Å£¬¶ø²»»áÕ¼ÓÃ¸¸¿éµÄ¿Õ¼ä¡£
 */
-ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
+Track_MemStorage_t* itcCreateChildMemStorage(Track_MemStorage_t * parent)
 {
-	ItcMemStorage *storage = 0;
+	Track_MemStorage_t *storage = 0;
 	//CV_FUNCNAME( "cvCreateChildMemStorage" );
 
 	__BEGIN__;
@@ -167,7 +166,7 @@ ItcMemStorage* itcCreateChildMemStorage( ItcMemStorage * parent )
 }
 
 /* releases all blocks of the storage (or returns them to parent if any) */
-static void itcDestroyMemStorage( ItcMemStorage* storage )
+static void itcDestroyMemStorage(Track_MemStorage_t* storage)
 {
 	//CV_FUNCNAME( "icvDestroyMemStorage" );
 
@@ -175,8 +174,8 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 
 	int k = 0;
 
-	ItcMemBlock *block;
-	ItcMemBlock *dst_top = 0;
+	Track_MemBlock_t *block;
+	Track_MemBlock_t *dst_top = 0;
 
 	if (!storage)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -186,7 +185,7 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 
 	for( block = storage->bottom; block != 0; k++ )
 	{
-		ItcMemBlock *temp = block;
+		Track_MemBlock_t *temp = block;
 
 		block = block->next;
 		if( storage->parent )
@@ -225,9 +224,9 @@ static void itcDestroyMemStorage( ItcMemStorage* storage )
 	ÊÍ·ÅstorageµÄËùÓÐÄÚ´æ
 */
 void
-	itcReleaseMemStorage( ItcMemStorage** storage )
+	itcReleaseMemStorage( Track_MemStorage_t** storage )
 {
-	ItcMemStorage *st;
+	Track_MemStorage_t *st;
 	//CV_FUNCNAME( "cvReleaseMemStorage" );
 
 	__BEGIN__;
@@ -255,7 +254,7 @@ void
 	Çå¿ÕstorageµÄÄÚ´æ£¬¼ÙÈç´Ó¸¸¿é¼Ì³ÐµÄÄÚ´æÔò»¹¸ø¸¸¿é
 */
 void
-	itcClearMemStorage( ItcMemStorage * storage )
+itcClearMemStorage(Track_MemStorage_t * storage)
 {
 	//CV_FUNCNAME( "cvClearMemStorage" );
 
@@ -272,7 +271,7 @@ void
 	{
 		//Ã»ÓÐparentÔòÇå¿Õ¸Ãstorage£¬Ö»ÊÇÇå¿Õ£¬²¢²»ÊÍ·ÅÄÚ´æ
 		storage->top = storage->bottom;
-		storage->free_space = storage->bottom ? storage->block_size - sizeof(ItcMemBlock) : 0;
+		storage->free_space = storage->bottom ? storage->block_size - sizeof(Track_MemBlock_t) : 0;
 	}
 
 	__END__;
@@ -284,7 +283,7 @@ void
 	itcGoNextMemBlockÊÇÔÚtopÖ®ºóÌí¼ÓÒ»¸öMemBlock£¬²¢¸üÐÂtopÖÁÐÂÌí¼ÓµÄMemBlock£¬¸üÐÂfree_space£¬Î¬»¤Ò»¸öMemBlockµÄË«ÏòÁ´±í
 */
 static void
-itcGoNextMemBlock( ItcMemStorage * storage )
+itcGoNextMemBlock( Track_MemStorage_t * storage )
 {
     //CV_FUNCNAME( "icvGoNextMemBlock" );
     
@@ -295,17 +294,17 @@ itcGoNextMemBlock( ItcMemStorage * storage )
 
     if( !storage->top || !storage->top->next )
     {
-        ItcMemBlock *block;
+		Track_MemBlock_t *block;
 
         if( !(storage->parent) )
         {
             //CV_CALL( block = (CvMemBlock *)cvAlloc( storage->block_size ));
-			block = (ItcMemBlock *)itcAlloc( storage->block_size );
+			block = (Track_MemBlock_t *)itcAlloc(storage->block_size);
         }
         else
         {
-            ItcMemStorage *parent = storage->parent;
-            ItcMemStoragePos parent_pos;
+            Track_MemStorage_t *parent = storage->parent;
+            Track_MemStoragePos_t parent_pos;
 
             itcSaveMemStoragePos( parent, &parent_pos );
 			itcGoNextMemBlock(parent);
@@ -341,7 +340,7 @@ itcGoNextMemBlock( ItcMemStorage * storage )
 
     if( storage->top->next )
         storage->top = storage->top->next;
-    storage->free_space = storage->block_size - sizeof(ItcMemBlock);
+    storage->free_space = storage->block_size - sizeof(Track_MemBlock_t);
     assert( storage->free_space % ITC_STRUCT_ALIGN == 0 );
 
     __END__;
@@ -352,7 +351,7 @@ itcGoNextMemBlock( ItcMemStorage * storage )
 	Í¨¹ý´Ëº¯ÊýÀ´±£´æstorageÖÐtopÖ¸ÕëµÄÎ»ÖÃµ½ItcMemStoragePosÖÐ
 */
 void
-	itcSaveMemStoragePos( const ItcMemStorage * storage, ItcMemStoragePos * pos )
+	itcSaveMemStoragePos( const Track_MemStorage_t * storage, Track_MemStoragePos_t * pos )
 {
 	//CV_FUNCNAME( "cvSaveMemStoragePos" );
 
@@ -372,7 +371,7 @@ void
 	Í¨¹ý´Ëº¯Êý´ÓItcMemStoragePosÖÐ»Ö¸´Ö®Ç°±£´æµÄtopÎ»ÖÃ¡£
 */
 void
-itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos )
+itcRestoreMemStoragePos( Track_MemStorage_t * storage, Track_MemStoragePos_t * pos )
 {
    // CV_FUNCNAME( "cvRestoreMemStoragePos" );
 
@@ -408,7 +407,7 @@ itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos )
     if( !storage->top )
     {
         storage->top = storage->bottom;
-        storage->free_space = storage->top ? storage->block_size - sizeof(ItcMemBlock) : 0;
+        storage->free_space = storage->top ? storage->block_size - sizeof(Track_MemBlock_t) : 0;
     }
 
     __END__;
@@ -416,10 +415,10 @@ itcRestoreMemStoragePos( ItcMemStorage * storage, ItcMemStoragePos * pos )
 
 /* Allocates continuous buffer of the specified size in the storage */
 /*
-	¸Ã·½·¨ÊÇ´ÓÒÑ·ÖÅäµÄstorageÖÐÉêÇësize´óÐ¡µÄ¿Õ¼ä
+	¸Ã·½·¨ÊÇÔÚÒÑ·ÖÅäµÄstorageµÄtopºóÌí¼Ósize´óÐ¡µÄ¿Õ¼ä
 */
 void*
-	itcMemStorageAlloc( ItcMemStorage* storage, size_t size )
+	itcMemStorageAlloc( Track_MemStorage_t* storage, size_t size )
 {
 	char *ptr = 0;
 
@@ -439,7 +438,7 @@ void*
 
 	if( (size_t)storage->free_space < size )
 	{
-		size_t max_free_space = itcAlignLeft(storage->block_size - sizeof(ItcMemBlock), ITC_STRUCT_ALIGN);// ¼ÆËã¶ÔÆëºóµÄÊ£Óà¿Õ¼ä×î¶àÄÜ¹»ÓÐ¶à´ó
+		size_t max_free_space = itcAlignLeft(storage->block_size - sizeof(Track_MemBlock_t), ITC_STRUCT_ALIGN);// ¼ÆËã¶ÔÆëºóµÄÊ£Óà¿Õ¼ä×î¶àÄÜ¹»ÓÐ¶à´ó
 		if (max_free_space < size)// Èç¹ûÒª·ÖÅäµÄ¿Õ¼äºÜ´ó»òÕß²ÎÊý´íÎóÊÇ¸ö¸ºÊý
 			//CV_ERROR( CV_StsOutOfRange, "requested size is negative or too big" );
 			ITC_ERROR_DETAIL(ITC_StsOutOfRange, "requested size is negative or too big");
@@ -468,14 +467,15 @@ void*
 	elem_size ÎªÐòÁÐÖÐÔªËØµÄ´óÐ¡
 	storage ÎªÐòÁÐµÄÄÚ´æ¿Õ¼ä
 
-	Èç¹ûÒª»ØÊÕÐòÁÐÖÐµÄÄÚ´æ¿é£¬±ØÐëÊ¹ÓÃitcClearMemStore
+	£¡£¡£¡£¡£¡Èç¹ûÒª»ØÊÕÐòÁÐÖÐµÄÄÚ´æ¿é£¬±ØÐëÊ¹ÓÃitcReleaseMemStorage£¬·ÖÅäÄÚ´æºÍÊÍ·ÅÄÚ´æµÄ·½·¨±ØÐë³É¶Ô³öÏÖ£¬
+	ÓÃÒÔÊÍ·Å¶à·ÖÅäÓÃÒÔ¶ÔÆëµÄÄÚ´æ£¬Ö±½ÓÊÍ·Å»áÔì³ÉÄÚ´æÒç³ö¡££¡£¡£¡£¡£¡
 
 	ItcSeq *runs = itcCreateSeq(ITC_SEQ_ELTYPE_POINT, sizeof(ItcSeq), sizeof(ItcPoint), storage);
 */
-ItcSeq *
-	itcCreateSeq( int seq_flags, int header_size, int elem_size, ItcMemStorage * storage )
+Track_Seq_t *
+	itcCreateSeq( int seq_flags, int header_size, int elem_size, Track_MemStorage_t * storage )
 {
-	ItcSeq *seq = 0;
+		Track_Seq_t *seq = 0;
 
 	//CV_FUNCNAME( "cvCreateSeq" );
 
@@ -483,12 +483,12 @@ ItcSeq *
 
 	if (!storage)
 		ITC_ERROR_(ITC_StsNullPtr);
-	if( header_size < (int)sizeof( ItcSeq ) || elem_size <= 0 )
+	if (header_size < (int)sizeof(Track_Seq_t) || elem_size <= 0)
 		ITC_ERROR_(ITC_StsBadSize);
 
 	/* allocate sequence header */
 	//CV_CALL( seq = (CvSeq*)cvMemStorageAlloc( storage, header_size ));
-	seq=(ItcSeq*)itcMemStorageAlloc(storage,header_size);
+	seq = (Track_Seq_t*)itcMemStorageAlloc(storage, header_size);
 	memset( seq, 0, header_size );
 
 	seq->header_size = header_size;
@@ -522,7 +522,7 @@ ItcSeq *
 /* adjusts <delta_elems> field of sequence. It determines how much the sequence
    grows if there are no free space inside the sequence buffers */
 void
-itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
+itcSetSeqBlockSize(Track_Seq_t *seq, int delta_elements)
 {
     int elem_size;
     int useful_block_size;
@@ -536,8 +536,8 @@ itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
 	if (delta_elements < 0)
 		ITC_ERROR_(ITC_StsBadSize);
 
-    useful_block_size = itcAlignLeft(seq->storage->block_size - sizeof(ItcMemBlock) -
-                                    sizeof(ItcSeqBlock), ITC_STRUCT_ALIGN);
+    useful_block_size = itcAlignLeft(seq->storage->block_size - sizeof(Track_MemBlock_t) -
+                                    sizeof(Track_SeqBlock_t), ITC_STRUCT_ALIGN);
     elem_size = seq->elem_size;
 
     if( delta_elements == 0 )
@@ -565,11 +565,12 @@ itcSetSeqBlockSize( ItcSeq *seq, int delta_elements )
 	indexÎª¸ÃÐòÁÐÖÐÏëÒª»ñÈ¡µÄÔªËØµÄË÷Òý
 
 	ItcPoint *p = (ItcPoint*)itcGetSeqElem(runs, i);
+	ÆäÖÐË÷ÒýÖ§³Ö¸ºÊý£¬-1ÔòÎª×îºóÒ»¸öÔªËØ£¬-2ÔòÎªµ¹ÊýµÚ¶þ¸öÔªËØ¡£
 */
 char*
-	itcGetSeqElem( const ItcSeq *seq, int index )
+	itcGetSeqElem( const Track_Seq_t *seq, int index )
 {
-	ItcSeqBlock *block;
+	Track_SeqBlock_t *block;
 	int count, total = seq->total;
 
 	if( (unsigned)index >= (unsigned)total )
@@ -612,13 +613,13 @@ char*
 	·µ»ØÖµÎª¶ÔÓ¦ÔªËØµÄË÷Òý£¬·µ»Ø¸ºÊýÔò±íÊ¾ÎÞ¸ÃÔªËØ
 */
 int
-	itcSeqElemIdx( const ItcSeq* seq, const void* _element, ItcSeqBlock** _block )
+	itcSeqElemIdx( const Track_Seq_t* seq, const void* _element, Track_SeqBlock_t** _block = NULL )
 {
 	const char *element = (const char *)_element;
 	int elem_size;
 	int id = -1;
-	ItcSeqBlock *first_block;
-	ItcSeqBlock *block;
+	Track_SeqBlock_t *first_block;
+	Track_SeqBlock_t *block;
 
 	//CV_FUNCNAME( "cvSeqElemIdx" );
 
@@ -660,9 +661,11 @@ int
 
 	ItcPoint pt1 = itcPoint(i, i);
 	itcSeqPush(runs, &pt1);
+
+	Èç¹ûÐèÒª·ÖÅä²¢Ê¹ÓÃµÄ¿Õ¼ä½Ï´ó£¬ÔòÊ¹ÓÃitcStartWriteSeq¼°Ïà¹Øº¯Êý£¬ËÙ¶È¸ü¿ì
 */
 char*
-	itcSeqPush( ItcSeq *seq, void *element )
+	itcSeqPush( Track_Seq_t *seq, void *element )
 {
 	char *ptr = 0;
 	size_t elem_size;
@@ -705,7 +708,7 @@ char*
 	ItcPoint temp ;
 	itcSeqPop(runs, &temp);
 */
-void itcSeqPop(ItcSeq *seq, void *element)
+void itcSeqPop(Track_Seq_t *seq, void *element)
 {
 	char *ptr;
 	int elem_size;
@@ -742,13 +745,13 @@ void itcSeqPop(ItcSeq *seq, void *element)
    if there are free sequence blocks (seq->free_blocks != 0),
    they are reused, otherwise the space is allocated in the storage */
 static void
-itcGrowSeq( ItcSeq *seq, int in_front_of )
+itcGrowSeq( Track_Seq_t *seq, int in_front_of )
 {
     //CV_FUNCNAME( "icvGrowSeq" );
 
     __BEGIN__;
 
-    ItcSeqBlock *block;
+    Track_SeqBlock_t *block;
 
 	if (!seq)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -759,7 +762,7 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
     {
         int elem_size = seq->elem_size;
         int delta_elems = seq->delta_elems;
-        ItcMemStorage *storage = seq->storage;
+        Track_MemStorage_t *storage = seq->storage;
 
         if( seq->total >= delta_elems*4 )
             itcSetSeqBlockSize( seq, delta_elems*2 );
@@ -785,18 +788,18 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
         }
         else
         {
-            int delta = elem_size * delta_elems + (int)itcAlign(sizeof(ItcSeqBlock), ITC_STRUCT_ALIGN);
+            int delta = elem_size * delta_elems + (int)itcAlign(sizeof(Track_SeqBlock_t), ITC_STRUCT_ALIGN);
 
             /* try to allocate <delta_elements> elements */
             if( storage->free_space < delta )
             {
                 int small_block_size = ITC_MAX(1, delta_elems/3)*elem_size +
-                                       (int)itcAlign(sizeof(ItcSeqBlock), ITC_STRUCT_ALIGN);
+					(int)itcAlign(sizeof(Track_SeqBlock_t), ITC_STRUCT_ALIGN);
                 /* try to allocate smaller part */
                 if( storage->free_space >= small_block_size + ITC_STRUCT_ALIGN )
                 {
-                    delta = (storage->free_space - (int)itcAlign(sizeof(ItcSeqBlock), ITC_STRUCT_ALIGN))/seq->elem_size;
-                    delta = delta*seq->elem_size + (int)itcAlign(sizeof(ItcSeqBlock), ITC_STRUCT_ALIGN);
+					delta = (storage->free_space - (int)itcAlign(sizeof(Track_SeqBlock_t), ITC_STRUCT_ALIGN)) / seq->elem_size;
+					delta = delta*seq->elem_size + (int)itcAlign(sizeof(Track_SeqBlock_t), ITC_STRUCT_ALIGN);
                 }
                 else
                 {
@@ -807,9 +810,9 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
             }
 
             //CV_CALL( block = (CvSeqBlock*)cvMemStorageAlloc( storage, delta ));
-			block = (ItcSeqBlock*)itcMemStorageAlloc( storage, delta );
+			block = (Track_SeqBlock_t*)itcMemStorageAlloc(storage, delta);
             block->data = (char*)itcAlignPtr( block + 1, ITC_STRUCT_ALIGN );
-            block->count = delta - (int)itcAlign(sizeof(ItcSeqBlock), ITC_STRUCT_ALIGN);
+			block->count = delta - (int)itcAlign(sizeof(Track_SeqBlock_t), ITC_STRUCT_ALIGN);
             block->prev = block->next = 0;
         }
     }
@@ -874,13 +877,13 @@ itcGrowSeq( ItcSeq *seq, int in_front_of )
 }
 
 /* recycles a sequence block for the further use */
-static void itcFreeSeqBlock(ItcSeq *seq, int in_front_of)
+static void itcFreeSeqBlock(Track_Seq_t *seq, int in_front_of)
 {
 	/*CV_FUNCNAME( "icvFreeSeqBlock" );*/
 
 	__BEGIN__;
 
-	ItcSeqBlock *block = seq->first;
+	Track_SeqBlock_t *block = seq->first;
 
 	assert((in_front_of ? block : block->prev)->count == 0);
 
@@ -938,11 +941,11 @@ static void itcFreeSeqBlock(ItcSeq *seq, int in_front_of)
 	ItcPoint temp = itcPoint(101,102);
 	itcSeqPushFront(runs, &temp);
 */
-char* itcSeqPushFront(ItcSeq *seq, void *element)
+char* itcSeqPushFront(Track_Seq_t *seq, void *element)
 {
 	char* ptr = 0;
 	int elem_size;
-	ItcSeqBlock *block;
+	Track_SeqBlock_t *block;
 
 	//CV_FUNCNAME("cvSeqPushFront");
 
@@ -981,10 +984,10 @@ char* itcSeqPushFront(ItcSeq *seq, void *element)
 /*
 	ÓÃ·¨Í¬itcSeqPop
 */
-void itcSeqPopFront(ItcSeq *seq, void *element)
+void itcSeqPopFront(Track_Seq_t *seq, void *element)
 {
 	int elem_size;
-	ItcSeqBlock *block;
+	Track_SeqBlock_t *block;
 
 	//CV_FUNCNAME("cvSeqPopFront");
 
@@ -1021,11 +1024,11 @@ void itcSeqPopFront(ItcSeq *seq, void *element)
 	*element Îª²åÈëÔªËØµÄÀàÐÍ
 
 */
-char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
+char* itcSeqInsert(Track_Seq_t *seq, int before_index, void *element)
 {
 	int elem_size;
 	int block_size;
-	ItcSeqBlock *block;
+	Track_SeqBlock_t *block;
 	int delta_index;
 	int total;
 	char* ret_ptr = 0;
@@ -1080,7 +1083,7 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 
 			while (before_index < block->start_index - delta_index)
 			{
-				ItcSeqBlock *prev_block = block->prev;
+				Track_SeqBlock_t *prev_block = block->prev;
 
 				memmove(block->data + elem_size, block->data, block_size - elem_size);
 				block_size = prev_block->count * elem_size;
@@ -1120,7 +1123,7 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 
 			while (before_index > block->start_index - delta_index + block->count)
 			{
-				ItcSeqBlock *next_block = block->next;
+				Track_SeqBlock_t *next_block = block->next;
 
 				block_size = block->count * elem_size;
 				memmove(block->data, block->data + elem_size, block_size - elem_size);
@@ -1151,12 +1154,12 @@ char* itcSeqInsert(ItcSeq *seq, int before_index, void *element)
 /*
 	ÓÃ·¨²Î¿¼itcSeqPop£¬indexÎªÒªÒÆ³ýµÄÔªËØË÷Òý
 */
-void itcSeqRemove(ItcSeq *seq, int index)
+void itcSeqRemove(Track_Seq_t *seq, int index)
 {
 	char *ptr;
 	int elem_size;
 	int block_size;
-	ItcSeqBlock *block;
+	Track_SeqBlock_t *block;
 	int delta_index;
 	int total, front = 0;
 
@@ -1202,7 +1205,7 @@ void itcSeqRemove(ItcSeq *seq, int index)
 
 			while (block != seq->first->prev)  /* while not the last block */
 			{
-				ItcSeqBlock *next_block = block->next;
+				Track_SeqBlock_t *next_block = block->next;
 
 				memmove(ptr, ptr + elem_size, block_size - elem_size);
 				memcpy(ptr + block_size - elem_size, next_block->data, elem_size);
@@ -1221,7 +1224,7 @@ void itcSeqRemove(ItcSeq *seq, int index)
 
 			while (block != seq->first)
 			{
-				ItcSeqBlock *prev_block = block->prev;
+				Track_SeqBlock_t *prev_block = block->prev;
 
 				memmove(block->data + elem_size, block->data, block_size - elem_size);
 				block_size = prev_block->count * elem_size;
@@ -1251,7 +1254,7 @@ void itcSeqRemove(ItcSeq *seq, int index)
 	½«writerºÍseq°ó¶¨£¬Í¨¹ýºêITC_WRITE_SEQ_ELEM£¨£©ÏòseqÐòÁÐÖÐÐ´ÈëÖµ
 	ITC_WRITE_SEQ_ELEM(elem,writer);
 */
-void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer)
+void itcStartAppendToSeq(Track_Seq_t *seq, Track_SeqWriter_t * writer)
 {
 	//CV_FUNCNAME("cvStartAppendToSeq");
 
@@ -1262,7 +1265,7 @@ void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer)
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	memset(writer, 0, sizeof(*writer));
-	writer->header_size = sizeof(ItcSeqWriter);
+	writer->header_size = sizeof(Track_SeqWriter_t);
 
 	writer->seq = seq;
 	writer->block = seq->first ? seq->first->prev : 0;
@@ -1278,9 +1281,9 @@ void itcStartAppendToSeq(ItcSeq *seq, ItcSeqWriter * writer)
 	ÐÂ½¨Ò»¸öÐòÁÐseq²¢½«ÆäÓëwriter°ó¶¨
 */
 void itcStartWriteSeq(int seq_flags, int header_size,
-int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer)
+int elem_size, Track_MemStorage_t * storage, Track_SeqWriter_t * writer)
 {
-	ItcSeq *seq = 0;
+	Track_Seq_t *seq = 0;
 
 	//CV_FUNCNAME("cvStartWriteSeq");
 
@@ -1298,9 +1301,9 @@ int elem_size, ItcMemStorage * storage, ItcSeqWriter * writer)
 }
 
 /* updates sequence header */
-void itcFlushSeqWriter(ItcSeqWriter * writer)
+void itcFlushSeqWriter(Track_SeqWriter_t * writer)
 {
-	ItcSeq *seq = 0;
+	Track_Seq_t *seq = 0;
 
 	//CV_FUNCNAME("cvFlushSeqWriter");
 
@@ -1316,8 +1319,8 @@ void itcFlushSeqWriter(ItcSeqWriter * writer)
 	if (writer->block)
 	{
 		int total = 0;
-		ItcSeqBlock *first_block = writer->seq->first;
-		ItcSeqBlock *block = first_block;
+		Track_SeqBlock_t *first_block = writer->seq->first;
+		Track_SeqBlock_t *block = first_block;
 
 		writer->block->count = (int)((writer->ptr - writer->block->data) / seq->elem_size);
 		assert(writer->block->count > 0);
@@ -1339,9 +1342,9 @@ void itcFlushSeqWriter(ItcSeqWriter * writer)
 /*
 	¹Ø±ÕÐ´ÈëÐòÁÐ£¬´ËÊ±ÎÞ·¨Í¨¹ýºêÏòseqÀïÐ´ÈëÔªËØ
 */
-ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer)
+Track_Seq_t * itcEndWriteSeq(Track_SeqWriter_t * writer)
 {
-	ItcSeq *seq = 0;
+	Track_Seq_t *seq = 0;
 
 	//CV_FUNCNAME("cvEndWriteSeq");
 
@@ -1358,7 +1361,7 @@ ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer)
 	/* truncate the last block */
 	if (writer->block && writer->seq->storage)
 	{
-		ItcMemStorage *storage = seq->storage;
+		Track_MemStorage_t *storage = seq->storage;
 		char *storage_block_max = (char *)storage->top + storage->block_size;
 
 		assert(writer->block->count > 0);
@@ -1379,13 +1382,13 @@ ItcSeq * itcEndWriteSeq(ItcSeqWriter * writer)
 }
 
 /* creates new sequence block */
-void itcCreateSeqBlock(ItcSeqWriter * writer)
+void itcCreateSeqBlock(Track_SeqWriter_t * writer)
 {
 	//CV_FUNCNAME("cvCreateSeqBlock");
 
 	__BEGIN__;
 
-	ItcSeq *seq;
+	Track_Seq_t *seq;
 
 	if (!writer || !writer->seq)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1414,10 +1417,10 @@ void itcCreateSeqBlock(ItcSeqWriter * writer)
 	½«seqºÍreader°ó¶¨£¬Í¨¹ýºêITC_READ_SEQ_ELEM£¨£©À´´ÓÐòÁÐseqÖÐ¶ÁÈ¡Êý¾ÝÔªËØ¡£
 	reverse´ú±íÊÇ·ñÄæÐò¶ÁÈ¡£¬0´ú±í´ÓÎ²µ½Í·£¬·Ç0Î»´ÓÍ·µ½Î²
 */
-void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse)
+void itcStartReadSeq(const Track_Seq_t *seq, Track_SeqReader_t * reader, int reverse)
 {
-	ItcSeqBlock *first_block;
-	ItcSeqBlock *last_block;
+	Track_SeqBlock_t *first_block;
+	Track_SeqBlock_t *last_block;
 
 	//CV_FUNCNAME("cvStartReadSeq");
 
@@ -1434,8 +1437,8 @@ void itcStartReadSeq(const ItcSeq *seq, ItcSeqReader * reader, int reverse)
 		ITC_ERROR_(ITC_StsNullPtr);
 		//CV_ERROR(CV_StsNullPtr, "");
 
-	reader->header_size = sizeof(ItcSeqReader);
-	reader->seq = (ItcSeq*)seq;
+	reader->header_size = sizeof(Track_SeqReader_t);
+	reader->seq = (Track_Seq_t*)seq;
 
 	first_block = seq->first;
 
@@ -1481,7 +1484,7 @@ void itcChangeSeqBlock(void* _reader, int direction)
 
 	__BEGIN__;
 
-	ItcSeqReader* reader = (ItcSeqReader*)_reader;
+	Track_SeqReader_t* reader = (Track_SeqReader_t*)_reader;
 
 	if (!reader)
 		ITC_ERROR_(ITC_StsNullPtr);
@@ -1507,7 +1510,7 @@ void itcChangeSeqBlock(void* _reader, int direction)
 /*
 	º¯ÊýcvGetSeqReaderPos·Å»Øµ±Ç°readerµÄÎ»ÖÃÔÚ(0µ½reader->seq->total-1Ö®¼ä)
 */
-int itcGetSeqReaderPos(ItcSeqReader* reader)
+int itcGetSeqReaderPos(Track_SeqReader_t* reader)
 {
 	int elem_size;
 	int index = -1;
@@ -1547,13 +1550,13 @@ int itcGetSeqReaderPos(ItcSeqReader* reader)
 	ËµÃ÷
 	º¯ÊýitcSetSeqReaderPos½«¶ÁÈ¡Æ÷µÄÎ»ÖÃÒÆ¶¯µ½¾ø¶ÔÎ»ÖÃ,»òÏà¶ÔÓÚµ±Ç°Î»ÖÃµÄÏà¶ÔÎ»ÖÃÉÏ.
 */
-void itcSetSeqReaderPos(ItcSeqReader* reader, int index, int is_relative)
+void itcSetSeqReaderPos(Track_SeqReader_t* reader, int index, int is_relative)
 {
 	//CV_FUNCNAME("cvSetSeqReaderPos");
 
 	__BEGIN__;
 
-	ItcSeqBlock *block;
+	Track_SeqBlock_t *block;
 	int elem_size, count, total;
 
 	if (!reader || !reader->seq)
@@ -1651,7 +1654,7 @@ void itcSetSeqReaderPos(ItcSeqReader* reader, int index, int is_relative)
 
 	itcSeqPushMulti(runs, &temp, 5, ITC_FRONT);
 */
-void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front)
+void itcSeqPushMulti(Track_Seq_t *seq, void *_elements, int count, int front)
 {
 	char *elements = (char *)_elements;
 
@@ -1697,7 +1700,7 @@ void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front)
 	}
 	else
 	{
-		ItcSeqBlock* block = seq->first;
+		Track_SeqBlock_t* block = seq->first;
 
 		while (count > 0)
 		{
@@ -1732,7 +1735,7 @@ void itcSeqPushMulti(ItcSeq *seq, void *_elements, int count, int front)
 /*
 	ÓÃ·¨²Î¿¼itcSeqPushMulti
 */
-void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front)
+void itcSeqPopMulti(Track_Seq_t *seq, void *_elements, int count, int front)
 {
 	char *elements = (char *)_elements;
 
@@ -1815,7 +1818,7 @@ void itcSeqPopMulti(ItcSeq *seq, void *_elements, int count, int front)
 
 	Èç¹ûÏÈÇå¿ÕÁËstorageÖÐµÄÄÚ´æ£¬µ«²¢²»Ó°ÏìÐòÁÐÖÐµÄÔªËØ£¬²»Çå³þÔ­Òò£¬»¹ÔÚ¿´
 */
-void itcClearSeq(ItcSeq *seq)
+void itcClearSeq(Track_Seq_t *seq)
 {
 	//CV_FUNCNAME("cvClearSeq");
 
@@ -1830,30 +1833,101 @@ void itcClearSeq(ItcSeq *seq)
 
 
 
-//int
-//itcSliceLength( CvSlice slice, const CvSeq* seq )
-//{
-//    int total = seq->total;
-//    int length = slice.end_index - slice.start_index;
-//    
-//    if( length != 0 )
-//    {
-//        if( slice.start_index < 0 )
-//            slice.start_index += total;
-//        if( slice.end_index <= 0 )
-//            slice.end_index += total;
-//
-//        length = slice.end_index - slice.start_index;
-//    }
-//
-//    if( length < 0 )
-//    {
-//        length += total;
-//        /*if( length < 0 )
-//            length += total;*/
-//    }
-//    else if( length > total )
-//        length = total;
-//
-//    return length;
-//}
+///////////////////////////////////»ù´¡µÄinlineº¯Êý///////////////////////////////////////
+int itcRound(double a)
+{
+	return (int)(a + 0.5);
+}
+
+int itcFloor(double val)
+{
+	int temp = itcRound(val);
+	Track_32suf_t diff;
+	diff.f = (float)(val - temp);
+	return temp - (diff.i < 0);
+}
+
+Track_Rect_t  itcRect(int x, int y, int width, int height)
+{
+	Track_Rect_t r;
+
+	r.x = x;
+	r.y = y;
+	r.width = width;
+	r.height = height;
+
+	return r;
+}
+
+Track_Point_t itcPoint(int x, int y)
+{
+	Track_Point_t p;
+	p.x = x;
+	p.y = y;
+
+	return p;
+}
+
+Track_Point2D32f_t  itcPoint2D32f(double x, double y)
+{
+	Track_Point2D32f_t p;
+
+	p.x = (float)x;
+	p.y = (float)y;
+
+	return p;
+}
+
+Track_Point2D32f_t  itcPointTo32f(Track_Point_t point)
+{
+	return itcPoint2D32f((float)point.x, (float)point.y);
+}
+
+Track_Point_t  itcPointFrom32f(Track_Point2D32f_t point)
+{
+	Track_Point_t ipt;
+	ipt.x = itcRound(point.x);
+	ipt.y = itcRound(point.y);
+
+	return ipt;
+}
+
+Track_Point3D32f_t  itcPoint3D32f(double x, double y, double z)
+{
+	Track_Point3D32f_t p;
+
+	p.x = (float)x;
+	p.y = (float)y;
+	p.z = (float)z;
+
+	return p;
+}
+
+Track_Point3D64f_t  itcPoint3D64f(double x, double y, double z)
+{
+	Track_Point3D64f_t p;
+
+	p.x = x;
+	p.y = y;
+	p.z = z;
+
+	return p;
+}
+
+Track_Point2D64f_t  itcPoint2D64f(double x, double y)
+{
+	Track_Point2D64f_t p;
+
+	p.x = x;
+	p.y = y;
+
+	return p;
+}
+
+Track_Size_t itcSize(int width, int height)
+{
+	Track_Size_t s;
+	s.width = width;
+	s.height = height;
+	return s;
+}
