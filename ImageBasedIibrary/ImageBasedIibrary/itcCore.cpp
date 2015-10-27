@@ -131,6 +131,47 @@ void itc_release_mat(Itc_Mat_t** arr)
 	mat = NULL;
 }
 
+
+#define ICV_DEF_BIN_ARI_OP_2D( __op__, name, type, worktype, cast_macro )   \
+	static void  name													    \
+	(uchar* src1, int step1, uchar* src2, int step2,						\
+	uchar* dst, int dstep, Track_Size_t size)								\
+{                                                                           \
+	int i = 0;																\
+	int j = 0;																\
+	type *srct1;															\
+	type *srct2;															\
+	type *dstt;																\
+	for (i = 0; i < size.height; i++)                                       \
+	{																		\
+		srct1 = (type*)src1;												\
+		srct2 = (type*)src2;												\
+		dstt = (type*)dst;													\
+		for (j = 0; j < size.width; j++)									\
+		{                                                                   \
+			worktype t0 = __op__((srct1)[j], (srct2)[j]);					\
+			(dstt)[j] = cast_macro(t0);										\
+		}																	\
+		src1 += step1;														\
+		src2 += step2;														\
+		dst += dstep;														\
+	}		                                                        		\
+}
+
+//__op__是操作类型，
+#define ICV_DEF_BIN_ARI_ALL( __op__, name )											\
+	ICV_DEF_BIN_ARI_OP_2D(__op__, icv##name##_8u_C1R, uchar, int, ITC_CAST_8U)		\
+	ICV_DEF_BIN_ARI_OP_2D(__op__, icv##name##_8s_C1R, char, int, ITC_CAST_8S)		\
+	ICV_DEF_BIN_ARI_OP_2D(__op__, icv##name##_16u_C1R, ushort, int, ITC_CAST_16U)	\
+	ICV_DEF_BIN_ARI_OP_2D(__op__, icv##name##_16s_C1R, short, int, ITC_CAST_16S)	\
+	ICV_DEF_BIN_ARI_OP_2D(__op__, icv##name##_32s_C1R, int, int, ITC_CAST_32S)		\
+	ICV_DEF_BIN_ARI_OP_2D(__op__, icv##name##_32f_C1R, float, float, ITC_CAST_32F)	\
+	ICV_DEF_BIN_ARI_OP_2D(__op__, icv##name##_64f_C1R, double, double, ITC_CAST_64F)
+
+#undef ITC_SUB_R
+#define ITC_SUB_R(a,b) ((a) - (b))							//定义sub操作
+ICV_DEF_BIN_ARI_ALL(ITC_SUB_R, Sub)						//定义sub操作的函数
+
 void itc_sub_mat(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* dst)
 {
 	if( !ITC_ARE_TYPES_EQ( src1, src2 ) || !ITC_ARE_TYPES_EQ( src1, dst ))//检测类型是否一致
@@ -143,7 +184,7 @@ void itc_sub_mat(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* dst)
 	int depth = ITC_MAT_DEPTH(type);		//深度
 	int cn = ITC_MAT_CN(type);				//通道数
 
-	ItcSize sizeMat;
+	Track_Size_t sizeMat;
 	sizeMat.width=src1->cols * cn;
 	sizeMat.height=src1->rows;
 
@@ -190,7 +231,7 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 	if( ITC_MAT_CN(type)!=1 )				//通道数
 		ITC_ERROR_("通道数不为1");
 
-	ItcSize sizeMat;
+	Track_Size_t sizeMat;
 	sizeMat.width = src1->cols;
 	sizeMat.height = src1->rows;
 
@@ -269,20 +310,20 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 	(deltas)[4] = -(nch), (deltas)[5] = (step)-(nch),			\
 	(deltas)[6] = (step), (deltas)[7] = (step)+(nch))
 
-static const ItcPoint icvCodeDeltas[8] =
+static const Track_Point_t icvCodeDeltas[8] =
 { { 1, 0 }, { 1, -1 }, { 0, -1 }, { -1, -1 }, { -1, 0 }, { -1, 1 }, { 0, 1 }, { 1, 1 } };
 
 static int itcFetchContourEx(char*		ptr,
 int							step,
-ItcPoint					pt,
-ItcSeq*					contour,
+Track_Point_t				pt,
+Track_Seq_t*				contour,
 int							nbd)
 {
 	int         deltas[16];
 	char        *i0 = ptr, *i1, *i3, *i4;
-	ItcRect      rect;
+	Track_Rect_t rect;
 	int         prev_s = -1, s, s_end;
-	ItcSeqWriter writer;
+	Track_SeqWriter_t writer;
 
 	assert(1 < nbd && nbd < 128);
 
@@ -291,7 +332,7 @@ int							nbd)
 	memcpy(deltas + 8, deltas, 8 * sizeof(deltas[0]));
 
 	/* initialize writer */
-	itcStartAppendToSeq((ItcSeq*)contour, &writer);
+	itcStartAppendToSeq((Track_Seq_t*)contour, &writer);
 
 	rect.x = rect.width = pt.x;
 	rect.y = rect.height = pt.y;
@@ -370,13 +411,13 @@ int							nbd)
 
 	rect.width -= rect.x - 1;
 	rect.height -= rect.y - 1;
-	((ItcContour*)(contour))->rect = rect;
+	((Track_Contour_t*)(contour))->rect = rect;
 	itcEndWriteSeq(&writer);
 
 	return 1;
 }
 
-int track_find_contours(Itc_Mat_t* src, ItcContour** pContour, ItcMemStorage*  storage)
+int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemStorage_t*  storage)
 {
 	int step = src->step;
 	char *img0 = (char*)(src->data.ptr);
@@ -385,7 +426,7 @@ int track_find_contours(Itc_Mat_t* src, ItcContour** pContour, ItcMemStorage*  s
 	int width = src->cols - 1;
 	int height = src->rows - 1;
 
-	ItcPoint lnbd = itcPoint(0, 1);	//记录上一次扫描到边缘点的位置
+	Track_Point_t lnbd = itcPoint(0, 1);	//记录上一次扫描到边缘点的位置
 	int x = 1;						//扫描起始位置
 	int y = 1;
 	int prev = img[x - 1];
@@ -399,7 +440,7 @@ int track_find_contours(Itc_Mat_t* src, ItcContour** pContour, ItcMemStorage*  s
 			if (p != prev)						//找到一个边缘点
 			{
 				int is_hole = 0;
-				ItcPoint origin;				//扫描起点
+				Track_Point_t origin;				//扫描起点
 				if (!(prev == 0 && p == 1))		//如果没有找到外轮廓（0->1，注意区分左右型边缘，因为外轮廓的右边缘也是1->0，要与孔进行区分）
 				{
 					//检查是否是孔
@@ -408,7 +449,7 @@ int track_find_contours(Itc_Mat_t* src, ItcContour** pContour, ItcMemStorage*  s
 					is_hole = 1;				//设置孔标志
 				}
 				count++;
-				ItcSeq* contour = itcCreateSeq(0, sizeof(ItcContour), sizeof(ItcPoint), storage);
+				Track_Seq_t* contour = itcCreateSeq(0, sizeof(Track_Contour_t), sizeof(Track_Point_t), storage);
 				contour->flags = is_hole;
 				//跟踪边缘的起点
 				origin.y = y;
@@ -418,7 +459,7 @@ int track_find_contours(Itc_Mat_t* src, ItcContour** pContour, ItcMemStorage*  s
 
 				if ((*pContour) == NULL)
 				{
-					(*pContour) = (ItcContour*)contour;
+					(*pContour) = (Track_Contour_t*)contour;
 					(*pContour)->h_prev = (*pContour)->h_next = contour;
 				}
 				else
@@ -443,7 +484,7 @@ int track_find_contours(Itc_Mat_t* src, ItcContour** pContour, ItcMemStorage*  s
 	return count;
 }
 
-bool track_intersect_rect(ItcRect *rectA, ItcRect *rectB, int expand_dis)
+int track_intersect_rect(Track_Rect_t *rectA, Track_Rect_t *rectB, int expand_dis)
 {
 	int x1_A = rectA->x;
 	int y1_A = rectA->y;
@@ -468,29 +509,29 @@ bool track_intersect_rect(ItcRect *rectA, ItcRect *rectB, int expand_dis)
 		rectA->y = y1_min;
 		rectA->width = x1_max - x1_min;
 		rectA->height = y1_max - y1_min;
-		return true;
+		return 1;
 	}
-	return false;
+	return 0;
 }
 
-int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *rect_arr)
+int track_filtrate_contours(Track_Contour_t** pContour, int size_Threshold, Track_Rect_t *rect_arr)
 {
 	if (rect_arr == NULL || *pContour == NULL)
 		return 0;
 
 	int count_rect = 0;
 
-	ItcContour *Contour = *pContour;
+	Track_Contour_t *Contour = *pContour;
 	do
 	{
-		ItcRect rect = Contour->rect;
+		Track_Rect_t rect = Contour->rect;
 		if (rect.width > size_Threshold &&
 			rect.height > size_Threshold)					//筛选
 		{
 			*(rect_arr + count_rect) = rect;
 			count_rect++;
 		}
-		Contour = (ItcContour*)Contour->h_next;
+		Contour = (Track_Contour_t*)Contour->h_next;
 	} while (Contour != *pContour);
 
 	int i = 0, j = 0;
@@ -517,7 +558,7 @@ int track_filtrate_contours(ItcContour** pContour, int size_Threshold, ItcRect *
 // 返 回 值: 
 // 参    数: 
 //************************************
-int track_calculateDirect_ROI(Itc_Mat_t* mhi, ItcRect roi, int &direct)
+int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 {
 	//int sum_gradientV = 0;		//垂直方向梯度
 	//int sum_gradientH = 0;		//水平方向
@@ -813,7 +854,7 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, ItcRect roi, int &direct)
 		}
 	}
 
-	int threshold = (roi.width*roi.height) >> 2;
+	int threshold = (roi.width*roi.height) >> 3;
 	count_change = count_change >> 1;
 
 	float gradientH = 0, gradientV = 0;
@@ -823,7 +864,7 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, ItcRect roi, int &direct)
 		gradientV = sum_gradientV / (float)(count_changeY*k_int_enhance);
 	float angle = (int)(atan2(gradientV, gradientH) * 180 / ITC_PI);
 	angle = angle < 0 ? angle + 360 : angle;
-	direct = (int)angle;
+	*direct = (int)angle;
 	if (count_change>threshold)
 	{
 		float gradientV_abs = abs(gradientV);
@@ -856,7 +897,7 @@ void track_update_midValueBK(Itc_Mat_t* mat, Itc_Mat_t* matBK)
 	if (ITC_MAT_CN(type) != 1)				//通道数
 		ITC_ERROR_("通道数不为1");
 
-	ItcSize sizeMat;
+	Track_Size_t sizeMat;
 	sizeMat.width = mat->cols;
 	sizeMat.height = mat->rows;
 

@@ -13,8 +13,8 @@
 
 #include <stdio.h>
 
-typedef __int64 int64;
-typedef unsigned __int64 uint64;
+typedef signed long long int64;
+typedef unsigned long long uint64;
 
 typedef unsigned char uchar;
 typedef unsigned short ushort;
@@ -116,7 +116,10 @@ typedef unsigned short ushort;
 #define ITC_MAT_MAGIC_VAL    0x42420000
 
 #define INT_MAX         2147483647			//32位整型能表示的最大数值
+
+#ifndef NULL
 #define NULL	0
+#endif
 
 #define ITC_AUTOSTEP  0x7fffffff
 

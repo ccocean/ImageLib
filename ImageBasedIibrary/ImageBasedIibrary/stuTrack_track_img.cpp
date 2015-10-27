@@ -1,25 +1,50 @@
 #include "stuTrack_track_img.h"
 
-int stuTrack_filtrate_contours(ItcContour** pContour, int size_Threshold[], ItcRect *rect_arr)
+size_t img_size = 0;
+int count_trackObj_stand = 0;
+StuTrack_Stand_t* stuTrack_stand=NULL;
+
+int count_trackObj_bigMove = 0;
+StuTrack_BigMoveObj_t* stuTrack_bigMOveObj=NULL;
+
+int count_stuTrack_rect = 0;
+Track_Rect_t *stuTrack_rect_arr = NULL;
+
+Track_MemStorage_t* stuTrack_storage = NULL;
+
+Itc_Mat_t *tempMat = NULL;
+Itc_Mat_t *currMat = NULL;
+Itc_Mat_t *lastMat = NULL;
+Itc_Mat_t *mhiMat = NULL;
+Itc_Mat_t *maskMat = NULL;
+
+//需要设置的参数
+int *stuTrack_size_threshold=NULL;		//运动目标大小过滤阈值
+int stuTrack_direct_range = 10;
+int *stuTrack_direct_threshold=NULL;
+
+int stuTrack_filtrate_contours(Track_Contour_t** pContour)
 {
-	if (rect_arr == NULL || *pContour == NULL)
+	if (*pContour == NULL)
 		return 0;
 
 	int count_rect = 0;
 
-	ItcContour *Contour = *pContour;
+	int stuTrack_filtrate_contours(Track_Contour_t** pContour);
+	Track_Contour_t	*Contour = *pContour;
 	do
 	{
-		ItcRect rect = Contour->rect;
+		Track_Rect_t rect = Contour->rect;
 		int centre_y = rect.y + rect.height;
-		if (rect.width > size_Threshold[centre_y] &&
-			rect.height > size_Threshold[centre_y] &&
-			rect.height > rect.width)					//筛选
+		if (rect.width > stuTrack_size_threshold[centre_y] &&
+			rect.height > stuTrack_size_threshold[centre_y] &&
+			rect.height > rect.width &&
+			count_rect < MALLOC_ELEMENT_COUNT)					//筛选
 		{
-			*(rect_arr + count_rect) = rect;
+			*(stuTrack_rect_arr + count_rect) = rect;
 			count_rect++;
 		}
-		Contour = (ItcContour*)Contour->h_next;
+		Contour = (Track_Contour_t*)Contour->h_next;
 	} while (Contour != *pContour);
 
 	int i = 0, j = 0;
@@ -29,10 +54,10 @@ int stuTrack_filtrate_contours(ItcContour** pContour, int size_Threshold[], ItcR
 		{
 			for (j = i + 1; j < count_rect; j++)
 			{
-				if (track_intersect_rect(rect_arr + i, rect_arr + j, -1))		//判断是否相交，如果相交则直接合并
+				if (track_intersect_rect(stuTrack_rect_arr + i, stuTrack_rect_arr + j, -1))		//判断是否相交，如果相交则直接合并
 				{
 					count_rect--;
-					*(rect_arr + j) = *(rect_arr + count_rect);
+					*(stuTrack_rect_arr + j) = *(stuTrack_rect_arr + count_rect);
 					j--;
 				}
 			}
@@ -42,110 +67,154 @@ int stuTrack_filtrate_contours(ItcContour** pContour, int size_Threshold[], ItcR
 	return count_rect;
 }
 
-bool stuTrack_matchingSatnd_ROI(Itc_Mat_t* mhi, ItcRect roi, StuTrack_Stand_t track_stand[], int &count_trackObj, int direct_threshold[], int direct_range)
+int stuTrack_matchingSatnd_ROI(Itc_Mat_t* mhi, Track_Rect_t roi)
 {
-	int standard_direct = direct_threshold[roi.x + roi.width / 2];
+	int standard_direct = stuTrack_direct_threshold[roi.x + roi.width / 2];
 	int direct = 0;
 	int x = roi.x + (roi.width >> 1);
 	int y = roi.y + (roi.height >> 1);
 
-	int flag_ROI = track_calculateDirect_ROI(mhi, roi, direct);
-	if (count_trackObj > 0)
+	int flag_ROI = track_calculateDirect_ROI(mhi, roi, &direct);
+	if (flag_ROI == 1)
 	{
-		int min_ID = 0;
-		int min_distance = INT_MAX;
-		int distance = 0;
-		for (int i = 0; i < count_trackObj; i++)
+		if (count_trackObj_stand > 0)
 		{
-			distance = (x - track_stand[i].centre.x)*(x - track_stand[i].centre.x) + (y - track_stand[i].centre.y)*(y - track_stand[i].centre.y);
-			if (min_distance>distance)
+			int min_ID = 0;
+			int min_distance = INT_MAX;
+			int distance = 0;
+			for (int i = 0; i < count_trackObj_stand; i++)
 			{
-				min_distance = distance;
-				min_ID = i;
+				distance = (x - stuTrack_stand[i].centre.x)*(x - stuTrack_stand[i].centre.x) + (y - stuTrack_stand[i].centre.y)*(y - stuTrack_stand[i].centre.y);
+				if (min_distance>distance)
+				{
+					min_distance = distance;
+					min_ID = i;
+				}
+			}
+
+			int threshold = (stuTrack_stand[min_ID].roi.width * stuTrack_stand[min_ID].roi.height) >> 3;
+			Track_Rect_t _roi = roi;
+			int intersect_flag = track_intersect_rect(&_roi, &stuTrack_stand[min_ID].roi, -3);
+			if (min_distance < threshold)
+			{
+				if ((abs(stuTrack_stand[min_ID].direction - direct) < stuTrack_direct_range))
+				{
+					stuTrack_stand[min_ID].count_up++;
+				}
+				else
+				{
+					stuTrack_stand[min_ID].count_up--;
+				}
+				stuTrack_stand[min_ID].direction = (stuTrack_stand[min_ID].direction + direct) / 2;
+				stuTrack_stand[min_ID].direction = ITC_IMAX(stuTrack_stand[min_ID].direction, standard_direct - stuTrack_direct_range / 2);
+				stuTrack_stand[min_ID].direction = ITC_IMIN(stuTrack_stand[min_ID].direction, standard_direct + stuTrack_direct_range / 2);
+				stuTrack_stand[min_ID].roi = _roi;
+				stuTrack_stand[min_ID].count_teack++;
+				stuTrack_stand[min_ID].centre = itcPoint(_roi.x + (_roi.width >> 1), _roi.y + (_roi.height >> 1));
+				stuTrack_stand[min_ID].flag_matching = 1;
+				return 1;
+			}
+			else if (intersect_flag)
+			{
+				//如果两个roi是相交的,但是距离不符合，说明新的roi包围住了teack_stand的roi,那就忽略这个
+				stuTrack_stand[min_ID].count_up = 0;
 			}
 		}
 
-		int threshold = (track_stand[min_ID].roi.width * track_stand[min_ID].roi.height) >> 3;
-		ItcRect _roi = roi;
-		bool intersect_flag = track_intersect_rect(&_roi, &track_stand[min_ID].roi, -3);
-		if (min_distance < threshold && (flag_ROI == 1))
+		if (abs(standard_direct - direct) < (stuTrack_direct_range + 5) && count_trackObj_stand < MALLOC_ELEMENT_COUNT)
 		{
-			if ((abs(track_stand[min_ID].direction - direct) < direct_range))
-			{
-				track_stand[min_ID].count_up++;
-			}
-			else
-			{
-				track_stand[min_ID].count_up--;
-			}
-			track_stand[min_ID].direction = (track_stand[min_ID].direction + direct) / 2;
-			track_stand[min_ID].direction = ITC_IMAX(track_stand[min_ID].direction, standard_direct - direct_range / 2);
-			track_stand[min_ID].direction = ITC_IMIN(track_stand[min_ID].direction, standard_direct + direct_range / 2);
-			track_stand[min_ID].roi = _roi;
-			track_stand[min_ID].count_teack++;
-			track_stand[min_ID].centre = itcPoint(_roi.x + (_roi.width >> 1), _roi.y + (_roi.height >> 1));
-			track_stand[min_ID].flag_matching = 1;
-			return true;
-		}
-		else if (intersect_flag)
-		{
-			//如果两个roi是相交的,但是距离不符合，说明新的roi包围住了teack_stand的roi,那就忽略这个
-			track_stand[min_ID].count_up = 0;
+			//add
+			direct = ITC_IMAX(direct, standard_direct - stuTrack_direct_range / 2);
+			stuTrack_stand[count_trackObj_stand].direction = ITC_IMIN(direct, standard_direct + stuTrack_direct_range / 2);
+			stuTrack_stand[count_trackObj_stand].centre = itcPoint(x, y);
+			stuTrack_stand[count_trackObj_stand].roi = roi;
+			stuTrack_stand[count_trackObj_stand].count_teack = 1;
+			stuTrack_stand[count_trackObj_stand].count_up = 1;
+			stuTrack_stand[count_trackObj_stand].count_down = 0;
+			stuTrack_stand[count_trackObj_stand].flag_Stand = 0;
+			stuTrack_stand[count_trackObj_stand].flag_matching = 1;
+			count_trackObj_stand++;
+			return 1;
 		}
 	}
 
-	//add
-	if ((abs(standard_direct - direct) < direct_range + 5) && (flag_ROI == 1))
+	int intersect_flag = 0;
+	for (int i = 0; i < count_trackObj_stand; i++)
 	{
-		direct = ITC_IMAX(direct, standard_direct - direct_range / 2);
-		track_stand[count_trackObj].direction = ITC_IMIN(direct, standard_direct + direct_range / 2);
-		track_stand[count_trackObj].centre = itcPoint(x, y);
-		track_stand[count_trackObj].roi = roi;
-		track_stand[count_trackObj].count_teack = 1;
-		track_stand[count_trackObj].count_up = 1;
-		track_stand[count_trackObj].count_down = 0;
-		track_stand[count_trackObj].flag_Stand = 0;
-		track_stand[count_trackObj].flag_matching = 1;
-		count_trackObj++;
-		return true;
+		intersect_flag = track_intersect_rect(&roi, &stuTrack_stand[i].roi, -1);
 	}
-	return false;
+	if (intersect_flag == 0)
+	{
+		if (count_trackObj_bigMove > 0)
+		{
+			int k = -1;
+			Track_Rect_t _roi = roi;
+			for (int i = 0; i < count_trackObj_bigMove; i++)
+			{	
+				if(track_intersect_rect(&_roi, &stuTrack_bigMOveObj[i].roi, -3))
+				{	
+					k = i;
+					break;
+				}
+			}
+			if (k>=0)
+			{
+				stuTrack_bigMOveObj[k].roi = roi;
+				stuTrack_bigMOveObj[k].current_position = itcPoint(x, y);
+				stuTrack_bigMOveObj[k].count_track++;
+				stuTrack_bigMOveObj[k].current_tClock = clock();
+				return 2;
+			}
+		}
+		int centre_y = roi.y + roi.height;
+		if ((roi.width > stuTrack_size_threshold[centre_y] && roi.height > 2 * stuTrack_size_threshold[centre_y]) && count_trackObj_bigMove < MALLOC_ELEMENT_COUNT)
+		{
+			stuTrack_bigMOveObj[count_trackObj_bigMove].roi = roi;
+			stuTrack_bigMOveObj[count_trackObj_bigMove].count_track = 1;
+			stuTrack_bigMOveObj[count_trackObj_bigMove].origin_position = stuTrack_bigMOveObj[count_trackObj_bigMove].current_position = itcPoint(x, y);
+			stuTrack_bigMOveObj[count_trackObj_bigMove].start_tClock = stuTrack_bigMOveObj[count_trackObj_bigMove].current_tClock = clock();
+			stuTrack_bigMOveObj[count_trackObj_bigMove].flag__bigMove = 0;
+			count_trackObj_bigMove++;
+			return 2;
+		}
+	}
+	return 0;
 }
 
-void stuTrack_analyze_ROI(Itc_Mat_t* mhi, StuTrack_Stand_t track_stand[], int &count_trackObj, int direct_threshold[], int direct_range)
+void stuTrack_analyze_ROI(Itc_Mat_t* mhi)
 {
 	int i = 0;
 	int direct = 0;
 	int standard_direct = 0;
 	int flag_ROI = 0;
-	for (int i = 0; i < count_trackObj; i++)
+	for (int i = 0; i < count_trackObj_stand; i++)
 	{
-		if (track_stand[i].flag_Stand == 0)
+		if (stuTrack_stand[i].flag_Stand == 0)
 		{
-			if (!track_stand[i].flag_matching)
+			if (!stuTrack_stand[i].flag_matching)
 			{
-				standard_direct = direct_threshold[track_stand[i].roi.x + track_stand[i].roi.width / 2];
-				flag_ROI = track_calculateDirect_ROI(mhi, track_stand[i].roi, direct);
-				if ((abs(track_stand[i].direction - direct) < direct_range) && (flag_ROI == 1))
+				standard_direct = stuTrack_direct_threshold[stuTrack_stand[i].roi.x + (stuTrack_stand[i].roi.width >> 1)];
+				flag_ROI = track_calculateDirect_ROI(mhi, stuTrack_stand[i].roi, &direct);
+				if ((abs(stuTrack_stand[i].direction - direct) < stuTrack_direct_range) && (flag_ROI == 1))
 				{
-					track_stand[i].count_up++;
+					stuTrack_stand[i].count_up++;
 				}
 				else
 				{
-					track_stand[i].count_up--;
+					stuTrack_stand[i].count_up--;
 				}
 			}
 
-			if (stuTrack_judgeStand_ROI(mhi, track_stand[i]))	//确定是否站立
+			if (stuTrack_judgeStand_ROI(mhi, stuTrack_stand[i]))	//确定是否站立
 			{
-				printf("起立：%d,%d,%d,%d\n", track_stand[i].roi.x, track_stand[i].roi.y, track_stand[i].roi.width, track_stand[i].roi.height);
-				track_stand[i].flag_Stand = 1;
+				printf("起立：%d,%d,%d,%d\n", stuTrack_stand[i].roi.x, stuTrack_stand[i].roi.y, stuTrack_stand[i].roi.width, stuTrack_stand[i].roi.height);
+				stuTrack_stand[i].flag_Stand = 1;
 			}
 			else
 			{
-				if (track_stand[i].count_up - track_stand[i].count_teack < 0)				//删除非站立roi
+				if (stuTrack_stand[i].count_up - stuTrack_stand[i].count_teack < 0)				//删除非站立roi
 				{
-					track_stand[i] = track_stand[--count_trackObj];
+					stuTrack_stand[i] = stuTrack_stand[--count_trackObj_stand];
 					i--;
 					continue;
 				}
@@ -154,22 +223,57 @@ void stuTrack_analyze_ROI(Itc_Mat_t* mhi, StuTrack_Stand_t track_stand[], int &c
 		else
 		{
 			//检测有没有坐下
-			standard_direct = direct_threshold[track_stand[i].roi.x + track_stand[i].roi.width / 2] + 180;
+			standard_direct = stuTrack_direct_threshold[stuTrack_stand[i].roi.x + (stuTrack_stand[i].roi.width >> 1)] + 180;
 			standard_direct = standard_direct > 360 ? standard_direct - 360 : standard_direct;
-			flag_ROI = track_calculateDirect_ROI(mhi, track_stand[i].roi, direct);
-			if ((abs(standard_direct - direct)< direct_range + 30) && (flag_ROI == 1))
+			flag_ROI = track_calculateDirect_ROI(mhi, stuTrack_stand[i].roi, &direct);
+			if ((abs(standard_direct - direct)< stuTrack_direct_range + 30) && (flag_ROI == 1))
 			{
-				track_stand[i].count_down++;
-				if (track_stand[i].count_down>4)
+				stuTrack_stand[i].count_down++;
+				if (stuTrack_stand[i].count_down>4)
 				{
-					printf("坐下：%d,%d\n", track_stand[i].roi.x, track_stand[i].roi.y);
-					track_stand[i] = track_stand[--count_trackObj];
-					i--;
+					printf("坐下：%d,%d\n", stuTrack_stand[i].roi.x, stuTrack_stand[i].roi.y);
+					stuTrack_stand[i].flag_Stand = 0;
+					stuTrack_stand[i].count_up = 3;
 					continue;
 				}
 			}
 		}
-		track_stand[i].flag_matching = 0;
+		stuTrack_stand[i].flag_matching = 0;
+	}
+
+	for (i = 0; i < count_trackObj_bigMove; i++)
+	{
+		if (stuTrack_bigMOveObj[i].flag__bigMove == 0)
+		{
+			clock_t _time = clock() - stuTrack_bigMOveObj[i].current_tClock;
+			if (_time > 1000)
+			{
+				stuTrack_bigMOveObj[i] = stuTrack_bigMOveObj[--count_trackObj_bigMove];
+				i--;
+				continue;
+			}
+
+			_time = stuTrack_bigMOveObj[i].current_tClock - stuTrack_bigMOveObj[i].start_tClock;
+			int distance = (stuTrack_bigMOveObj[i].origin_position.x - stuTrack_bigMOveObj[i].current_position.x)*(stuTrack_bigMOveObj[i].origin_position.x - stuTrack_bigMOveObj[i].current_position.x)
+				+ (stuTrack_bigMOveObj[i].origin_position.y - stuTrack_bigMOveObj[i].current_position.y)*(stuTrack_bigMOveObj[i].origin_position.y - stuTrack_bigMOveObj[i].current_position.y);
+
+			if (distance>2500 || _time>1400)
+			{
+				printf("发现移动目标：%d,%d\n", stuTrack_bigMOveObj[i].roi.x, stuTrack_bigMOveObj[i].roi.y);
+				stuTrack_bigMOveObj[i].flag__bigMove = 1;
+			}
+			
+		}
+		else
+		{
+			clock_t _time=clock() - stuTrack_bigMOveObj[i].current_tClock;
+			if (_time>1000)
+			{
+				stuTrack_bigMOveObj[i] = stuTrack_bigMOveObj[--count_trackObj_bigMove];
+				i--;
+				continue;
+			}
+		}
 	}
 }
 
@@ -230,42 +334,19 @@ int stuTrack_judgeStand_ROI(Itc_Mat_t* mhi, StuTrack_Stand_t track_stand)
 	return 0;
 }
 
-void stuTrack_proStandDown_ROI(Itc_Mat_t* mhi, StuTrack_Stand_t track_stand[], int &count_trackObj, ItcRect rect_arr[], int &count_rect, int direct_threshold[], int direct_range)
+void stuTrack_proStandDown_ROI(Itc_Mat_t* mhi)
 {
 	int i = 0;
-	for (i = 0; i < count_rect; i++)
+	for (i = 0; i < count_stuTrack_rect; i++)
 	{
-		if (stuTrack_matchingSatnd_ROI(mhi, rect_arr[i], track_stand, count_trackObj, direct_threshold, direct_range))
+		if (stuTrack_matchingSatnd_ROI(mhi, stuTrack_rect_arr[i]))
 		{
-			rect_arr[i] = rect_arr[--count_rect];
+			stuTrack_rect_arr[i] = stuTrack_rect_arr[--count_stuTrack_rect];
 			i--;
 		}
 	}
-	stuTrack_analyze_ROI(mhi, track_stand, count_trackObj, direct_threshold, direct_range);			//分析预选的起立roi
+	stuTrack_analyze_ROI(mhi);			//分析预选的起立roi
 }
-
-size_t img_size = 0;
-int count_trackObj_stand = 0;
-StuTrack_Stand_t stuTrack_stand[100];
-
-int count_trackObj_bigMove = 0;
-StuTrack_BigMoveObj_t stuTrack_bigMOveObj[100];
-
-ItcMemStorage* stuTrack_storage = NULL;
-
-int stuTrack_rect_count;
-ItcRect stuTrack_rect_arr[100];
-
-Itc_Mat_t *tempMat = NULL;
-Itc_Mat_t *currMat = NULL;
-Itc_Mat_t *lastMat = NULL;
-Itc_Mat_t *mhiMat = NULL;
-Itc_Mat_t *maskMat = NULL;
-
-//需要设置的参数
-int stuTrack_size_threshold[270];		//运动目标大小过滤阈值
-int stuTrack_direct_range;
-int stuTrack_direct_threshold[480];
 
 void stuTrack_initializeTrack(int height, int width)
 {
@@ -276,15 +357,26 @@ void stuTrack_initializeTrack(int height, int width)
 	maskMat = itc_create_mat(height, width, ITC_8UC1);
 	stuTrack_storage = itcCreateMemStorage(0);
 
+	stuTrack_stand = (StuTrack_Stand_t*)malloc(sizeof(StuTrack_Stand_t)* MALLOC_ELEMENT_COUNT);
+	stuTrack_bigMOveObj = (StuTrack_BigMoveObj_t*)malloc(sizeof(StuTrack_BigMoveObj_t)* MALLOC_ELEMENT_COUNT);
+	stuTrack_rect_arr = (Track_Rect_t*)malloc(sizeof(Track_Rect_t)* MALLOC_ELEMENT_COUNT);
+
+	memset(stuTrack_stand, 0, sizeof(StuTrack_Stand_t)* MALLOC_ELEMENT_COUNT);
+	memset(stuTrack_bigMOveObj, 0, sizeof(StuTrack_BigMoveObj_t)* MALLOC_ELEMENT_COUNT);
+	memset(stuTrack_rect_arr, 0, sizeof(Track_Rect_t)* MALLOC_ELEMENT_COUNT);
+
 	//初始化参数
 	img_size = height*width;
 
-	for (int i = 0; i < 270; i++)
+	stuTrack_size_threshold = (int *)malloc(sizeof(int)* STUTRACK_IMG_HEIGHT);
+	for (int i = 0; i < STUTRACK_IMG_HEIGHT; i++)
 	{
-		stuTrack_size_threshold[i] = 18 + (i / 10);
+		stuTrack_size_threshold[i] = ITC_IMIN(ITC_IMAX((-4 + (i >> 2)), 15), 55);
 	}
+
 	stuTrack_direct_range = 10;
-	for (int i = 0; i < 240; i++)
+	stuTrack_direct_threshold = (int *)malloc(sizeof(int)* STUTRACK_IMG_WIDTH);
+	for (int i = 0; i < STUTRACK_IMG_WIDTH/2; i++)
 	{
 		int direct = (480 - i * 2) >> 5;
 		stuTrack_direct_threshold[i] = 270 - direct;
@@ -295,15 +387,15 @@ void stuTrack_initializeTrack(int height, int width)
 void stuTrack_main(char* imageData)
 {
 	static int _count = 0;//统计帧数
-	ItcContour* firstContour = NULL;
+	Track_Contour_t* firstContour = NULL;
 	memcpy(currMat->data.ptr, imageData, img_size);
 	if (_count>1)
 	{
 		itcClearMemStorage(stuTrack_storage);
 		track_update_MHI(currMat, lastMat, mhiMat, 15, maskMat, 248);
 		track_find_contours(maskMat, &firstContour, stuTrack_storage);
-		stuTrack_rect_count = stuTrack_filtrate_contours(&firstContour, stuTrack_size_threshold, stuTrack_rect_arr);
-		stuTrack_proStandDown_ROI(mhiMat, stuTrack_stand, count_trackObj_stand, stuTrack_rect_arr, stuTrack_rect_count, stuTrack_direct_threshold, stuTrack_direct_range);
+		count_stuTrack_rect = stuTrack_filtrate_contours(&firstContour);
+		stuTrack_proStandDown_ROI(mhiMat);
 	}
 	tempMat = currMat;
 	currMat = lastMat;
@@ -313,6 +405,36 @@ void stuTrack_main(char* imageData)
 
 void stuTrack_stopTrack()
 {
+	if (stuTrack_stand != NULL)
+	{
+		free(stuTrack_stand);
+		stuTrack_stand = NULL;
+	}
+
+	if (stuTrack_bigMOveObj != NULL)
+	{
+		free(stuTrack_bigMOveObj);
+		stuTrack_bigMOveObj = NULL;
+	}
+
+	if (stuTrack_rect_arr != NULL)
+	{
+		free(stuTrack_rect_arr);
+		stuTrack_rect_arr = NULL;
+	}
+
+	if (stuTrack_size_threshold != NULL)
+	{
+		free(stuTrack_size_threshold);
+		stuTrack_size_threshold = NULL;
+	}
+
+	if (stuTrack_direct_threshold != NULL)
+	{
+		free(stuTrack_direct_threshold);
+		stuTrack_direct_threshold = NULL;
+	}
+
 	itcReleaseMemStorage(&stuTrack_storage);
 
 	itc_release_mat(&currMat);
