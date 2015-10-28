@@ -13,6 +13,9 @@
 
 #include <stdio.h>
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
 typedef signed long long int64;
 typedef unsigned long long uint64;
 
@@ -217,5 +220,9 @@ for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_; _icv_memcpy_i_++)\
 	_icv_memcpy_dst_[_icv_memcpy_i_] = _icv_memcpy_src_[_icv_memcpy_i_];    \
 	}                                                                               \
 }
+
+#ifdef  __cplusplus  
+}
+#endif  /* end of __cplusplus */ 
 
 #endif // itctype_h_
