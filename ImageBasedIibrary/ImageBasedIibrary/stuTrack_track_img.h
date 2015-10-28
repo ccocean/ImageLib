@@ -17,15 +17,15 @@ extern "C" {
 typedef struct StuTrack_Stand_t
 {
 	int direction;
-	Track_Point_t centre;
-	Track_Rect_t roi;
 	int count_teack;	//
 	int count_up;		//
 	int count_down;		//
 	int flag_Stand;		//起立标志
 	int flag_matching;	//匹配标志
-	//int startVertex_Y;
-	//int max_height;
+	Track_Point_t centre;
+	Track_Rect_t roi;
+	clock_t start_tClock;
+	clock_t current_tClock;
 }StuTrack_Stand_t;
 
 typedef struct StuTrack_BigMoveObj_t
@@ -38,6 +38,24 @@ typedef struct StuTrack_BigMoveObj_t
 	Track_Point_t current_position;
 	int flag__bigMove;		//标志
 }StuTrack_BigMoveObj_t;
+
+
+extern int count_trackObj_stand;
+extern StuTrack_Stand_t *stuTrack_stand;
+
+extern int count_trackObj_bigMove;
+extern StuTrack_BigMoveObj_t *stuTrack_bigMOveObj;
+
+extern int *stuTrack_size_threshold;
+extern int *stuTrack_direct_threshold;
+
+extern Track_MemStorage_t* stuTrack_storage;
+
+extern int count_stuTrack_rect;
+extern Track_Rect_t *stuTrack_rect_arr;
+
+extern Itc_Mat_t *mhiMat;
+extern Itc_Mat_t *maskMat;
 
 int stuTrack_filtrate_contours(Track_Contour_t** pContour);			//轮廓筛选
 
