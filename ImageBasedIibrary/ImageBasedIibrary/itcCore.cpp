@@ -350,7 +350,7 @@ int							nbd)
 	if (s == s_end)						//扫了一圈没有找到其他边缘，说明是单一一个点
 	{
 		*i0 = (char)(nbd | 0x80);		//把char类型最高位置为1,因为单点也是一个右边缘点
-		ITC_WRITE_SEQ_ELEM(pt, writer);//保存点
+		//ITC_WRITE_SEQ_ELEM(pt, writer);//保存点
 	}
 	else
 	{
@@ -457,17 +457,21 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 				itcFetchContourEx(img + x - is_hole, step, itcPoint(origin.x, origin.y), contour, 126);
 				lnbd.x = x - is_hole;			//当前扫描到边缘点的位置，用于下次扫描判断是否有包含关系
 
-				if ((*pContour) == NULL)
+				if (((Track_Contour_t*)(contour))->rect.width != 0 &&
+					((Track_Contour_t*)(contour))->rect.height != 0)
 				{
-					(*pContour) = (Track_Contour_t*)contour;
-					(*pContour)->h_prev = (*pContour)->h_next = contour;
-				}
-				else
-				{
-					//插入
-					contour->h_next = (*pContour)->h_next;
-					(*pContour)->h_next = contour;
-					contour->h_prev = (*pContour)->h_prev;
+					if ((*pContour) == NULL)
+					{
+						(*pContour) = (Track_Contour_t*)contour;
+						(*pContour)->h_prev = (*pContour)->h_next = contour;
+					}
+					else
+					{
+						//插入
+						contour->h_next = (*pContour)->h_next;
+						(*pContour)->h_next = contour;
+						contour->h_prev = (*pContour)->h_prev;
+					}
 				}
 			resume_scan:
 				prev = img[x];		//不能直接等于p,因为itcFetchContourEx会改变当前扫描过的点
@@ -539,7 +543,7 @@ int track_filtrate_contours(Track_Contour_t** pContour, int size_Threshold, Trac
 	{
 		for (j = i + 1; j < count_rect; j++)
 		{
-			if (track_intersect_rect(rect_arr + i, rect_arr + j,5))		//判断是否相交，如果相交则直接合并
+			if (track_intersect_rect(rect_arr + i, rect_arr + j,0))		//判断是否相交，如果相交则直接合并
 			{
 				count_rect--;
 				*(rect_arr + j) = *(rect_arr + count_rect);

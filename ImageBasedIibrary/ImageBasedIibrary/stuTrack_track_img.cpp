@@ -37,7 +37,6 @@ int stuTrack_filtrate_contours(Track_Contour_t** pContour)
 		Track_Rect_t rect = Contour->rect;
 		int centre_y = rect.y + rect.height;
 		if (rect.width > stuTrack_size_threshold[centre_y] &&
-			rect.height > stuTrack_size_threshold[centre_y] &&
 			rect.height > rect.width &&
 			count_rect < MALLOC_ELEMENT_COUNT)					//筛选
 		{
@@ -150,14 +149,14 @@ int stuTrack_matchingSatnd_ROI(Itc_Mat_t* mhi, Track_Rect_t roi)
 			int k = -1;
 			Track_Rect_t _roi = roi;
 			for (int i = 0; i < count_trackObj_bigMove; i++)
-			{	
-				if(track_intersect_rect(&_roi, &stuTrack_bigMOveObj[i].roi, -3))
-				{	
+			{
+				if (track_intersect_rect(&_roi, &stuTrack_bigMOveObj[i].roi, -3))
+				{
 					k = i;
 					break;
 				}
 			}
-			if (k>=0)
+			if (k >= 0)
 			{
 				stuTrack_bigMOveObj[k].roi = roi;
 				stuTrack_bigMOveObj[k].current_position = itcPoint(x, y);
@@ -256,8 +255,8 @@ void stuTrack_analyze_ROI(Itc_Mat_t* mhi)
 			_time = stuTrack_bigMOveObj[i].current_tClock - stuTrack_bigMOveObj[i].start_tClock;
 			int distance = (stuTrack_bigMOveObj[i].origin_position.x - stuTrack_bigMOveObj[i].current_position.x)*(stuTrack_bigMOveObj[i].origin_position.x - stuTrack_bigMOveObj[i].current_position.x)
 				+ (stuTrack_bigMOveObj[i].origin_position.y - stuTrack_bigMOveObj[i].current_position.y)*(stuTrack_bigMOveObj[i].origin_position.y - stuTrack_bigMOveObj[i].current_position.y);
-
-			if (distance>2500 || _time>1400)
+			int dis_T = stuTrack_bigMOveObj[i].roi.width*stuTrack_bigMOveObj[i].roi.width;
+			if (distance>dis_T || _time>1400)
 			{
 				printf("发现移动目标：%d,%d\n", stuTrack_bigMOveObj[i].roi.x, stuTrack_bigMOveObj[i].roi.y);
 				stuTrack_bigMOveObj[i].flag__bigMove = 1;
