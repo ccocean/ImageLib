@@ -2,20 +2,20 @@
 #include "itcdatastructs.h"
 
 
-inline int  itcAlign(int size, int align)
+_inline int  itcAlign(int size, int align)
 {
 	assert((align&(align-1))==0 && size<INT_MAX);
 	return (size + align - 1) & -align;
 }
 
-inline void* itcAlignPtr( const void* ptr, int align )
+_inline void* itcAlignPtr( const void* ptr, int align )
 {
 	//align = 32;
 	assert( (align & (align-1)) == 0 );
 	return (void*)( ((size_t)ptr + align - 1) & ~(size_t)(align-1) );
 }
 
-inline int
+_inline int
 	itcAlignLeft( int size, int align )
 {
 	return size & -align;

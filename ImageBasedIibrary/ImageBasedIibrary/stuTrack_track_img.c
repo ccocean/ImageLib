@@ -168,7 +168,9 @@ int stuTrack_matchingSatnd_ROI(Itc_Mat_t* mhi, Track_Rect_t roi)
 			}
 		}
 		int centre_y = roi.y + roi.height;
-		if ((roi.width > stuTrack_size_threshold[centre_y] && roi.height > 2 * stuTrack_size_threshold[centre_y]) && count_trackObj_bigMove < MALLOC_ELEMENT_COUNT)
+		int size_threshold = stuTrack_size_threshold[centre_y] + (stuTrack_size_threshold[centre_y] >> 1);
+		if ((roi.width >  size_threshold && roi.height > size_threshold)
+			&& count_trackObj_bigMove < MALLOC_ELEMENT_COUNT)
 		{
 			stuTrack_bigMOveObj[count_trackObj_bigMove].roi = roi;
 			stuTrack_bigMOveObj[count_trackObj_bigMove].count_track = 1;
@@ -217,7 +219,7 @@ void stuTrack_analyze_ROI(Itc_Mat_t* mhi)
 			if ((abs(standard_direct - direct)< stuTrack_direct_range + 30) && (flag_ROI == 1))
 			{
 				stuTrack_stand[i].count_down++;
-				if (stuTrack_stand[i].count_down>4)
+				if (stuTrack_stand[i].count_down>5)
 				{
 					printf("坐下：%d,%d\n", stuTrack_stand[i].roi.x, stuTrack_stand[i].roi.y);
 					stuTrack_stand[i].flag_Stand = -1;
@@ -281,7 +283,7 @@ void stuTrack_analyze_ROI(Itc_Mat_t* mhi)
 int stuTrack_judgeStand_ROI(Itc_Mat_t* mhi, StuTrack_Stand_t track_stand)
 {
 	double ratio_lengthWidth = (((double)track_stand.roi.height) / track_stand.roi.width);
-	if (((track_stand.count_up > 5 && track_stand.count_teack > 3) || track_stand.count_up > 10)
+	if (((track_stand.count_up > 5 && track_stand.count_teack > 3) || track_stand.count_up > 15)
 		&& ratio_lengthWidth <= 2.1)
 	{
 		return 1;
@@ -300,7 +302,7 @@ void stuTrack_proStandDown_ROI(Itc_Mat_t* mhi)
 			i--;
 		}
 	}
-	stuTrack_analyze_ROI(mhi);			//分析预选的起立roi
+	stuTrack_analyze_ROI(mhi);			//分析候选roi
 }
 
 void stuTrack_initializeTrack(int height, int width)

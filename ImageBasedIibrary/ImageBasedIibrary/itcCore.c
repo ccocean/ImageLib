@@ -421,13 +421,13 @@ int							nbd)
 int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemStorage_t*  storage)
 {
 	int step = src->step;
-	char *img0 = (char*)(src->data.ptr);
+	//char *img0 = (char*)(src->data.ptr);
 	char *img = (char*)(src->data.ptr + step);
 	
 	int width = src->cols - 1;
 	int height = src->rows - 1;
 
-	Track_Point_t lnbd = itcPoint(0, 1);	//记录上一次扫描到边缘点的位置
+	//Track_Point_t lnbd = itcPoint(0, 1);	//记录上一次扫描到边缘点的位置,用来构建包含结构的，暂时用不上
 	int x = 1;						//扫描起始位置
 	int y = 1;
 	int prev = img[x - 1];
@@ -456,7 +456,7 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 				origin.y = y;
 				origin.x = x - is_hole;			//不管是外轮廓还是孔，边缘（扫描起点）都取不为0的像素
 				itcFetchContourEx(img + x - is_hole, step, itcPoint(origin.x, origin.y), contour, 126);
-				lnbd.x = x - is_hole;			//当前扫描到边缘点的位置，用于下次扫描判断是否有包含关系
+				//lnbd.x = x - is_hole;			//当前扫描到边缘点的位置，用于下次扫描判断是否有包含关系
 
 				if (((Track_Contour_t*)(contour))->rect.width != 0 &&
 					((Track_Contour_t*)(contour))->rect.height != 0)
@@ -476,14 +476,14 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 				}
 			resume_scan:
 				prev = img[x];		//不能直接等于p,因为itcFetchContourEx会改变当前扫描过的点
-				if (prev & -2)		//只保存已知的边缘
-				{
-					lnbd.x = x;		//记录当前扫描到边缘点的位置，用于下一扫描使用
-				}
+				//if (prev & -2)		//只保存已知的边缘
+				//{
+				//	lnbd.x = x;		//记录当前扫描到边缘点的位置，用于下一扫描使用
+				//}
 			}
 		}
-		lnbd.x = 0;
-		lnbd.y = y + 1;
+		//lnbd.x = 0;
+		//lnbd.y = y + 1;
 		prev = 0;
 	}
 	return count;
