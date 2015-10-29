@@ -160,23 +160,24 @@ int stuTrack_matchingSatnd_ROI(Itc_Mat_t* mhi, Track_Rect_t roi)
 			}
 			if (k >= 0)
 			{
-				stuTrack_bigMOveObj[k].roi = roi;
-				stuTrack_bigMOveObj[k].current_position = itcPoint(x, y);
 				stuTrack_bigMOveObj[k].count_track++;
+				stuTrack_bigMOveObj[k].roi = roi;
+				stuTrack_bigMOveObj[k].current_position = itcPoint(_roi.x + (_roi.width >> 1), _roi.y + (_roi.height >> 1));
 				stuTrack_bigMOveObj[k].current_tClock = clock();
 				return 2;
 			}
 		}
-		int centre_y = roi.y + roi.height;
-		int size_threshold = stuTrack_size_threshold[centre_y] + (stuTrack_size_threshold[centre_y] >> 1);
-		if ((roi.width >  size_threshold && roi.height > size_threshold)
+		int centre_y = roi.y + roi.width;
+		int size_threshold1 = stuTrack_size_threshold[centre_y] + (stuTrack_size_threshold[centre_y] >> 2);
+		int size_threshold2 = stuTrack_size_threshold[centre_y] + (stuTrack_size_threshold[centre_y] >> 1);
+		if ((roi.width >  size_threshold1 && roi.height > size_threshold2)
 			&& count_trackObj_bigMove < MALLOC_ELEMENT_COUNT)
 		{
-			stuTrack_bigMOveObj[count_trackObj_bigMove].roi = roi;
 			stuTrack_bigMOveObj[count_trackObj_bigMove].count_track = 1;
+			stuTrack_bigMOveObj[count_trackObj_bigMove].flag_bigMove = 0;
+			stuTrack_bigMOveObj[count_trackObj_bigMove].roi = roi;
 			stuTrack_bigMOveObj[count_trackObj_bigMove].origin_position = stuTrack_bigMOveObj[count_trackObj_bigMove].current_position = itcPoint(x, y);
-			stuTrack_bigMOveObj[count_trackObj_bigMove].start_tClock = stuTrack_bigMOveObj[count_trackObj_bigMove].current_tClock = clock();
-			stuTrack_bigMOveObj[count_trackObj_bigMove].flag__bigMove = 0;
+			stuTrack_bigMOveObj[count_trackObj_bigMove].start_tClock = stuTrack_bigMOveObj[count_trackObj_bigMove].current_tClock = clock();	
 			count_trackObj_bigMove++;
 			return 2;
 		}
@@ -245,37 +246,26 @@ void stuTrack_analyze_ROI(Itc_Mat_t* mhi)
 	//分析移动的目标
 	for (i = 0; i < count_trackObj_bigMove; i++)
 	{
-		if (stuTrack_bigMOveObj[i].flag__bigMove == 0)
+		clock_t _time = clock() - stuTrack_bigMOveObj[i].current_tClock;
+		if (_time > 1000)
 		{
-			clock_t _time = clock() - stuTrack_bigMOveObj[i].current_tClock;
-			if (_time > 1000)
-			{
-				stuTrack_bigMOveObj[i] = stuTrack_bigMOveObj[--count_trackObj_bigMove];
-				i--;
-				continue;
-			}
-
+			stuTrack_bigMOveObj[i] = stuTrack_bigMOveObj[--count_trackObj_bigMove];
+			i--;
+			continue;
+		}
+		if (stuTrack_bigMOveObj[i].flag_bigMove == 0)
+		{
 			_time = stuTrack_bigMOveObj[i].current_tClock - stuTrack_bigMOveObj[i].start_tClock;
+			standard_direct = stuTrack_direct_threshold[stuTrack_bigMOveObj[i].roi.x + (stuTrack_bigMOveObj[i].roi.width >> 1)];
 			int distance = (stuTrack_bigMOveObj[i].origin_position.x - stuTrack_bigMOveObj[i].current_position.x)*(stuTrack_bigMOveObj[i].origin_position.x - stuTrack_bigMOveObj[i].current_position.x)
 				+ (stuTrack_bigMOveObj[i].origin_position.y - stuTrack_bigMOveObj[i].current_position.y)*(stuTrack_bigMOveObj[i].origin_position.y - stuTrack_bigMOveObj[i].current_position.y);
-			int dis_T = stuTrack_bigMOveObj[i].roi.width*stuTrack_bigMOveObj[i].roi.width>>1;
+			int dis_T = (stuTrack_bigMOveObj[i].roi.width*stuTrack_bigMOveObj[i].roi.width);
 			//printf("判断移动目标：%d,%d\n", distance, dis_T);
-			if ((distance>dis_T && _time>500) || _time>1400)
+			if ((distance>dis_T && _time>500))
 			{
 				printf("发现移动目标：%d,%d\n", stuTrack_bigMOveObj[i].roi.x, stuTrack_bigMOveObj[i].roi.y);
-				stuTrack_bigMOveObj[i].flag__bigMove = 1;
-			}
-			
-		}
-		else
-		{
-			clock_t _time=clock() - stuTrack_bigMOveObj[i].current_tClock;
-			if (_time>1000)
-			{
-				stuTrack_bigMOveObj[i] = stuTrack_bigMOveObj[--count_trackObj_bigMove];
-				i--;
-				continue;
-			}
+				stuTrack_bigMOveObj[i].flag_bigMove = 1;
+			}	
 		}
 	}
 }
@@ -328,7 +318,7 @@ void stuTrack_initializeTrack(int height, int width)
 	stuTrack_size_threshold = (int *)malloc(sizeof(int)* STUTRACK_IMG_HEIGHT);
 	for (int i = 0; i < STUTRACK_IMG_HEIGHT; i++)
 	{
-		stuTrack_size_threshold[i] = ITC_IMIN(ITC_IMAX((-4 + (i >> 2)), 15), 55);
+		stuTrack_size_threshold[i] = ITC_IMIN(ITC_IMAX((-3 + (i >> 2)), 15), 55);
 	}
 
 	stuTrack_direct_range = 10;
