@@ -2,20 +2,20 @@
 #include "itcdatastructs.h"
 
 
-_inline int  itcAlign(int size, int align)
+inline int  itcAlign(int size, int align)
 {
 	assert((align&(align-1))==0 && size<INT_MAX);
 	return (size + align - 1) & -align;
 }
 
-_inline void* itcAlignPtr( const void* ptr, int align )
+inline void* itcAlignPtr( const void* ptr, int align )
 {
-	align = 32;
+	//align = 32;
 	assert( (align & (align-1)) == 0 );
 	return (void*)( ((size_t)ptr + align - 1) & ~(size_t)(align-1) );
 }
 
-_inline int
+inline int
 	itcAlignLeft( int size, int align )
 {
 	return size & -align;
@@ -69,11 +69,11 @@ void*  itcAlloc( size_t size )
 	__BEGIN__;
 
 	if ((size_t)size > ITC_MAX_ALLOC_SIZE)
-		ITC_ERROR_(ITC_StsOutOfRange);
+		ITC_ERROR_DETAIL(ITC_StsOutOfRange, "");
 
 	ptr = itcDefaultAlloc( size, p_cvAllocUserData );
 	if( !ptr )
-		ITC_ERROR_(ITC_StsNoMem);
+		ITC_ERROR_DETAIL(ITC_StsNoMem,"");
 
 	__END__;
 
@@ -108,7 +108,7 @@ static void itcInitMemStorage( Track_MemStorage_t* storage, int block_size )
 	__BEGIN__;
 
 	if (!storage)
-		ITC_ERROR_(ITC_StsNullPtr,"");
+		ITC_ERROR_DETAIL(ITC_StsNullPtr, "");
 
 	if( block_size <= 0 )
 		block_size = ITC_STORAGE_BLOCK_SIZE;//block_size==0分配块大小默认为65408
@@ -152,7 +152,7 @@ Track_MemStorage_t* itcCreateChildMemStorage(Track_MemStorage_t * parent)
 	__BEGIN__;
 
 	if (!parent)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 
 	//CV_CALL( storage = cvCreateMemStorage(parent->block_size));
 	storage = itcCreateMemStorage(parent->block_size);
@@ -179,7 +179,7 @@ static void itcDestroyMemStorage(Track_MemStorage_t* storage)
 	Track_MemBlock_t *dst_top = 0;
 
 	if (!storage)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 
 	if( storage->parent )
 		dst_top = storage->parent->top;
@@ -233,7 +233,7 @@ void
 	__BEGIN__;
 
 	if( !storage )
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 
 	//为什么不直接释放内存？
 	st = *storage;
@@ -262,7 +262,7 @@ itcClearMemStorage(Track_MemStorage_t * storage)
 	__BEGIN__;
 
 	if( !storage )
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 
 	if( storage->parent )
 	{
@@ -291,7 +291,7 @@ itcGoNextMemBlock( Track_MemStorage_t * storage )
     __BEGIN__;
     
 	if (!storage)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 
     if( !storage->top || !storage->top->next )
     {
@@ -359,7 +359,7 @@ void
 	__BEGIN__;
 
 	if( !storage || !pos )
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 
 	pos->top = storage->top;
 	pos->free_space = storage->free_space;
@@ -379,9 +379,9 @@ itcRestoreMemStoragePos( Track_MemStorage_t * storage, Track_MemStoragePos_t * p
     __BEGIN__;
 
     if( !storage || !pos )
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
     if( pos->free_space > storage->block_size )
-		ITC_ERROR_(ITC_StsBadSize);
+		ITC_ERROR_DETAIL(ITC_StsBadSize,"");
         //CV_ERROR( CV_StsBadSize, "" );
 
     /*
@@ -428,11 +428,11 @@ void*
 	__BEGIN__;
 
 	if( !storage )
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR( CV_StsNullPtr, "NULL storage pointer" );
 
 	if( size > INT_MAX )
-		ITC_ERROR_(ITC_StsOutOfRange);
+		ITC_ERROR_DETAIL(ITC_StsOutOfRange,"");
 		//CV_ERROR( CV_StsOutOfRange, "Too large memory block is requested" );
 
 	assert( storage->free_space % ITC_STRUCT_ALIGN == 0 );
@@ -483,9 +483,9 @@ Track_Seq_t *
 	__BEGIN__;
 
 	if (!storage)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 	if (header_size < (int)sizeof(Track_Seq_t) || elem_size <= 0)
-		ITC_ERROR_(ITC_StsBadSize);
+		ITC_ERROR_DETAIL(ITC_StsBadSize,"");
 
 	/* allocate sequence header */
 	//CV_CALL( seq = (CvSeq*)cvMemStorageAlloc( storage, header_size ));
@@ -533,9 +533,9 @@ itcSetSeqBlockSize(Track_Seq_t *seq, int delta_elements)
     __BEGIN__;
 	
 	if (!seq || !seq->storage)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 	if (delta_elements < 0)
-		ITC_ERROR_(ITC_StsBadSize);
+		ITC_ERROR_DETAIL(ITC_StsBadSize,"");
 
     useful_block_size = itcAlignLeft(seq->storage->block_size - sizeof(Track_MemBlock_t) -
                                     sizeof(Track_SeqBlock_t), ITC_STRUCT_ALIGN);
@@ -616,7 +616,6 @@ char*
 int
 	itcSeqElemIdx( const Track_Seq_t* seq, const void* _element, Track_SeqBlock_t** _block )
 {
-		_block = NULL;
 	const char *element = (const char *)_element;
 	int elem_size;
 	int id = -1;
@@ -628,7 +627,7 @@ int
 	__BEGIN__;
 
 	if (!seq || !element)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 
 	block = first_block = seq->first;
 	elem_size = seq->elem_size;
@@ -677,7 +676,7 @@ char*
 	__BEGIN__;
 
 	if( !seq )
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR( CV_StsNullPtr, "" );
 
 	elem_size = seq->elem_size;
@@ -720,10 +719,10 @@ void itcSeqPop(Track_Seq_t *seq, void *element)
 	__BEGIN__;
 
 	if (!seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(ITC_StsNullPtr, "");
 	if (seq->total <= 0)
-		ITC_ERROR_(ITC_StsBadSize);
+		ITC_ERROR_DETAIL(ITC_StsBadSize,"");
 		//CV_ERROR(ITC_StsBadSize, "");
 
 	elem_size = seq->elem_size;
@@ -756,7 +755,7 @@ itcGrowSeq( Track_Seq_t *seq, int in_front_of )
     Track_SeqBlock_t *block;
 
 	if (!seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
         //CV_ERROR( CV_StsNullPtr, "" );
     block = seq->free_blocks;
 
@@ -770,7 +769,7 @@ itcGrowSeq( Track_Seq_t *seq, int in_front_of )
             itcSetSeqBlockSize( seq, delta_elems*2 );
 
         if( !storage )
-			ITC_ERROR_(ITC_StsNullPtr);
+			ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
             //CV_ERROR( CV_StsNullPtr, "The sequence has NULL storage pointer" );
 
         /* if there is a free space just after last allocated block
@@ -954,7 +953,7 @@ char* itcSeqPushFront(Track_Seq_t *seq, void *element)
 	__BEGIN__;
 
 	if (!seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	elem_size = seq->elem_size;
@@ -996,10 +995,10 @@ void itcSeqPopFront(Track_Seq_t *seq, void *element)
 	__BEGIN__;
 
 	if (!seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 	if (seq->total <= 0)
-		ITC_ERROR_(ITC_StsBadSize);
+		ITC_ERROR_DETAIL(ITC_StsBadSize,"");
 		//CV_ERROR(CV_StsBadSize, "");
 
 	elem_size = seq->elem_size;
@@ -1040,7 +1039,7 @@ char* itcSeqInsert(Track_Seq_t *seq, int before_index, void *element)
 	__BEGIN__;
 
 	if (!seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	total = seq->total;
@@ -1170,7 +1169,7 @@ void itcSeqRemove(Track_Seq_t *seq, int index)
 	__BEGIN__;
 
 	if (!seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	total = seq->total;
@@ -1263,7 +1262,7 @@ void itcStartAppendToSeq(Track_Seq_t *seq, Track_SeqWriter_t * writer)
 	__BEGIN__;
 
 	if (!seq || !writer)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	memset(writer, 0, sizeof(*writer));
@@ -1292,7 +1291,7 @@ int elem_size, Track_MemStorage_t * storage, Track_SeqWriter_t * writer)
 	__BEGIN__;
 
 	if (!storage || !writer)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	//CV_CALL(seq = cvCreateSeq(seq_flags, header_size, elem_size, storage));
@@ -1312,7 +1311,7 @@ void itcFlushSeqWriter(Track_SeqWriter_t * writer)
 	__BEGIN__;
 
 	if (!writer)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	seq = writer->seq;
@@ -1353,7 +1352,7 @@ Track_Seq_t * itcEndWriteSeq(Track_SeqWriter_t * writer)
 	__BEGIN__;
 
 	if (!writer)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	//CV_CALL(cvFlushSeqWriter(writer));
@@ -1393,7 +1392,7 @@ void itcCreateSeqBlock(Track_SeqWriter_t * writer)
 	Track_Seq_t *seq;
 
 	if (!writer || !writer->seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	seq = writer->seq;
@@ -1436,7 +1435,7 @@ void itcStartReadSeq(const Track_Seq_t *seq, Track_SeqReader_t * reader, int rev
 	__BEGIN__;
 
 	if (!seq || !reader)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	reader->header_size = sizeof(Track_SeqReader_t);
@@ -1489,7 +1488,7 @@ void itcChangeSeqBlock(void* _reader, int direction)
 	Track_SeqReader_t* reader = (Track_SeqReader_t*)_reader;
 
 	if (!reader)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 	//CV_ERROR(CV_StsNullPtr, "");
 
 	if (direction > 0)
@@ -1522,7 +1521,7 @@ int itcGetSeqReaderPos(Track_SeqReader_t* reader)
 	__BEGIN__;
 
 	if (!reader || !reader->ptr)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	elem_size = reader->seq->elem_size;
@@ -1562,7 +1561,7 @@ void itcSetSeqReaderPos(Track_SeqReader_t* reader, int index, int is_relative)
 	int elem_size, count, total;
 
 	if (!reader || !reader->seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "");
 
 	total = reader->seq->total;
@@ -1573,7 +1572,7 @@ void itcSetSeqReaderPos(Track_SeqReader_t* reader, int index, int is_relative)
 		if (index < 0)
 		{
 			if (index < -total)
-				ITC_ERROR_(ITC_StsOutOfRange);
+				ITC_ERROR_DETAIL(ITC_StsOutOfRange,"");
 				//CV_ERROR(CV_StsOutOfRange, "");
 			index += total;
 		}
@@ -1581,7 +1580,7 @@ void itcSetSeqReaderPos(Track_SeqReader_t* reader, int index, int is_relative)
 		{
 			index -= total;
 			if (index >= total)
-				ITC_ERROR_(ITC_StsOutOfRange);
+				ITC_ERROR_DETAIL(ITC_StsOutOfRange,"");
 				//CV_ERROR(CV_StsOutOfRange, "");
 		}
 
@@ -1666,10 +1665,10 @@ void itcSeqPushMulti(Track_Seq_t *seq, void *_elements, int count, int front)
 	int elem_size;
 
 	if (!seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "NULL sequence pointer");
 	if (count < 0)
-		ITC_ERROR_(ITC_StsBadSize);
+		ITC_ERROR_DETAIL(ITC_StsBadSize,"");
 		//CV_ERROR(CV_StsBadSize, "number of removed elements is negative");
 
 	elem_size = seq->elem_size;
@@ -1746,10 +1745,10 @@ void itcSeqPopMulti(Track_Seq_t *seq, void *_elements, int count, int front)
 	__BEGIN__;
 
 	if (!seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 		//CV_ERROR(CV_StsNullPtr, "NULL sequence pointer");
 	if (count < 0)
-		ITC_ERROR_(ITC_StsBadSize);
+		ITC_ERROR_DETAIL(ITC_StsBadSize,"");
 		//CV_ERROR(CV_StsBadSize, "number of removed elements is negative");
 
 	count = ITC_MIN(count, seq->total);
@@ -1827,7 +1826,7 @@ void itcClearSeq(Track_Seq_t *seq)
 	__BEGIN__;
 
 	if (!seq)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_DETAIL(ITC_StsNullPtr,"");
 	itcSeqPopMulti(seq, 0, seq->total,0);
 
 	__END__;
