@@ -1,6 +1,8 @@
-#pragma once
+//#pragma once
 #include "itcdatastructs.h"
 
+// pointers to allocation functions, initially set to default
+static void* p_cvAllocUserData = 0;
 
 _inline int  itcAlign(int size, int align)
 {

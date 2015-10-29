@@ -177,8 +177,6 @@ cvAlloc reports an error if a larger block is requested. */
 #define  ITC_MAX_ALLOC_SIZE    (((size_t)1 << (sizeof(size_t)*8-2)))  //ÅÐ¶ÏÊÇ·ñÔ½½ç
 /* the alignment of all the allocated buffers */
 #define  ITC_MALLOC_ALIGN    32
-// pointers to allocation functions, initially set to default
-static void* p_cvAllocUserData = 0;
 /* default storage block size */
 #define  ITC_STORAGE_BLOCK_SIZE   ((1<<16) - 128)
 /* default alignment for dynamic data strucutures, resided in storages. */
