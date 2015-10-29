@@ -861,25 +861,26 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 
 	int threshold = (roi.width*roi.height) >> 3;
 	count_change = count_change >> 1;
-
-	float gradientH = 0, gradientV = 0;
+	sum_gradientH = sum_gradientH << 10;
+	sum_gradientV = sum_gradientV << 10;
+	int gradientH = 0, gradientV = 0;
 	if (count_changeX > 0)
-		gradientH = sum_gradientH / (float)(count_changeX*k_int_enhance);
+		gradientH = sum_gradientH / (count_changeX*k_int_enhance);
 	if (count_changeY)
-		gradientV = sum_gradientV / (float)(count_changeY*k_int_enhance);
-	float angle = (int)(atan2(gradientV, gradientH) * 180 / ITC_PI);
+		gradientV = sum_gradientV / (count_changeY*k_int_enhance);
+	int angle = (int)(atan2(gradientV, gradientH) * ITC_RADIAN_TO_ANGLE);
 	angle = angle < 0 ? angle + 360 : angle;
-	*direct = (int)angle;
+	*direct = angle;
 	if (count_change>threshold)
 	{
-		float gradientV_abs = abs(gradientV);
-		float gradientH_abs = abs(gradientH);
+		int gradientV_abs = abs(gradientV);
+		int gradientH_abs = abs(gradientH);
 		if (gradientV_abs>gradientH_abs)
 		{
-			if (gradientV_abs > 0.5)
+			if (gradientV_abs > 512)
 				return 1;
 		}
-		else if (gradientH_abs > 0.5)
+		else if (gradientH_abs > 512)
 		{
 			return 2;
 		}

@@ -23,6 +23,7 @@ typedef unsigned char uchar;
 typedef unsigned short ushort;
 
 #define ITC_PI   3.1415926535897932384626433832795
+#define ITC_RADIAN_TO_ANGLE   57.29577951308
 #define ITC_LOG2 0.69314718055994530941723212145818
 
 #define ITC_SWAP(a,b,t) ((t) = (a), (a) = (b), (b) = (t))

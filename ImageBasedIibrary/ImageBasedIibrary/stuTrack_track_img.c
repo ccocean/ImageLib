@@ -257,7 +257,7 @@ void stuTrack_analyze_ROI(Itc_Mat_t* mhi)
 			int distance = (stuTrack_bigMOveObj[i].origin_position.x - stuTrack_bigMOveObj[i].current_position.x)*(stuTrack_bigMOveObj[i].origin_position.x - stuTrack_bigMOveObj[i].current_position.x)
 				+ (stuTrack_bigMOveObj[i].origin_position.y - stuTrack_bigMOveObj[i].current_position.y)*(stuTrack_bigMOveObj[i].origin_position.y - stuTrack_bigMOveObj[i].current_position.y);
 			int dis_T = stuTrack_bigMOveObj[i].roi.width*stuTrack_bigMOveObj[i].roi.width>>1;
-			printf("判断移动目标：%d,%d\n", distance, dis_T);
+			//printf("判断移动目标：%d,%d\n", distance, dis_T);
 			if ((distance>dis_T && _time>500) || _time>1400)
 			{
 				printf("发现移动目标：%d,%d\n", stuTrack_bigMOveObj[i].roi.x, stuTrack_bigMOveObj[i].roi.y);
