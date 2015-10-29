@@ -30,13 +30,13 @@ typedef struct StuTrack_Stand_t
 
 typedef struct StuTrack_BigMoveObj_t
 {
+	int count_track;
+	int flag_bigMove;		//标志
+	Track_Rect_t roi;
 	clock_t start_tClock;
 	clock_t current_tClock;
-	int count_track;
-	Track_Rect_t roi;
 	Track_Point_t origin_position;
 	Track_Point_t current_position;
-	int flag__bigMove;		//标志
 }StuTrack_BigMoveObj_t;
 
 

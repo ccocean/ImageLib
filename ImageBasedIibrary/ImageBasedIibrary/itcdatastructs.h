@@ -11,7 +11,7 @@
 #include <ctype.h>
 
 #ifdef _WIN32
-define inline _inline
+#define inline _inline
 #endif
 
 typedef void ItcArr;
