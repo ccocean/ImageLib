@@ -1,23 +1,31 @@
 //#pragma once
 #include "itcdatastructs.h"
 
+static void* itcDefaultAlloc(size_t size, void* argument);
+static int itcDefaultFree(void* ptr, void* argument);
+static void itcInitMemStorage(Track_MemStorage_t* storage, int block_size);
+static void itcDestroyMemStorage(Track_MemStorage_t* storage);
+static void itcGoNextMemBlock(Track_MemStorage_t * storage);
+static void itcGrowSeq(Track_Seq_t *seq, int in_front_of);
+static void itcFreeSeqBlock(Track_Seq_t *seq, int in_front_of);
+
 // pointers to allocation functions, initially set to default
 static void* p_cvAllocUserData = 0;
 
-_inline int  itcAlign(int size, int align)
+inline int  itcAlign(int size, int align)
 {
 	assert((align&(align-1))==0 && size<INT_MAX);
 	return (size + align - 1) & -align;
 }
 
-_inline void* itcAlignPtr( const void* ptr, int align )
+inline void* itcAlignPtr( const void* ptr, int align )
 {
 	//align = 32;
 	assert( (align & (align-1)) == 0 );
 	return (void*)( ((size_t)ptr + align - 1) & ~(size_t)(align-1) );
 }
 
-_inline int
+inline int
 	itcAlignLeft( int size, int align )
 {
 	return size & -align;

@@ -1,10 +1,7 @@
-
-#pragma once
-#ifndef _ITCTYPE_H_
-#define _ITCTYPE_H_
+#ifndef _ITCDATASTRUCTS_H_
+#define _ITCDATASTRUCTS_H_
 
 #include "itcerror.h"
-#include "limits.h"
 #include "itctype.h"
 #include <assert.h>
 #include <string.h>
@@ -13,7 +10,9 @@
 #include <stdio.h>
 #include <ctype.h>
 
-
+#ifdef _WIN32
+define inline _inline
+#endif
 
 typedef void ItcArr;
 
@@ -543,30 +542,30 @@ char* itcGetSeqElem(const Track_Seq_t *seq, int index);
 void itcCreateSeqBlock(Track_SeqWriter_t * writer);
 void itcChangeSeqBlock(void* _reader, int direction);
 
-_inline int  itcAlign(int size, int align);
-_inline void* itcAlignPtr(const void* ptr, int align);
-_inline int itcAlignLeft(int size, int align);
-static void* itcDefaultAlloc(size_t size, void* argument);
-static int itcDefaultFree(void* ptr, void* argument);
+inline int  itcAlign(int size, int align);
+inline void* itcAlignPtr(const void* ptr, int align);
+inline int itcAlignLeft(int size, int align);
+//static void* itcDefaultAlloc(size_t size, void* argument);
+//static int itcDefaultFree(void* ptr, void* argument);
 void*  itcAlloc(size_t size);
 void  itcFree_(void* ptr);
-static void itcInitMemStorage(Track_MemStorage_t* storage, int block_size);
+//static void itcInitMemStorage(Track_MemStorage_t* storage, int block_size);
 Track_MemStorage_t* itcCreateMemStorage(int block_size);
 Track_MemStorage_t* itcCreateChildMemStorage(Track_MemStorage_t * parent);
-static void itcDestroyMemStorage(Track_MemStorage_t* storage);
+//static void itcDestroyMemStorage(Track_MemStorage_t* storage);
 void itcReleaseMemStorage(Track_MemStorage_t** storage);
 void itcClearMemStorage(Track_MemStorage_t * storage);
-static void itcGoNextMemBlock(Track_MemStorage_t * storage);
+//static void itcGoNextMemBlock(Track_MemStorage_t * storage);
 void itcSaveMemStoragePos(const Track_MemStorage_t * storage, Track_MemStoragePos_t * pos);
 void itcRestoreMemStoragePos(Track_MemStorage_t * storage, Track_MemStoragePos_t * pos);
 void* itcMemStorageAlloc(Track_MemStorage_t* storage, size_t size);
 Track_Seq_t *itcCreateSeq(int seq_flags, int header_size, int elem_size, Track_MemStorage_t * storage);
 void itcSetSeqBlockSize(Track_Seq_t *seq, int delta_elements);
 int itcSeqElemIdx(const Track_Seq_t* seq, const void* _element, Track_SeqBlock_t** _block);
-static void itcGrowSeq(Track_Seq_t *seq, int in_front_of);
+//static void itcGrowSeq(Track_Seq_t *seq, int in_front_of);
 char* itcSeqPush(Track_Seq_t *seq, void *element);
 void itcSeqPop(Track_Seq_t *seq, void *element);
-static void itcFreeSeqBlock(Track_Seq_t *seq, int in_front_of);
+//static void itcFreeSeqBlock(Track_Seq_t *seq, int in_front_of);
 char* itcSeqPushFront(Track_Seq_t *seq, void *element);
 void itcSeqPopFront(Track_Seq_t *seq, void *element);
 char* itcSeqInsert(Track_Seq_t *seq, int before_index, void *element);
