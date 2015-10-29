@@ -62,7 +62,7 @@ Itc_Mat_t	itc_mat(int rows, int cols, int type, void* data);											//ÊÖ¶¯·ÖÅ
 Itc_Mat_t*	itc_create_mat( int height, int width, int type );											//´´½¨Mat
 Itc_Mat_t*	itc_create_matHeader( int rows, int cols, int type );										//´´½¨MatÍ·
 Itc_Mat_t*	itc_init_matHeader( Itc_Mat_t* arr, int rows, int cols, int type, void* data, int step );	//ÓĞMatÍ·ºó³õÊ¼»¯
-void	itc_release_mat( Itc_Mat_t** mat );																//ÊÍ·ÅMat,°üÀ¨Í·ºÍÊı¾İ
+void	itc_release_mat( Itc_Mat_t** mat );															//ÊÍ·ÅMat,°üÀ¨Í·ºÍÊı¾İ
 
 
 void track_sub_mat(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* dst);			//dst=src1-src2
