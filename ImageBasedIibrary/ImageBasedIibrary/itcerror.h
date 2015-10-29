@@ -14,8 +14,8 @@
 #ifndef itcerror_h__
 #define itcerror_h__
 
-#define ITC_ERROR_(errors) printf("error:%s\n",errors);
-#define ITC_ERROR_DETAIL(errors,info) printf("code:%s,err:%s",errors,info);
+#define ITC_ERROR_(errors) printf("error:%s\n\r",errors);
+#define ITC_ERROR_DETAIL(errCode,errors) printf("code:%d,err:%s\n\r",errCode,errors);
 
 #define __BEGIN__       {
 #define __END__         goto exit; exit: ; }
@@ -27,6 +27,7 @@
 #define  ITC_StsBadSize    -201 /* the input/output structure size is incorrect  */
 #define  ITC_StsOutOfRange -211  /* some of parameters are out of range */
 #define  ITC_StsNoMem -4	/* insufficient memory */
+#define  ITC_StsBadArg               -5  /* function arg/param is bad       */
 #define  ITC_StsNullPtr  -27 /* null pointer */
 #define  ITC_BADARG_ERR   -49  //ipp comp
 
