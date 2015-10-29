@@ -89,6 +89,8 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct);	//
 
 void track_update_midValueBK(Itc_Mat_t* mat, Itc_Mat_t* matBK);				//用中值法更新背景
 
+int track_copyImage_ROI(Itc_Mat_t* src, Itc_Mat_t* dst, Track_Rect_t roi);
+
 #ifdef  __cplusplus  
 }
 #endif  /* end of __cplusplus */ 

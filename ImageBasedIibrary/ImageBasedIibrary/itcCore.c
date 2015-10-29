@@ -937,3 +937,36 @@ void track_update_midValueBK(Itc_Mat_t* mat, Itc_Mat_t* matBK)
 		qmBK += matBK->step;
 	}
 }
+
+int track_copyImage_ROI(Itc_Mat_t* src, Itc_Mat_t* dst, Track_Rect_t roi)
+{
+	//memset(dst, 0, dst->step*dst->rows);
+	if (!src->data.ptr)
+	{
+		return -1;
+	}
+	int i = 0;
+	int x1 = roi.x;
+	int y1 = roi.y;
+	int y2 = y1 + roi.height;
+
+	int step = roi.width;
+
+	uchar *img = (uchar*)(src->data.ptr + y1*src->step + x1);
+	uchar *img0 = (uchar*)(dst->data.ptr);
+
+	for (i = y1; i < y2; i++)
+	{
+		memcpy(img0, img, step);
+		img += src->step;
+		img0 += step;
+	}
+	if (!dst->data.ptr)
+	{
+		return -1;
+	}
+	else
+	{
+		return 0;
+	}
+}

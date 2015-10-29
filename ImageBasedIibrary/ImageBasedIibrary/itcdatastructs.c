@@ -2,19 +2,20 @@
 #include "itcdatastructs.h"
 
 
-inline int  itcAlign(int size, int align)
+_inline int  itcAlign(int size, int align)
 {
 	assert((align&(align-1))==0 && size<INT_MAX);
 	return (size + align - 1) & -align;
 }
 
-inline void* itcAlignPtr( const void* ptr, int align=32 )
+_inline void* itcAlignPtr( const void* ptr, int align )
 {
+	align = 32;
 	assert( (align & (align-1)) == 0 );
 	return (void*)( ((size_t)ptr + align - 1) & ~(size_t)(align-1) );
 }
 
-inline int
+_inline int
 	itcAlignLeft( int size, int align )
 {
 	return size & -align;
@@ -24,7 +25,7 @@ inline int
 
 // default <malloc>
 static void*
-	itcDefaultAlloc( size_t size, void* )
+	itcDefaultAlloc( size_t size, void*  argument)
 {
 	//多申请的内存是为了维护内存，这是因为在某些架构上，只有被指定的数（如4,16）整除的地址才能访问，否则会crash或出错和程序变慢
 	char *ptr, *ptr0 = (char*)malloc(
@@ -46,7 +47,7 @@ static void*
 
 // default <free>
 static int
-	itcDefaultFree( void* ptr, void* )
+	itcDefaultFree( void* ptr, void* argument)
 {
 	// Pointer must be aligned by CV_MALLOC_ALIGN
 	if( ((size_t)ptr & (ITC_MALLOC_ALIGN-1)) != 0 )		//将指针对齐到之前多分配的(char*)位置以释放内存
@@ -107,7 +108,7 @@ static void itcInitMemStorage( Track_MemStorage_t* storage, int block_size )
 	__BEGIN__;
 
 	if (!storage)
-		ITC_ERROR_(ITC_StsNullPtr);
+		ITC_ERROR_(ITC_StsNullPtr,"");
 
 	if( block_size <= 0 )
 		block_size = ITC_STORAGE_BLOCK_SIZE;//block_size==0分配块大小默认为65408
@@ -613,8 +614,9 @@ char*
 	返回值为对应元素的索引，返回负数则表示无该元素
 */
 int
-	itcSeqElemIdx( const Track_Seq_t* seq, const void* _element, Track_SeqBlock_t** _block = NULL )
+	itcSeqElemIdx( const Track_Seq_t* seq, const void* _element, Track_SeqBlock_t** _block )
 {
+		_block = NULL;
 	const char *element = (const char *)_element;
 	int elem_size;
 	int id = -1;
