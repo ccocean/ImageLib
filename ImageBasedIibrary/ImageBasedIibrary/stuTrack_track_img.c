@@ -93,9 +93,9 @@ int stuTrack_matchingSatnd_ROI(Itc_Mat_t* mhi, Track_Rect_t roi)
 
 			int threshold = (stuTrack_stand[min_ID].roi.width * stuTrack_stand[min_ID].roi.height) >> 3;
 			Track_Rect_t _roi = roi;
-			int intersect_flag = track_intersect_rect(&_roi, &stuTrack_stand[min_ID].roi, -3);
 			if (min_distance < threshold)
 			{
+				track_intersect_rect(&_roi, &stuTrack_stand[min_ID].roi, -3);
 				if ((abs(stuTrack_stand[min_ID].direction - direct) < stuTrack_direct_range))
 				{
 					stuTrack_stand[min_ID].count_up++;
@@ -114,11 +114,11 @@ int stuTrack_matchingSatnd_ROI(Itc_Mat_t* mhi, Track_Rect_t roi)
 				stuTrack_stand[min_ID].current_tClock = clock();
 				return 1;
 			}
-			else if (intersect_flag)
-			{
-				//如果两个roi是相交的,但是距离不符合，说明新的roi包围住了teack_stand的roi,那就忽略这个
-				stuTrack_stand[min_ID].count_up = 0;
-			}
+			//else if (intersect_flag)
+			//{
+			//	//如果两个roi是相交的,但是距离不符合，说明新的roi包围住了teack_stand的roi,那就忽略这个
+			//	stuTrack_stand[min_ID].count_up = 0;
+			//}
 		}
 
 		if (abs(standard_direct - direct) < (stuTrack_direct_range + 5) && count_trackObj_stand < MALLOC_ELEMENT_COUNT)
