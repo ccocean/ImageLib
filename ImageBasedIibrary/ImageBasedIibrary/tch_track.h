@@ -36,6 +36,23 @@ int g_rectCnt;
 
 int *tch_pos;
 
+
+
+//返回结构体
+typedef struct Result
+{
+	int status;
+	int pos;
+}Tch_Result_t;
+
+//阈值结构体
+typedef struct Threshold
+{
+	int stand;
+	int targetArea;
+	int outside;
+}Tch_Threshold_t;
+
 //计时器
 typedef struct TrackTimer
 {
@@ -44,7 +61,7 @@ typedef struct TrackTimer
 	/*double timeLast;
 	double timeNow;*/
 	double deltaTime;
-}Track_Timer_t;
+}Tch_Timer_t;
 
 //预置位块
 typedef struct CamPosition
@@ -53,7 +70,7 @@ typedef struct CamPosition
 	//pixels
 	int left_pixel;
 	int right_pixel;
-}Track_CamPosition_t;
+}Tch_CamPosition_t;
 
 //预置位滑块
 typedef struct CamPositionSlide
@@ -63,7 +80,7 @@ typedef struct CamPositionSlide
 	int left;
 	int right;
 	int width;
-}Track_CamPosSlide_t;
+}Tch_CamPosSlide_t;
 //预置位相应宏参数
 #define TRACK_SLIDE_WIDTH 5
 #define TRACK_NUMOF_POSITION 10
@@ -96,15 +113,24 @@ Track_MemStorage_t *storageBlk;
 
 
 //计时器定义
-Track_Timer_t slideTimer;
+Tch_Timer_t slideTimer;
 
 //预置位滑块定义
-Track_CamPosSlide_t pos_slide;
+Tch_CamPosSlide_t pos_slide;
 
 //初始化预置位块
-Track_CamPosition_t cam_pos[TRACK_NUMOF_POSITION];
+Tch_CamPosition_t cam_pos[TRACK_NUMOF_POSITION];
 
 char* g_videoPath;
+
+typedef struct 	_TeaITRACK_Params
+{
+	Track_Size_t frame;
+	Track_Rect_t tch;
+	Track_Rect_t blk;
+	Tch_Threshold_t threshold;
+
+}TeaITRACK_Params;
 
 //教师跟踪的函数
 
@@ -116,12 +142,6 @@ int tch_track(char *src);
 
 int tch_calculateDirect_TCH(Itc_Mat_t* src, Track_Rect_t roi);
 
-int tch_setArg_blkWin(int x, int y, int width, int height);
-
-int tch_setArg_tchWin(int x, int y, int width, int height);
-
-int tch_setArg_framSize(int width, int height);
-
-int tch_setArg_threshold(int stand, int targetArea, int outside);
+int tch_setArg(TeaITRACK_Params argmt);
 
 #endif

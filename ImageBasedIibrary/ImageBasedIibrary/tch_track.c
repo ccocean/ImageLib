@@ -1,7 +1,5 @@
 #include "tch_track.h"
 
-
-
 int tch_trackInit()
 {
 	/*track_standThreshold = 2;
@@ -65,79 +63,9 @@ int tch_trackInit()
 	return 0;
 }
 
-int tch_setArg_framSize(int width,int height)
-{
-	if (width<=0||height<=0)
-	{
-		return -1;
-	}
-	g_frameSize.width = width;
-	g_frameSize.height = height;
-	return 0;
-}
-
-int tch_setArg_tchWin(int x,int y,int width, int height)
-{
-	if (width<0||height<0)
-	{
-		return -1;
-	}
-	else if (width>g_frameSize.width||height>g_frameSize.height)
-	{
-		return -1;
-	}
-	else if (x<0||x>g_frameSize.width||y<0||y>g_frameSize.height)
-	{
-		return -1;
-	}
-	else
-	{
-		g_tchWin.x = x;
-		g_tchWin.y = y;
-		g_tchWin.width = width;
-		g_tchWin.height = height;
-		return 0;
-	}
-}
-
-int tch_setArg_blkWin(int x, int y, int width, int height)
-{
-	if (width < 0 || height < 0)
-	{
-		return -1;
-	}
-	else if (width > g_frameSize.width || height > g_frameSize.height)
-	{
-		return -1;
-	}
-	else if (x < 0 || x > g_frameSize.width || y < 0 || y > g_frameSize.height)
-	{
-		return -1;
-	}
-	else
-	{
-		g_blkWin.x = x;
-		g_blkWin.y = y;
-		g_blkWin.width = width;
-		g_blkWin.height = height;
-		return 0;
-	}
-}
-
-int tch_setArg_threshold(int stand, int targetArea, int outside)
-{
-	if (stand <= 0 || targetArea <= 0 || outside <= 0)
-	{
-		return -1;
-	}
-	track_standThreshold = stand;
-	track_targetAreaThreshold = targetArea;
-	track_tchOutsideThreshold = outside;
-	return 0;
-}
-
 int tch_track(char *src)
 {
+	//Tch_Result_t res;
 	int i = 0, j = 0;
 	memcpy(srcMat->data.ptr, src, g_frameSize.width*g_frameSize.height);
 	if (g_count>0)
@@ -175,6 +103,9 @@ int tch_track(char *src)
 
 		if (s_contourRectBlk > 0)
 		{
+			/*res.status = RETURN_TRACK_TCH_BLACKBOARD;
+			res.pos = -1;
+			return res;*/
 			return RETURN_TRACK_TCH_BLACKBOARD;
 		}
 
@@ -246,7 +177,7 @@ int tch_track(char *src)
 				direct = tch_calculateDirect_TCH(mhiMatTch, s_rectsTch[i]);
 				if (direct>-1)
 				{
-					center = itcPoint(s_bigRects[i].x + 0.5*s_bigRects[i].width, s_bigRects[i].y + 0.5*s_bigRects[i].height);
+					center = itcPoint(s_bigRects[i].x + (s_bigRects[i].width>>1), s_bigRects[i].y + (s_bigRects[i].height>>1));
 					lastCenter = center;
 					for (j = 0; j < TRACK_NUMOF_POSITION; j++)
 					{
@@ -587,4 +518,64 @@ void tch_trackDestroy()
 	itc_release_mat(&prevMatBlk);
 	itc_release_mat(&mhiMatBlk);
 	itc_release_mat(&maskMatBlk);
+}
+
+int tch_setArg(TeaITRACK_Params argmt)
+{
+	//初始化帧的大小
+	if (argmt.frame.width <= 0 || argmt.frame.height <= 0)
+	{
+		return -1;
+	}
+	g_frameSize.width = argmt.frame.width;
+	g_frameSize.height = argmt.frame.height;
+	//初始化教师框
+	if (argmt.tch.width<0 || argmt.tch.height<0)
+	{
+		return -1;
+	}
+	else if (argmt.tch.width>g_frameSize.width || argmt.tch.height>g_frameSize.height)
+	{
+		return -1;
+	}
+	else if (argmt.tch.x<0 || argmt.tch.x>g_frameSize.width || argmt.tch.y<0 || argmt.tch.y>g_frameSize.height)
+	{
+		return -1;
+	}
+	else
+	{
+		g_tchWin.x = argmt.tch.x;
+		g_tchWin.y = argmt.tch.y;
+		g_tchWin.width = argmt.tch.width;
+		g_tchWin.height = argmt.tch.height;
+	}
+	//初始化板书框体
+	if (argmt.blk.width < 0 || argmt.blk.height < 0)
+	{
+		return -1;
+	}
+	else if (argmt.blk.width > g_frameSize.width || argmt.blk.height > g_frameSize.height)
+	{
+		return -1;
+	}
+	else if (argmt.blk.x < 0 || argmt.blk.x > g_frameSize.width || argmt.blk.y < 0 || argmt.blk.y > g_frameSize.height)
+	{
+		return -1;
+	}
+	else
+	{
+		g_blkWin.x = argmt.blk.x;
+		g_blkWin.y = argmt.blk.y;
+		g_blkWin.width = argmt.blk.width;
+		g_blkWin.height = argmt.blk.height;
+	}
+	//初始化阈值
+	if (argmt.threshold.stand <= 0 || argmt.threshold.targetArea <= 0 || argmt.threshold.outside <= 0)
+	{
+		return -1;
+	}
+	track_standThreshold = argmt.threshold.stand;
+	track_targetAreaThreshold = argmt.threshold.targetArea;
+	track_tchOutsideThreshold = argmt.threshold.outside;
+	return 0;
 }
