@@ -112,7 +112,7 @@ void tch_trackDestroy();
 
 int tch_trackInit();
 
-int tch_track(Itc_Mat_t *src);
+int tch_track(char *src);
 
 int tch_calculateDirect_TCH(Itc_Mat_t* src, Track_Rect_t roi);
 

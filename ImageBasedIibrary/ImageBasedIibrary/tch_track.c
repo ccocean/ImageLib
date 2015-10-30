@@ -7,7 +7,7 @@ int tch_trackInit()
 	/*track_standThreshold = 2;
 	track_targetAreaThreshold = 12000;
 	track_tchOutsideThreshold = 130;*/
-
+	int i=0;
 	if (g_frameSize.width <= 0)
 	{
 		return -1;
@@ -36,7 +36,7 @@ int tch_trackInit()
 	pos_slide.left = -1;
 	pos_slide.right = -1;
 
-	for (int i = 0; i < g_frameSize.width; i += track_pos_width)
+	for (i = 0; i < g_frameSize.width; i += track_pos_width)
 	{
 		cam_pos[i / track_pos_width].index = i / track_pos_width;
 		cam_pos[i / track_pos_width].left_pixel = i;
@@ -136,15 +136,17 @@ int tch_setArg_threshold(int stand, int targetArea, int outside)
 	return 0;
 }
 
-int tch_track(Itc_Mat_t *src)
+int tch_track(char *src)
 {
+	int i = 0, j = 0;
+	memcpy(srcMat->data.ptr, src, g_frameSize.width*g_frameSize.height);
 	if (g_count>0)
 	{
 		ITC_SWAP(currMatTch, prevMatTch, tempMatTch);
 		ITC_SWAP(currMatBlk, prevMatBlk, tempMatBlk);
 	}
-	track_copyImage_ROI(src, currMatTch, g_tchWin);
-	track_copyImage_ROI(src, currMatBlk, g_blkWin);
+	track_copyImage_ROI(srcMat, currMatTch, g_tchWin);
+	track_copyImage_ROI(srcMat, currMatBlk, g_blkWin);
 
 	int s_contourRectTch = 0;//老师的轮廓数目
 	int s_contourRectBlk = 0;//板书的轮廓数目
@@ -177,7 +179,7 @@ int tch_track(Itc_Mat_t *src)
 		}
 
 		//比较多个Rect之间x坐标的距离
-		for (int i = 0; i < s_contourRectTch; i++)
+		for (i = 0; i < s_contourRectTch; i++)
 		{
 			if (track_targetAreaThreshold<s_rectsTch[i].width*s_rectsTch[i].height)
 			{
@@ -216,9 +218,9 @@ int tch_track(Itc_Mat_t *src)
 		else if (g_rectCnt>1)
 		{
 			s_maxdist = -1;
-			for (int i = 0; i < g_rectCnt; i++)
+			for (i = 0; i < g_rectCnt; i++)
 			{
-				for (int j = i + 1; j < g_rectCnt; j++)
+				for (j = i + 1; j < g_rectCnt; j++)
 				{
 					if (abs(s_bigRects[i].x - s_bigRects[j].x)>s_maxdist)
 					{
@@ -237,7 +239,7 @@ int tch_track(Itc_Mat_t *src)
 		}
 		else
 		{
-			for (int i = 0; i < g_rectCnt; i++)
+			for (i = 0; i < g_rectCnt; i++)
 			{
 				g_isMulti = 0;
 				int direct = -1;
@@ -246,7 +248,7 @@ int tch_track(Itc_Mat_t *src)
 				{
 					center = itcPoint(s_bigRects[i].x + 0.5*s_bigRects[i].width, s_bigRects[i].y + 0.5*s_bigRects[i].height);
 					lastCenter = center;
-					for (int j = 0; j < TRACK_NUMOF_POSITION; j++)
+					for (j = 0; j < TRACK_NUMOF_POSITION; j++)
 					{
 						if (cam_pos[j].left_pixel <= center.x&&center.x <= cam_pos[j].right_pixel)
 						{
