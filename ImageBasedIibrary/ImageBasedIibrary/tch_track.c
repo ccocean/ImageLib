@@ -1,5 +1,60 @@
 #include "tch_track.h"
 
+//判定旗帜
+int g_isMulti;
+int g_isOnStage;
+int g_count;
+//预置位
+int track_pos_width;
+
+Track_Point_t center;
+Track_Point_t lastCenter;
+
+Itc_Mat_t *srcMat;
+Itc_Mat_t *tempMatTch;
+Itc_Mat_t *tempMatBlk;
+Itc_Mat_t *prevMatTch;
+Itc_Mat_t *prevMatBlk;
+Itc_Mat_t *currMatTch;
+Itc_Mat_t *mhiMatTch;
+Itc_Mat_t *maskMatTch;
+Itc_Mat_t *currMatBlk;
+Itc_Mat_t *mhiMatBlk;
+Itc_Mat_t *maskMatBlk;
+
+Track_MemStorage_t *storage;
+Track_MemStorage_t *storageTch;
+Track_MemStorage_t *storageBlk;
+
+
+//计时器定义
+Tch_Timer_t slideTimer;
+
+//预置位滑块定义
+Tch_CamPosSlide_t pos_slide;
+
+//初始化预置位块
+Tch_CamPosition_t cam_pos[TRACK_NUMOF_POSITION];
+
+//阈值
+int track_standThreshold;
+int track_targetAreaThreshold;
+int track_tchOutsideThreshold;
+
+Track_Size_t g_frameSize;
+Track_Rect_t g_tchWin;
+Track_Rect_t g_blkWin;
+
+//double g_time = 0;
+int g_posIndex;
+int g_prevPosIndex;
+int g_flag;
+int g_rectCnt;
+
+int *tch_pos;
+
+
+
 int tch_trackInit()
 {
 	/*track_standThreshold = 2;
@@ -23,7 +78,7 @@ int tch_trackInit()
 
 	g_isMulti = 0;
 	g_isOnStage = 0;
-	g_count = 0;
+	
 
 	slideTimer.start = 0;
 	slideTimer.finish = 0;
@@ -59,7 +114,6 @@ int tch_trackInit()
 	storageTch = itcCreateChildMemStorage(storage);
 	storageBlk = itcCreateChildMemStorage(storage);
 
-	g_videoPath =  "video/teacher.mp4";
 	return 0;
 }
 
