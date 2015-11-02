@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define STUTRACK_IMG_HEIGHT 270
+#define STUTRACK_IMG_HEIGHT 264
 #define STUTRACK_IMG_WIDTH	480
 
 #define MALLOC_ELEMENT_COUNT 100
@@ -32,30 +32,13 @@ typedef struct StuTrack_BigMoveObj_t
 {
 	int count_track;
 	int flag_bigMove;		//标志
+	int dis_threshold;		//认为是移动目标的阈值
 	Track_Rect_t roi;
 	clock_t start_tClock;
 	clock_t current_tClock;
 	Track_Point_t origin_position;
 	Track_Point_t current_position;
 }StuTrack_BigMoveObj_t;
-
-
-extern int count_trackObj_stand;
-extern StuTrack_Stand_t *stuTrack_stand;
-
-extern int count_trackObj_bigMove;
-extern StuTrack_BigMoveObj_t *stuTrack_bigMOveObj;
-
-extern int *stuTrack_size_threshold;
-extern int *stuTrack_direct_threshold;
-
-extern Track_MemStorage_t* stuTrack_storage;
-
-extern int count_stuTrack_rect;
-extern Track_Rect_t *stuTrack_rect_arr;
-
-extern Itc_Mat_t *mhiMat;
-extern Itc_Mat_t *maskMat;
 
 int stuTrack_filtrate_contours(Track_Contour_t** pContour);			//轮廓筛选
 

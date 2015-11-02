@@ -501,10 +501,10 @@ int track_intersect_rect(Track_Rect_t *rectA, Track_Rect_t *rectB, int expand_di
 	int x2_B = rectB->x + rectB->width;
 	int y2_B = rectB->y + rectB->height;
 
-	int x_left = ITC_MIN(x1_A, x1_B);
-	int y_top = ITC_MIN(y1_A, y1_B);
-	int x_right = ITC_MAX(x2_A, x2_B);
-	int y_bottom = ITC_MAX(y2_A, y2_B);
+	int x_left = ITC_IMIN(x1_A, x1_B);
+	int y_top = ITC_IMIN(y1_A, y1_B);
+	int x_right = ITC_IMAX(x2_A, x2_B);
+	int y_bottom = ITC_IMAX(y2_A, y2_B);
 	//合并后的大小
 	int width = x_right - x_left;	
 	int height = y_bottom - y_top;
@@ -533,13 +533,13 @@ int track_intersect_rect(Track_Rect_t *rectA, Track_Rect_t *rectB, int expand_di
 		{
 			//对expand_dis进行处理
 			expand_dis = -expand_dis;
-			expand_dis = ITC_MIN(expand_dis, rectA->width >> 1);
-			expand_dis = ITC_MIN(expand_dis, rectA->height >> 1);
-			expand_dis = ITC_MIN(expand_dis, rectB->width >> 1);
-			expand_dis = ITC_MIN(expand_dis, rectB->height >> 1);
+			expand_dis = ITC_IMIN(expand_dis, rectA->width);
+			expand_dis = ITC_IMIN(expand_dis, rectA->height);
+			expand_dis = ITC_IMIN(expand_dis, rectB->width);
+			expand_dis = ITC_IMIN(expand_dis, rectB->height);
 			//求相交部分的大小
-			int width_int = ITC_MIN(x2_A, x2_B) - ITC_MAX(x1_A, x1_B);
-			int height_int = ITC_MIN(y2_A, y2_B) - ITC_MAX(y1_A, y1_B);
+			int width_int = ITC_IMIN(x2_A, x2_B) - ITC_IMAX(x1_A, x1_B);
+			int height_int = ITC_IMIN(y2_A, y2_B) - ITC_IMAX(y1_A, y1_B);
 			//若相交部分小于expand_dis，则返回0
 			if (expand_dis > width_int || expand_dis > height_int)
 				return 0;
@@ -551,36 +551,6 @@ int track_intersect_rect(Track_Rect_t *rectA, Track_Rect_t *rectB, int expand_di
 	rectA->width = width;
 	rectA->height = height;
 	return 1;
-	//int x1_A = rectA->x;
-	//int y1_A = rectA->y;
-	//int x2_A = rectA->x + rectA->width;
-	//int y2_A = rectA->y + rectA->height;
-
-	//int x1_B = rectB->x;
-	//int y1_B = rectB->y;
-	//int x2_B = rectB->x + rectB->width;
-	//int y2_B = rectB->y + rectB->height;
-
-	//int x1_min = ITC_MIN(x1_A, x1_B);
-	//int y1_min = ITC_MIN(y1_A, y1_B);
-	//int x1_max = ITC_MAX(x2_A, x2_B);
-	//int y1_max = ITC_MAX(y2_A, y2_B);
-
-	//int maxWidth = ITC_MAX(rectA->width , rectB->width);
-	//int maxHeight = ITC_MAX(rectA->height, rectB->height);
-	//int sumWidth = ITC_MAX(rectA->width + rectB->width + expand_dis, maxWidth);
-	//int sumHeight = ITC_MAX(rectA->height + rectB->height + expand_dis, maxHeight);
-	//if ((sumWidth>= x1_max - x1_min)
-	//	&& (sumHeight>= y1_max - y1_min))
-	//{
-	//	//合并到rectA
-	//	rectA->x = x1_min;
-	//	rectA->y = y1_min;
-	//	rectA->width = x1_max - x1_min;
-	//	rectA->height = y1_max - y1_min;
-	//	return 1;
-	//}
-	//return 0;
 }
 
 int track_filtrate_contours(Track_Contour_t** pContour, int size_Threshold, Track_Rect_t *rect_arr)
