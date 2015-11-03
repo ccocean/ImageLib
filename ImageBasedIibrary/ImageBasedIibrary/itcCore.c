@@ -533,10 +533,10 @@ int track_intersect_rect(Track_Rect_t *rectA, Track_Rect_t *rectB, int expand_di
 		{
 			//对expand_dis进行处理
 			expand_dis = -expand_dis;
-			expand_dis = ITC_IMIN(expand_dis, rectA->width);
-			expand_dis = ITC_IMIN(expand_dis, rectA->height);
-			expand_dis = ITC_IMIN(expand_dis, rectB->width);
-			expand_dis = ITC_IMIN(expand_dis, rectB->height);
+			expand_dis = ITC_IMIN(expand_dis, rectA->width -( rectA->width>>2));
+			expand_dis = ITC_IMIN(expand_dis, rectA->height - (rectA->height >> 2));
+			expand_dis = ITC_IMIN(expand_dis, rectB->width - (rectB->width >> 2));
+			expand_dis = ITC_IMIN(expand_dis, rectB->height - (rectB->height >> 2));
 			//求相交部分的大小
 			int width_int = ITC_IMIN(x2_A, x2_B) - ITC_IMAX(x1_A, x1_B);
 			int height_int = ITC_IMIN(y2_A, y2_B) - ITC_IMAX(y1_A, y1_B);

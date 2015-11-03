@@ -42,14 +42,15 @@ typedef struct StuTrack_BigMoveObj_t
 
 typedef struct _StuITRACK_InteriorParams
 {
-	int img_size;
-	int count_trackObj_stand;
+	int _count;			//统计帧数
+	int img_size;		//图像大小w*h
+	int count_trackObj_stand;		//起立区域计数
 	StuTrack_Stand_t* stuTrack_stand;
 
-	int count_trackObj_bigMove;
+	int count_trackObj_bigMove;		//移动目标计数
 	StuTrack_BigMoveObj_t* stuTrack_bigMOveObj;
 
-	int count_stuTrack_rect;
+	int count_stuTrack_rect;		//运动区域计数
 	Track_Rect_t *stuTrack_rect_arr;
 
 	Track_MemStorage_t* stuTrack_storage;
@@ -63,15 +64,15 @@ typedef struct _StuITRACK_InteriorParams
 
 int stuTrack_filtrate_contours(StuITRACK_Params *inst, Track_Contour_t** pContour);			//轮廓筛选
 
-int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, Track_Rect_t roi);	//匹配roi
+int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, Track_Rect_t roi);					//匹配roi
 
 void stuTrack_analyze_ROI(StuITRACK_Params *inst );
-int stuTrack_judgeStand_ROI(StuITRACK_Params *inst, StuTrack_Stand_t teack_stand);								//判断是否起立
+int stuTrack_judgeStand_ROI(StuITRACK_Params *inst, StuTrack_Stand_t teack_stand);			//判断是否起立
 
 void stuTrack_proStandDown_ROI(StuITRACK_Params *inst);
 
 void stuTrack_initializeTrack(StuITRACK_Params *inst);
-void stuTrack_main(StuITRACK_Params *inst, char* imageData);
+void stuTrack_process(StuITRACK_Params *inst, char* imageData);
 void stuTrack_stopTrack(StuITRACK_Params *inst);
 
 #ifdef  __cplusplus  

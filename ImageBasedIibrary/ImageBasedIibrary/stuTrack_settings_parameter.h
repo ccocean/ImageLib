@@ -7,9 +7,9 @@ extern "C" {
 
 typedef struct 	_StuITRACK_Params
 {
-	int flag_setting;
-	int height;
-	int width;
+	int flag_setting;	//参数是否被设置
+	int height;			//图像高度
+	int width;			//图像宽度
 	int *stuTrack_size_threshold;				//运动目标大小过滤阈值（根据位置不同阈值不同）
 	int stuTrack_direct_range;					//起立时允许的角度偏离范围
 	int *stuTrack_direct_threshold;				//起立的标准角度
