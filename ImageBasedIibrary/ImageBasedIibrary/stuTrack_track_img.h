@@ -4,6 +4,7 @@
 #include "itcerror.h"
 #include "itcdatastructs.h"
 #include "itcCore.h"
+#include "stuTrack_settings_parameter.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -13,7 +14,6 @@ extern "C" {
 #define STUTRACK_IMG_WIDTH	480
 
 #define MALLOC_ELEMENT_COUNT 100
-
 typedef struct StuTrack_Stand_t
 {
 	int direction;
@@ -40,18 +40,39 @@ typedef struct StuTrack_BigMoveObj_t
 	Track_Point_t current_position;
 }StuTrack_BigMoveObj_t;
 
-int stuTrack_filtrate_contours(Track_Contour_t** pContour);			//ÂÖÀªÉ¸Ñ¡
+typedef struct _StuITRACK_InteriorParams
+{
+	int img_size;
+	int count_trackObj_stand;
+	StuTrack_Stand_t* stuTrack_stand;
 
-int stuTrack_matchingSatnd_ROI(Itc_Mat_t* mhi, Track_Rect_t roi);	//Æ¥Åäroi
+	int count_trackObj_bigMove;
+	StuTrack_BigMoveObj_t* stuTrack_bigMOveObj;
 
-void stuTrack_analyze_ROI(Itc_Mat_t* mhi);
-int stuTrack_judgeStand_ROI(Itc_Mat_t* mhi, StuTrack_Stand_t teack_stand);								//ÅÐ¶ÏÊÇ·ñÆðÁ¢
+	int count_stuTrack_rect;
+	Track_Rect_t *stuTrack_rect_arr;
 
-void stuTrack_proStandDown_ROI(Itc_Mat_t* mhi);
+	Track_MemStorage_t* stuTrack_storage;
 
-void stuTrack_initializeTrack(int height, int width);
-void stuTrack_main(char* imageData);
-void stuTrack_stopTrack();
+	Itc_Mat_t *tempMat;
+	Itc_Mat_t *currMat;
+	Itc_Mat_t *lastMat;
+	Itc_Mat_t *mhiMat;
+	Itc_Mat_t *maskMat;
+}StuITRACK_InteriorParams;
+
+int stuTrack_filtrate_contours(StuITRACK_Params *inst, Track_Contour_t** pContour);			//ÂÖÀªÉ¸Ñ¡
+
+int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, Track_Rect_t roi);	//Æ¥Åäroi
+
+void stuTrack_analyze_ROI(StuITRACK_Params *inst );
+int stuTrack_judgeStand_ROI(StuITRACK_Params *inst, StuTrack_Stand_t teack_stand);								//ÅÐ¶ÏÊÇ·ñÆðÁ¢
+
+void stuTrack_proStandDown_ROI(StuITRACK_Params *inst);
+
+void stuTrack_initializeTrack(StuITRACK_Params *inst);
+void stuTrack_main(StuITRACK_Params *inst, char* imageData);
+void stuTrack_stopTrack(StuITRACK_Params *inst);
 
 #ifdef  __cplusplus  
 }
