@@ -16,6 +16,12 @@
 #ifdef  __cplusplus
 extern "C" {
 #endif
+
+#ifndef FALSE
+#define FALSE 0
+#define TRUE 1
+#endif // !FALSE
+
 typedef signed long long int64;
 typedef unsigned long long uint64;
 
