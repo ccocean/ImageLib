@@ -223,7 +223,9 @@ for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_; _icv_memcpy_i_++)\
 	}                                                                               \
 }
 
-#ifdef  __cplusplus  
+typedef int(*callbackmsg)(const char *format, ...);
+
+#ifdef  __cplusplus
 }
 #endif  /* end of __cplusplus */ 
 

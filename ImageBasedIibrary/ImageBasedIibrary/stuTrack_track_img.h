@@ -14,6 +14,9 @@ extern "C" {
 #define STUTRACK_IMG_WIDTH	480
 
 #define MALLOC_ELEMENT_COUNT 100
+
+#define _PRINTF ((callbackmsg)(inst->callbackmsg_func))
+
 typedef struct StuTrack_Stand_t
 {
 	int direction;
@@ -62,7 +65,7 @@ typedef struct _StuITRACK_InteriorParams
 	Itc_Mat_t *maskMat;
 }StuITRACK_InteriorParams;
 
-int stuTrack_filtrate_contours(StuITRACK_Params *inst, Track_Contour_t** pContour);			//ÂÖÀªÉ¸Ñ¡
+void stuTrack_filtrate_contours(StuITRACK_Params *inst, Track_Contour_t** pContour);			//ÂÖÀªÉ¸Ñ¡
 
 int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, Track_Rect_t roi);					//Æ¥Åäroi
 

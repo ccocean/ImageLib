@@ -18,6 +18,7 @@ typedef struct 	_StuITRACK_Params
 	int stuTrack_sitdownCount_threshold;		//判定为坐下的帧数阈值
 	int sturTrack_moveDelayed_threshold;		//移动目标保持跟踪的延时，超过这个时间无运动，则放弃跟踪(单位：毫秒)
 
+	void* callbackmsg_func;						//用于信息输出的函数指针
 	void* interior_params;						//内部参数的指针
 
 }StuITRACK_Params;
