@@ -193,7 +193,6 @@ cvAlloc reports an error if a larger block is requested. */
 
 #define ITC_FREE_PTR(storage)  \
 	((char*)(storage)->top + (storage)->block_size - (storage)->free_space)
-
 #define ITC_SHIFT_TAB_MAX 32
 static const char itcPower2ShiftTab[] =
 {
