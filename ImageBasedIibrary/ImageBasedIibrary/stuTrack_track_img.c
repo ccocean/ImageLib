@@ -1,13 +1,12 @@
 #include "stuTrack_track_img.h"
 
-void stuTrack_filtrate_contours(StuITRACK_Params *inst, Track_Contour_t** pContour)
+void stuTrack_filtrate_contours(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p,Track_Contour_t** pContour)
 {
 	if (*pContour == NULL)
 		return;
 
 	int count_rect = 0;
-	int *stuTrack_size_threshold = inst->stuTrack_size_threshold;
-	StuITRACK_InteriorParams *interior_params_p = (StuITRACK_InteriorParams *)inst->interior_params;
+	int *stuTrack_size_threshold = interior_params_p->stuTrack_size_threshold;
 
 	Track_Rect_t *stuTrack_rect_arr = interior_params_p->stuTrack_rect_arr;
 	Track_Contour_t	*Contour = *pContour;
@@ -41,15 +40,14 @@ void stuTrack_filtrate_contours(StuITRACK_Params *inst, Track_Contour_t** pConto
 	interior_params_p->count_stuTrack_rect = count_rect;
 }
 
-int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, Track_Rect_t roi)
+int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, Track_Rect_t roi)
 {
 	//
-	int *stuTrack_size_threshold = inst->stuTrack_size_threshold;
-	int stuTrack_direct_range = inst->stuTrack_direct_range;
-	int *stuTrack_direct_threshold = inst->stuTrack_direct_threshold;
-	float stuTrack_move_threshold = inst->stuTrack_move_threshold;
+	int *stuTrack_size_threshold = interior_params_p->stuTrack_size_threshold;
+	int *stuTrack_direct_threshold = interior_params_p->stuTrack_direct_threshold;
 
-	StuITRACK_InteriorParams *interior_params_p = (StuITRACK_InteriorParams *)inst->interior_params;
+	int stuTrack_direct_range = inst->stuTrack_direct_range;
+	float stuTrack_move_threshold = inst->stuTrack_move_threshold;
 
 	int standard_direct = stuTrack_direct_threshold[roi.x + (roi.width >> 1)];
 	int direct = 0;
@@ -157,7 +155,7 @@ int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, Track_Rect_t roi)
 			}
 			if (interior_params_p->count_trackObj_bigMove < MALLOC_ELEMENT_COUNT)
 			{
-				_PRINTF("add bigMove：origin:%d,%d,size:%d,%d\n", x, y, roi.width, roi.height);
+				//_PRINTF("add bigMove：origin:%d,%d,size:%d,%d\n", x, y, roi.width, roi.height);
 				interior_params_p->stuTrack_bigMOveObj[interior_params_p->count_trackObj_bigMove].count_track = 1;
 				interior_params_p->stuTrack_bigMOveObj[interior_params_p->count_trackObj_bigMove].flag_bigMove = 0;
 				interior_params_p->stuTrack_bigMOveObj[interior_params_p->count_trackObj_bigMove].dis_threshold = (int)(ITC_IMIN(roi.width, roi.height) * stuTrack_move_threshold);
@@ -172,15 +170,15 @@ int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, Track_Rect_t roi)
 	return 0;
 }
 
-void stuTrack_analyze_ROI(StuITRACK_Params *inst)
+void stuTrack_analyze_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p)
 {
-	int *stuTrack_size_threshold = inst->stuTrack_size_threshold;
+	int *stuTrack_size_threshold = interior_params_p->stuTrack_size_threshold;
+	int *stuTrack_direct_threshold = interior_params_p->stuTrack_direct_threshold;
+
 	int stuTrack_direct_range = inst->stuTrack_direct_range;
-	int *stuTrack_direct_threshold = inst->stuTrack_direct_threshold;
 	int stuTrack_sitdownCount_threshold = inst->stuTrack_sitdownCount_threshold;
 	int sturTrack_moveDelayed_threshold = inst->sturTrack_moveDelayed_threshold;
 
-	StuITRACK_InteriorParams *interior_params_p = (StuITRACK_InteriorParams *)inst->interior_params;
 	Itc_Mat_t *mhi = (Itc_Mat_t *)interior_params_p->mhiMat;
 
 	int i = 0;
@@ -204,7 +202,7 @@ void stuTrack_analyze_ROI(StuITRACK_Params *inst)
 
 			if (stuTrack_judgeStand_ROI(inst, interior_params_p->stuTrack_stand[i]))	//确定是否站立
 			{
-				//_PRINTF("stand up：%d,%d,%d,%d\n", stuTrack_stand[i].centre.x, stuTrack_stand[i].centre.y, stuTrack_stand[i].roi.width, stuTrack_stand[i].roi.height);
+				_PRINTF("stand up：origin:%d,%d,size:%d,%d\n", interior_params_p->stuTrack_stand[i].centre.x, interior_params_p->stuTrack_stand[i].centre.y, interior_params_p->stuTrack_stand[i].roi.width, interior_params_p->stuTrack_stand[i].roi.height);
 				interior_params_p->stuTrack_stand[i].flag_Stand = 1;
 			}
 		}
@@ -219,7 +217,7 @@ void stuTrack_analyze_ROI(StuITRACK_Params *inst)
 				interior_params_p->stuTrack_stand[i].count_down++;
 				if (interior_params_p->stuTrack_stand[i].count_down>stuTrack_sitdownCount_threshold)
 				{
-					//_PRINTF("sit down：%d,%d\n", stuTrack_stand[i].centre.x, stuTrack_stand[i].centre.y);
+					_PRINTF("sit down：origin:%d,%d,size:%d,%d\n", interior_params_p->stuTrack_stand[i].centre.x, interior_params_p->stuTrack_stand[i].centre.y, interior_params_p->stuTrack_stand[i].roi.width, interior_params_p->stuTrack_stand[i].roi.height);
 					interior_params_p->stuTrack_stand[i].flag_Stand = -1;
 					interior_params_p->stuTrack_stand[i].count_up = 0;
 					continue;
@@ -246,7 +244,7 @@ void stuTrack_analyze_ROI(StuITRACK_Params *inst)
 		clock_t _time = clock() - interior_params_p->stuTrack_bigMOveObj[i].current_tClock;
 		if (_time > sturTrack_moveDelayed_threshold)
 		{
-			_PRINTF("delete bigMove:origin:%d,%d,current:%d,%d\n", interior_params_p->stuTrack_bigMOveObj[i].origin_position.x, interior_params_p->stuTrack_bigMOveObj[i].origin_position.y, interior_params_p->stuTrack_bigMOveObj[i].current_position.x, interior_params_p->stuTrack_bigMOveObj[i].current_position.y);
+			//_PRINTF("delete bigMove:origin:%d,%d,current:%d,%d\n", interior_params_p->stuTrack_bigMOveObj[i].origin_position.x, interior_params_p->stuTrack_bigMOveObj[i].origin_position.y, interior_params_p->stuTrack_bigMOveObj[i].current_position.x, interior_params_p->stuTrack_bigMOveObj[i].current_position.y);
 			interior_params_p->stuTrack_bigMOveObj[i] = interior_params_p->stuTrack_bigMOveObj[--(interior_params_p->count_trackObj_bigMove)];
 			i--;
 			continue;
@@ -270,7 +268,7 @@ void stuTrack_analyze_ROI(StuITRACK_Params *inst)
 				int size_threshold = stuTrack_size_threshold[centre_y] + stuTrack_size_threshold[centre_y];
 				if ((interior_params_p->stuTrack_bigMOveObj[i].roi.width > size_threshold && interior_params_p->stuTrack_bigMOveObj[i].roi.height > size_threshold))
 				{
-					_PRINTF("find big：origin:%d,%d\n", interior_params_p->stuTrack_bigMOveObj[i].origin_position.x, interior_params_p->stuTrack_bigMOveObj[i].origin_position.y);
+					_PRINTF("find big：origin:%d,%d,size:%d,%d\n", interior_params_p->stuTrack_bigMOveObj[i].origin_position.x, interior_params_p->stuTrack_bigMOveObj[i].origin_position.y, interior_params_p->stuTrack_bigMOveObj[i].roi.width, interior_params_p->stuTrack_bigMOveObj[i].roi.height);
 					interior_params_p->stuTrack_bigMOveObj[i].flag_bigMove = 2;
 				}
 			}
@@ -291,29 +289,24 @@ int stuTrack_judgeStand_ROI(StuITRACK_Params *inst, StuTrack_Stand_t track_stand
 	return 0;
 }
 
-void stuTrack_proStandDown_ROI(StuITRACK_Params *inst)
+void stuTrack_proStandDown_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p)
 {
-	StuITRACK_InteriorParams *interior_params_p = (StuITRACK_InteriorParams *)inst->interior_params;
 	int i = 0;
 	for (i = 0; i < interior_params_p->count_stuTrack_rect; i++)
 	{
-		if (stuTrack_matchingSatnd_ROI(inst, interior_params_p->stuTrack_rect_arr[i]))
+		if (stuTrack_matchingSatnd_ROI(inst, interior_params_p, interior_params_p->stuTrack_rect_arr[i]))
 		{
 			interior_params_p->stuTrack_rect_arr[i] = interior_params_p->stuTrack_rect_arr[--(interior_params_p->count_stuTrack_rect)];
 			i--;
 		}
 	}
-	stuTrack_analyze_ROI(inst);			//分析候选roi
+	stuTrack_analyze_ROI(inst, interior_params_p);			//分析候选roi
 }
 
-void stuTrack_initializeTrack(StuITRACK_Params *inst)
+void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p)
 {
-	stuTrack_stopTrack(inst);
+	stuTrack_stopTrack(inst, interior_params_p);
 	//分配内存
-	inst->interior_params = malloc(sizeof(StuITRACK_InteriorParams));//分配全局变量內存
-	memset(inst->interior_params, 0, sizeof(StuITRACK_InteriorParams));
-
-	StuITRACK_InteriorParams *interior_params_p = (StuITRACK_InteriorParams *)inst->interior_params;
 	interior_params_p->currMat = itc_create_mat(inst->height, inst->width, ITC_8UC1);
 	interior_params_p->lastMat = itc_create_mat(inst->height, inst->width, ITC_8UC1);
 	interior_params_p->mhiMat = itc_create_mat(inst->height, inst->width, ITC_8UC1);
@@ -333,35 +326,41 @@ void stuTrack_initializeTrack(StuITRACK_Params *inst)
 	interior_params_p->count_trackObj_bigMove = 0;
 	interior_params_p->count_stuTrack_rect = 0;
 
+	interior_params_p->stuTrack_size_threshold = (int *)malloc(sizeof(int)* inst->height);
+	interior_params_p->stuTrack_direct_threshold = (int *)malloc(sizeof(int)* inst->width);
+	memset(interior_params_p->stuTrack_size_threshold, 0, sizeof(int)* inst->height);
+	memset(interior_params_p->stuTrack_direct_threshold, 0, sizeof(int)* inst->width);
+
 	int i = 0;
 	if (inst->flag_setting == FALSE)
 	{
+		interior_params_p->img_size = STUTRACK_IMG_HEIGHT*STUTRACK_IMG_WIDTH;
 		//默认的参数
 		inst->stuTrack_move_threshold = 1.2;			//判定是移动目标的偏离阈值（比值）
 		inst->stuTrack_standCount_threshold = 5;		//判定为起立的帧数阈值
 		inst->stuTrack_sitdownCount_threshold = 5;		//判定为坐下的帧数阈值
 		inst->sturTrack_moveDelayed_threshold = 1000;
-
-		inst->stuTrack_size_threshold = (int *)malloc(sizeof(int)* inst->height);
+		inst->stuTrack_direct_range = 10;
+		
 		for (i = 0; i < inst->height; i++)
 		{
-			inst->stuTrack_size_threshold[i] = ITC_IMIN(ITC_IMAX(((-6 + (i >> 2))), 21), 78);
+			interior_params_p->stuTrack_size_threshold[i] = ITC_IMIN(ITC_IMAX(((-6 + (i >> 2))), 21), 78);
 		}
-
-		inst->stuTrack_direct_range = 10;
-		inst->stuTrack_direct_threshold = (int *)malloc(sizeof(int)* inst->width);
 		for (i = 0; i < inst->width / 2; i++)
 		{
 			int direct = (inst->width - i * 2) >> 5;
-			inst->stuTrack_direct_threshold[i] = 270 - direct;
-			inst->stuTrack_direct_threshold[479 - i] = 270 + direct;
+			interior_params_p->stuTrack_direct_threshold[i] = 270 - direct;
+			interior_params_p->stuTrack_direct_threshold[479 - i] = 270 + direct;
 		}
+	}
+	else
+	{
+		//
 	}
 }
 
-void stuTrack_process(StuITRACK_Params *inst, char* imageData)
+void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, char* imageData)
 {
-	StuITRACK_InteriorParams *interior_params_p = (StuITRACK_InteriorParams *)inst->interior_params;
 	Track_Contour_t* firstContour = NULL;
 	memcpy(interior_params_p->currMat->data.ptr, imageData, interior_params_p->img_size);
 	if (interior_params_p->_count>1)
@@ -369,8 +368,8 @@ void stuTrack_process(StuITRACK_Params *inst, char* imageData)
 		itcClearMemStorage(interior_params_p->stuTrack_storage);
 		track_update_MHI(interior_params_p->currMat, interior_params_p->lastMat, interior_params_p->mhiMat, 15, interior_params_p->maskMat, 248);
 		track_find_contours(interior_params_p->maskMat, &firstContour, interior_params_p->stuTrack_storage);
-		stuTrack_filtrate_contours(inst, &firstContour);
-		stuTrack_proStandDown_ROI(inst);
+		stuTrack_filtrate_contours(inst, interior_params_p,&firstContour);
+		stuTrack_proStandDown_ROI(inst, interior_params_p);
 	}
 	interior_params_p->tempMat = interior_params_p->currMat;
 	interior_params_p->currMat = interior_params_p->lastMat;
@@ -378,55 +377,46 @@ void stuTrack_process(StuITRACK_Params *inst, char* imageData)
 	interior_params_p->_count++;
 }
 
-void stuTrack_stopTrack(StuITRACK_Params *inst)
+void stuTrack_stopTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p)
 {
-	if (inst->interior_params != NULL)
+	if (interior_params_p->stuTrack_size_threshold != NULL)
 	{
-		StuITRACK_InteriorParams *interior_params_p = (StuITRACK_InteriorParams *)inst->interior_params;
-		if (interior_params_p->stuTrack_stand != NULL)
-		{
-			free(interior_params_p->stuTrack_stand);
-			interior_params_p->stuTrack_stand = NULL;
-		}
-
-		if (interior_params_p->stuTrack_bigMOveObj != NULL)
-		{
-			free(interior_params_p->stuTrack_bigMOveObj);
-			interior_params_p->stuTrack_bigMOveObj = NULL;
-		}
-
-		if (interior_params_p->stuTrack_rect_arr != NULL)
-		{
-			free(interior_params_p->stuTrack_rect_arr);
-			interior_params_p->stuTrack_rect_arr = NULL;
-		}
-		interior_params_p->count_trackObj_stand = 0;
-		interior_params_p->count_trackObj_bigMove = 0;
-		interior_params_p->count_stuTrack_rect = 0;
-
-		itcReleaseMemStorage(&interior_params_p->stuTrack_storage);
-
-		itc_release_mat(&interior_params_p->currMat);
-		itc_release_mat(&interior_params_p->lastMat);
-		itc_release_mat(&interior_params_p->mhiMat);
-		itc_release_mat(&interior_params_p->maskMat);
-
-		if (inst->flag_setting == FALSE)
-		{
-			if (inst->stuTrack_size_threshold != NULL)
-			{
-				free(inst->stuTrack_size_threshold);
-				inst->stuTrack_size_threshold = NULL;
-			}
-
-			if (inst->stuTrack_direct_threshold != NULL)
-			{
-				free(inst->stuTrack_direct_threshold);
-				inst->stuTrack_direct_threshold = NULL;
-			}
-		}
-
-		free(inst->interior_params);
-		inst->interior_params = NULL;
+		free(interior_params_p->stuTrack_size_threshold);
+		interior_params_p->stuTrack_size_threshold = NULL;
 	}
+
+	if (interior_params_p->stuTrack_direct_threshold != NULL)
+	{
+		free(interior_params_p->stuTrack_direct_threshold);
+		interior_params_p->stuTrack_direct_threshold = NULL;
+	}
+
+	if (interior_params_p->stuTrack_stand != NULL)
+	{
+		free(interior_params_p->stuTrack_stand);
+		interior_params_p->stuTrack_stand = NULL;
+	}
+
+	if (interior_params_p->stuTrack_bigMOveObj != NULL)
+	{
+		free(interior_params_p->stuTrack_bigMOveObj);
+		interior_params_p->stuTrack_bigMOveObj = NULL;
+	}
+
+	if (interior_params_p->stuTrack_rect_arr != NULL)
+	{
+		free(interior_params_p->stuTrack_rect_arr);
+		interior_params_p->stuTrack_rect_arr = NULL;
+	}
+	interior_params_p->count_trackObj_stand = 0;
+	interior_params_p->count_trackObj_bigMove = 0;
+	interior_params_p->count_stuTrack_rect = 0;
+
+	itcReleaseMemStorage(&interior_params_p->stuTrack_storage);
+
+	itc_release_mat(&interior_params_p->currMat);
+	itc_release_mat(&interior_params_p->lastMat);
+	itc_release_mat(&interior_params_p->mhiMat);
+	itc_release_mat(&interior_params_p->maskMat);
+
 }

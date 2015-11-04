@@ -124,12 +124,15 @@ Itc_Mat_t*	itc_init_matHeader( Itc_Mat_t* arr, int rows, int cols, int type, voi
 void itc_release_mat(Itc_Mat_t** arr)
 {
 	Itc_Mat_t *mat=*arr;
-	mat->data.ptr = NULL;
-	if( mat->refcount != NULL && --*mat->refcount == 0 )//引用计数为0时才释放数据内存
-		free( mat->refcount );
-	mat->refcount = NULL;
-	free(mat);
-	mat = NULL;
+	if (mat!=NULL)
+	{
+		mat->data.ptr = NULL;
+		if (mat->refcount != NULL && --*mat->refcount == 0)//引用计数为0时才释放数据内存
+			free(mat->refcount);
+		mat->refcount = NULL;
+		free(mat);
+		mat = NULL;
+	}
 }
 
 

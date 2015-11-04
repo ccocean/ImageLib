@@ -15,7 +15,7 @@ extern "C" {
 
 #define MALLOC_ELEMENT_COUNT 100
 
-#define _PRINTF ((callbackmsg)(inst->callbackmsg_func))
+#define _PRINTF ((callbackmsg)(interior_params_p->callbackmsg_func))
 
 typedef struct StuTrack_Stand_t
 {
@@ -58,25 +58,29 @@ typedef struct _StuITRACK_InteriorParams
 
 	Track_MemStorage_t* stuTrack_storage;
 
+	int *stuTrack_size_threshold;				//运动目标大小过滤阈值（根据位置不同阈值不同）
+	int *stuTrack_direct_threshold;				//起立的标准角度,大小为width
 	Itc_Mat_t *tempMat;
 	Itc_Mat_t *currMat;
 	Itc_Mat_t *lastMat;
 	Itc_Mat_t *mhiMat;
 	Itc_Mat_t *maskMat;
+
+	callbackmsg callbackmsg_func;						//用于信息输出的函数指针
 }StuITRACK_InteriorParams;
 
-void stuTrack_filtrate_contours(StuITRACK_Params *inst, Track_Contour_t** pContour);			//轮廓筛选
+void stuTrack_filtrate_contours(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, Track_Contour_t** pContour);		//轮廓筛选
 
-int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, Track_Rect_t roi);					//匹配roi
+int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, Track_Rect_t roi);					//匹配roi
 
-void stuTrack_analyze_ROI(StuITRACK_Params *inst );
+void stuTrack_analyze_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 int stuTrack_judgeStand_ROI(StuITRACK_Params *inst, StuTrack_Stand_t teack_stand);			//判断是否起立
 
-void stuTrack_proStandDown_ROI(StuITRACK_Params *inst);
+void stuTrack_proStandDown_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 
-void stuTrack_initializeTrack(StuITRACK_Params *inst);
-void stuTrack_process(StuITRACK_Params *inst, char* imageData);
-void stuTrack_stopTrack(StuITRACK_Params *inst);
+void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
+void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, char* imageData);
+void stuTrack_stopTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 
 #ifdef  __cplusplus  
 }
