@@ -223,7 +223,91 @@ for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_; _icv_memcpy_i_++)\
 	}                                                                               \
 }
 
-typedef int(*callbackmsg)(const char *format, ...);
+typedef union Track_32suf_t
+{
+	int i;
+	unsigned u;
+	float f;
+}
+Track_32suf_t;
+
+
+
+/*************************************** ItcRect *****************************************/
+
+typedef struct Track_Rect_t
+{
+	int x;
+	int y;
+	int width;
+	int height;
+}Track_Rect_t;
+
+
+
+/*************************************** ItcPoint *****************************************/
+
+typedef struct Track_Point_t
+{
+	int x;
+	int y;
+}Track_Point_t;
+
+typedef struct Track_Point2D32f_t
+{
+	float x;
+	float y;
+}Track_Point2D32f_t;
+
+
+
+
+//_inline  Track_Point_t  itcPointFrom32f(Track_Point2D32f_t point);
+
+
+typedef struct Track_Point3D32f_t
+{
+	float x;
+	float y;
+	float z;
+}Track_Point3D32f_t;
+
+
+//_inline  Track_Point3D32f_t  itcPoint3D32f(double x, double y, double z);
+
+
+typedef struct Track_Point2D64f_t
+{
+	double x;
+	double y;
+}Track_Point2D64f_t;
+
+
+//_inline  Track_Point2D64f_t  itcPoint2D64f(double x, double y);
+
+
+typedef struct Track_Point3D64f_t
+{
+	double x;
+	double y;
+	double z;
+}
+Track_Point3D64f_t;
+
+
+//_inline  Track_Point3D64f_t  itcPoint3D64f(double x, double y, double z);
+
+/******************************** CvSize's & CvBox **************************************/
+
+typedef struct Track_Size_t
+{
+	int width;
+	int height;
+}Track_Size_t;
+
+//_inline Track_Size_t itcSize(int width, int height);
+
+typedef int(*callbackmsg)(const char *format, ...);//用于输出调试信息的函数指针
 
 #ifdef  __cplusplus
 }
