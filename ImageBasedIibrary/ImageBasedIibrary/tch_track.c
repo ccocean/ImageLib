@@ -113,6 +113,7 @@ int tch_trackInit(Tch_Data_t *data)
 	data->storageTch = itcCreateChildMemStorage(data->storage);
 	data->storageBlk = itcCreateChildMemStorage(data->storage);
 
+
 	return 0;
 }
 
@@ -187,12 +188,14 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 						{
 							res->status = RETURN_TRACK_TCH_OUTSIDE;
 							res->pos = -1;
+							data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 							return RETURN_TRACK_TCH_OUTSIDE;
 						}
 						else
 						{
 							res->status = data->tch_lastStatus;
 							res->pos = data->g_prevPosIndex;
+							data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 							return data->tch_lastStatus;//·µ»ØÌØÐ´¾µÍ·ÃüÁî
 						}
 					}
@@ -226,6 +229,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 				data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 				res->status = RETURN_TRACK_TCH_MULITY;
 				res->pos = -1;
+				data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 				return RETURN_TRACK_TCH_MULITY;
 			}
 		}
@@ -262,6 +266,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 										data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 										res->status = RETURN_TRACK_TCH_MULITY;
 										res->pos = data->g_prevPosIndex;
+										data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 										return RETURN_TRACK_TCH_MULITY;
 									}
 									else
@@ -325,6 +330,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 														data->g_isOnStage = 0;
 														data->tch_lastStatus = RETURN_TRACK_TCH_OUTSIDE;
 														res->status = RETURN_TRACK_TCH_OUTSIDE;
+														data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 														return RETURN_TRACK_TCH_OUTSIDE;
 													}
 													else
@@ -332,6 +338,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 														data->g_isOnStage = 1;
 														data->tch_lastStatus = RETURN_TRACK_TCH_MOVEINVIEW;
 														res->status = RETURN_TRACK_TCH_MOVEINVIEW;
+														data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 														return RETURN_TRACK_TCH_MOVEINVIEW;//·µ»ØÈ«¾°¾µÍ·ÃüÁî
 													}
 												}
@@ -339,6 +346,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 												{
 													data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 													res->status = RETURN_TRACK_TCH_MULITY;
+													data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 													return RETURN_TRACK_TCH_MULITY;
 												}
 											}
@@ -346,6 +354,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 											{
 												data->tch_lastStatus = RETURN_TRACK_TCH_MOVEOUTVIEW;
 												res->status = RETURN_TRACK_TCH_MOVEOUTVIEW;
+												data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 												return RETURN_TRACK_TCH_MOVEOUTVIEW;//·µ»ØÈ«¾°¾µÍ·ÃüÁî
 											}
 										}
@@ -374,6 +383,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 														data->g_isOnStage = 0;
 														data->tch_lastStatus = RETURN_TRACK_TCH_OUTSIDE;
 														res->status = RETURN_TRACK_TCH_OUTSIDE;
+														data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 														return RETURN_TRACK_TCH_OUTSIDE;
 													}
 													else
@@ -381,6 +391,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 														data->g_isOnStage = 1;
 														data->tch_lastStatus = RETURN_TRACK_TCH_MOVEINVIEW;
 														res->status = RETURN_TRACK_TCH_MOVEINVIEW;
+														data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 														return RETURN_TRACK_TCH_MOVEINVIEW;//·µ»ØÈ«¾°¾µÍ·ÃüÁî
 														
 													}
@@ -390,6 +401,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 													data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 													res->status = RETURN_TRACK_TCH_MULITY;
 													res->pos = -1;
+													data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 													return RETURN_TRACK_TCH_MULITY;
 												}
 											}
@@ -397,6 +409,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 											{
 												data->tch_lastStatus = RETURN_TRACK_TCH_MOVEOUTVIEW;
 												res->status = RETURN_TRACK_TCH_MOVEOUTVIEW;
+												data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 												return RETURN_TRACK_TCH_MOVEOUTVIEW;//·µ»ØÈ«¾°¾µÍ·ÃüÁî
 											}
 										}
@@ -475,6 +488,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 												data->g_isOnStage = 0;
 												data->tch_lastStatus = RETURN_TRACK_TCH_OUTSIDE;
 												res->status = RETURN_TRACK_TCH_OUTSIDE;
+												data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 												return RETURN_TRACK_TCH_OUTSIDE;
 											}
 											else
@@ -482,6 +496,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 												data->g_isOnStage = 1;
 												data->tch_lastStatus = RETURN_TRACK_TCH_MOVEINVIEW;
 												res->status = RETURN_TRACK_TCH_MOVEINVIEW;
+												data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 												return RETURN_TRACK_TCH_MOVEINVIEW;//·µ»ØÈ«¾°¾µÍ·ÃüÁî
 											}
 										}
@@ -490,6 +505,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 											data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 											res->status = RETURN_TRACK_TCH_MULITY;
 											res->pos = -1;
+											data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 											return RETURN_TRACK_TCH_MULITY;
 										}
 									}
@@ -497,6 +513,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 									{
 										data->tch_lastStatus = RETURN_TRACK_TCH_MOVEOUTVIEW;
 										res->status = RETURN_TRACK_TCH_MOVEOUTVIEW;
+										data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 										return RETURN_TRACK_TCH_MOVEOUTVIEW;//·µ»ØÈ«¾°¾µÍ·ÃüÁî
 									}
 									break;
@@ -510,6 +527,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 		//tch_pos = &g_prevPosIndex;
 		res->status = data->tch_lastStatus;
 		res->pos = data->g_prevPosIndex;
+		data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 		return data->tch_lastStatus;
 	}
 	else
@@ -518,8 +536,10 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 		{
 			return -2;
 		}
+		data->callbackmsg_func("status:%d, position:%d\n\r", 0, 0);
 		return 0;
 	}
+	data->callbackmsg_func("status:%d, position:%d\n\r", 0, 0);
 	return 0;
 }
 

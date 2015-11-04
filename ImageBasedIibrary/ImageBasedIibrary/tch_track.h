@@ -5,6 +5,8 @@
 #include "tch_params.h"
 #include<time.h>
 
+
+
 //定义老师跟踪状态
 #define RETURN_TRACK_TCH_STAND 1
 #define RETURN_TRACK_TCH_MOVEINVIEW 2
@@ -188,6 +190,8 @@ typedef struct Data
 
 }Tch_Data_t;
 
+//#define _PRINTF ((callbackmsg)(data->callbackmsg_func))
+
 int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data);//先调用这个
 
 int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res);//开始跟踪调用这个
@@ -197,7 +201,6 @@ void tch_trackDestroy(Tch_Data_t *data);//一帧结束调用这个
 int tch_trackInit(Tch_Data_t *data);//不用管
 
 int tch_calculateDirect_TCH(Itc_Mat_t* src, Track_Rect_t roi);//不用管
-
 
 
 #endif
