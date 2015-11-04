@@ -162,6 +162,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 			return res;*/
 			res->status = RETURN_TRACK_TCH_BLACKBOARD;
 			res->pos = data->g_prevPosIndex;
+			data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 			return RETURN_TRACK_TCH_BLACKBOARD;
 		}
 
