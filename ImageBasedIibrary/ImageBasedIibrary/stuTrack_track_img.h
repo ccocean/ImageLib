@@ -47,6 +47,7 @@ typedef struct _StuITRACK_InteriorParams
 {
 	int _count;			//统计帧数
 	int img_size;		//图像大小w*h
+
 	int count_trackObj_stand;		//起立区域计数
 	StuTrack_Stand_t* stuTrack_stand;
 
@@ -79,7 +80,7 @@ int stuTrack_judgeStand_ROI(StuITRACK_Params *inst, StuTrack_Stand_t teack_stand
 void stuTrack_proStandDown_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 
 void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
-void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, char* imageData);
+void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData);
 void stuTrack_stopTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 
 #ifdef  __cplusplus  

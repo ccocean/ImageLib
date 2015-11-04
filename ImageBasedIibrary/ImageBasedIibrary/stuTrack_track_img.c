@@ -306,6 +306,11 @@ void stuTrack_proStandDown_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams*
 void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p)
 {
 	stuTrack_stopTrack(inst, interior_params_p);
+	if (inst->height <= 0 || inst->width <= 0)
+	{
+		inst->height = 1;
+		inst->width = 1;
+	}
 	//分配内存
 	interior_params_p->currMat = itc_create_mat(inst->height, inst->width, ITC_8UC1);
 	interior_params_p->lastMat = itc_create_mat(inst->height, inst->width, ITC_8UC1);
@@ -330,6 +335,11 @@ void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* 
 	interior_params_p->stuTrack_direct_threshold = (int *)malloc(sizeof(int)* inst->width);
 	memset(interior_params_p->stuTrack_size_threshold, 0, sizeof(int)* inst->height);
 	memset(interior_params_p->stuTrack_direct_threshold, 0, sizeof(int)* inst->width);
+
+	if (interior_params_p->callbackmsg_func == NULL)
+	{
+		interior_params_p->callbackmsg_func = printf;
+	}
 
 	int i = 0;
 	if (inst->flag_setting == FALSE)
@@ -359,10 +369,20 @@ void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* 
 	}
 }
 
-void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, char* imageData)
+void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData)
 {
+	if (imageData == NULL || return_params == NULL || interior_params_p == NULL || inst == NULL)
+	{	
+		return;
+	}
+
 	Track_Contour_t* firstContour = NULL;
 	memcpy(interior_params_p->currMat->data.ptr, imageData, interior_params_p->img_size);
+
+	//保存先前状态
+	int count_stand_old = interior_params_p->count_trackObj_stand;
+	int count_move_old = interior_params_p->count_trackObj_bigMove;
+
 	if (interior_params_p->_count>1)
 	{
 		itcClearMemStorage(interior_params_p->stuTrack_storage);
@@ -375,6 +395,40 @@ void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior
 	interior_params_p->currMat = interior_params_p->lastMat;
 	interior_params_p->lastMat = interior_params_p->tempMat;
 	interior_params_p->_count++;
+
+	return_params->result_flag = STUTRACK_RETURN_NULL;
+	if (count_move_old != interior_params_p->count_trackObj_bigMove)
+	{
+		if ((interior_params_p->count_trackObj_bigMove) > count_move_old)
+		{
+			return_params->result_flag += STUTRACK_RETURN_MOVE;
+			return_params->move_position.x = interior_params_p->stuTrack_bigMOveObj[interior_params_p->count_trackObj_bigMove - 1].current_position.x;
+			return_params->move_position.y = interior_params_p->stuTrack_bigMOveObj[interior_params_p->count_trackObj_bigMove - 1].current_position.y;
+			return_params->moveObj_size[0] = interior_params_p->stuTrack_bigMOveObj[interior_params_p->count_trackObj_bigMove - 1].roi.width;
+			return_params->moveObj_size[1] = interior_params_p->stuTrack_bigMOveObj[interior_params_p->count_trackObj_bigMove - 1].roi.height;
+		}
+		else
+		{
+			return_params->result_flag += STUTRACK_RETURN_STOPMOVE;
+		}
+	}
+	if (count_stand_old != interior_params_p->count_trackObj_stand)
+	{
+		if ((interior_params_p->count_trackObj_stand) > count_stand_old)
+		{
+			return_params->result_flag += STUTRACK_RETURN_STANDUP;
+			//位置指向最新的站立区域
+			return_params->stand_position.x = interior_params_p->stuTrack_stand[interior_params_p->count_trackObj_stand - 1].centre.x;
+			return_params->stand_position.y = interior_params_p->stuTrack_stand[interior_params_p->count_trackObj_stand - 1].centre.y;
+			return_params->standObj_size[0] = interior_params_p->stuTrack_stand[interior_params_p->count_trackObj_stand - 1].roi.width;
+			return_params->standObj_size[1] = interior_params_p->stuTrack_stand[interior_params_p->count_trackObj_stand - 1].roi.height;
+		}
+		else
+		{
+			return_params->result_flag += STUTRACK_RETURN_SITDOWN;
+		}
+	}
+	return_params->count_Obj = interior_params_p->count_trackObj_stand + interior_params_p->count_trackObj_bigMove;
 }
 
 void stuTrack_stopTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p)

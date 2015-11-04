@@ -27,6 +27,24 @@ typedef struct 	_StuITRACK_Params
 	int sturTrack_moveDelayed_threshold;		//移动目标保持跟踪的延时，超过这个时间无运动，则放弃跟踪(单位：毫秒)
 }StuITRACK_Params;
 
+
+#define STUTRACK_RETURN_NULL		0
+#define	STUTRACK_RETURN_STANDUP		1
+#define	STUTRACK_RETURN_SITDOWN		2
+#define	STUTRACK_RETURN_MOVE		4
+#define STUTRACK_RETURN_STOPMOVE	8
+
+typedef struct _StuITRACK_OutParams
+{
+	int result_flag;
+	int count_trackObj_stand;
+	int count_trackObj_bigMove;
+	TrackPrarms_Point_t stand_position;
+	TrackPrarms_Point_t move_position;
+	int standObj_size[2];
+	int moveObj_size[2];
+}StuITRACK_OutParams_t;
+
 #ifdef  __cplusplus  
 }
 #endif  /* end of __cplusplus */ 
