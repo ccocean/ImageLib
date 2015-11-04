@@ -184,7 +184,7 @@ typedef struct Data
 	Tch_CamPosition_t cam_pos[TRACK_NUMOF_POSITION];
 
 
-	void* callbackmsg_func;
+	callbackmsg callbackmsg_func;
 
 }Tch_Data_t;
 
