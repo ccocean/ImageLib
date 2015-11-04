@@ -5,6 +5,8 @@
 #include "tch_params.h"
 #include<time.h>
 
+
+
 //定义老师跟踪状态
 #define RETURN_TRACK_TCH_STAND 1
 #define RETURN_TRACK_TCH_MOVEINVIEW 2
@@ -13,7 +15,7 @@
 #define RETURN_TRACK_TCH_BLACKBOARD 5
 #define RETURN_TRACK_TCH_MULITY 6
 
-int tch_lastStatus;
+
 
 //站定时间的阈值
 //#define TRACK_STAND_THRESHOLD 2
@@ -135,14 +137,70 @@ typedef struct CamPositionSlide
 
 //教师跟踪的函数
 
-void tch_trackDestroy();
+typedef struct Data
+{
+	//判定旗帜
+	int g_isMulti;
+	int g_isOnStage;
+	int g_count;
 
-int tch_trackInit();
+	int g_posIndex;
+	int g_prevPosIndex;
+	int g_flag;
+	/*int g_rectCnt;*/
+	int tch_lastStatus;
 
-int tch_track(char *src);
+	//预置位
+	int track_pos_width;
 
-int tch_calculateDirect_TCH(Itc_Mat_t* src, Track_Rect_t roi);
+	Track_Point_t center;
+	Track_Point_t lastCenter;
 
-int tch_setArg(TeaITRACK_Params argmt);
+	Track_Size_t g_frameSize;
+	Track_Rect_t g_tchWin;
+	Track_Rect_t g_blkWin;
+
+	Itc_Mat_t *srcMat;
+	Itc_Mat_t *tempMatTch;
+	Itc_Mat_t *tempMatBlk;
+	Itc_Mat_t *prevMatTch;
+	Itc_Mat_t *prevMatBlk;
+	Itc_Mat_t *currMatTch;
+	Itc_Mat_t *mhiMatTch;
+	Itc_Mat_t *maskMatTch;
+	Itc_Mat_t *currMatBlk;
+	Itc_Mat_t *mhiMatBlk;
+	Itc_Mat_t *maskMatBlk;
+
+	Track_MemStorage_t *storage;
+	Track_MemStorage_t *storageTch;
+	Track_MemStorage_t *storageBlk;
+
+	//计时器定义
+	Tch_Timer_t slideTimer;
+
+	//预置位滑块定义
+	Tch_CamPosSlide_t pos_slide;
+
+	//初始化预置位块
+	Tch_CamPosition_t cam_pos[TRACK_NUMOF_POSITION];
+
+
+	callbackmsg callbackmsg_func;
+
+}Tch_Data_t;
+
+//#define _PRINTF ((callbackmsg)(data->callbackmsg_func))
+
+int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data);//先调用这个
+
+int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res);//开始跟踪调用这个
+
+void tch_trackDestroy(Tch_Data_t *data);//一帧结束调用这个
+
+int tch_trackInit(Tch_Data_t *data);//不用管
+
+int tch_calculateDirect_TCH(Itc_Mat_t* src, Track_Rect_t roi);//不用管
+
 
 #endif
