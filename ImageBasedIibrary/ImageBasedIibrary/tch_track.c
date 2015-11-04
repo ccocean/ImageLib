@@ -118,21 +118,6 @@ int tch_trackInit(Tch_Data_t *data)
 
 int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res)
 {
-	int err = 0;
-	err = tch_setParams(params, data);
-	if (err<0)
-	{
-		return err;
-	}
-	else
-	{
-		err = tch_trackInit(data);
-		if (err<0)
-		{
-			return err;
-		}
-	}
-	
 	//Tch_Result_t res;
 	int i = 0, j = 0;
 	memcpy(data->srcMat->data.ptr, src, params->frame.width*params->frame.height);
@@ -615,7 +600,7 @@ void tch_trackDestroy(Tch_Data_t *data)
 	itc_release_mat(&data->maskMatBlk);
 }
 
-int tch_setParams(TeaITRACK_Params *params, Tch_Data_t *data)
+int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data)
 {
 	if (params->isSetParams==0)
 	{
@@ -696,6 +681,9 @@ int tch_setParams(TeaITRACK_Params *params, Tch_Data_t *data)
 	track_targetAreaThreshold = params->threshold.targetArea;
 	track_tchOutsideThreshold = params->threshold.outside;
 	}*/
-	
+	if (tch_trackInit(data)<0)
+	{
+		return -1;
+	}
 	return 0;
 }
