@@ -32,6 +32,7 @@ typedef struct Threshold
 
 typedef struct 	_TeaITRACK_Params
 {
+	int isSetParams;
 	Tch_Size_t frame;
 	Tch_Rect_t tch;
 	Tch_Rect_t blk;
