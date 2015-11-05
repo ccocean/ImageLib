@@ -10,14 +10,6 @@
 **************************************************************************/
 #ifndef itcCore_h__
 #define itcCore_h__
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <time.h>
-#include <ctype.h>
-#include <string.h>
-#include <assert.h>
-
 #include "itctype.h"
 #include "itcerror.h"
 #include "itcdatastructs.h"

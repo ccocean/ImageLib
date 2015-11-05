@@ -3,11 +3,6 @@
 
 #include "itcerror.h"
 #include "itctype.h"
-#include <assert.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
 
 #ifdef _WIN32
 #define inline _inline

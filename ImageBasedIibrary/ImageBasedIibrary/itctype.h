@@ -11,8 +11,6 @@
 #ifndef itctype_h_
 #define itctype_h_
 
-#include <stdio.h>
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -22,6 +20,7 @@ extern "C" {
 #define TRUE 1
 #endif // !FALSE
 
+typedef unsigned int   size_t;
 typedef signed long long int64;
 typedef unsigned long long uint64;
 

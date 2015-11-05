@@ -1,5 +1,5 @@
 #include "itcCore.h"
-
+#include <assert.h>
 
 Itc_Mat_t itc_mat( int rows, int cols, int type, void* data)
 {

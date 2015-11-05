@@ -1,4 +1,5 @@
 #include "stuTrack_track_img.h"
+#include <stdio.h>
 
 void stuTrack_filtrate_contours(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p,Track_Contour_t** pContour)
 {
@@ -428,7 +429,8 @@ void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior
 			return_params->result_flag += STUTRACK_RETURN_SITDOWN;
 		}
 	}
-	return_params->count_Obj = interior_params_p->count_trackObj_stand + interior_params_p->count_trackObj_bigMove;
+	return_params->count_trackObj_stand = interior_params_p->count_trackObj_stand;
+	return_params->count_trackObj_bigMove = interior_params_p->count_trackObj_bigMove;
 }
 
 void stuTrack_stopTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p)

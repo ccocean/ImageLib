@@ -1,6 +1,5 @@
-//#pragma once
 #include "itcdatastructs.h"
-
+#include <assert.h>
 static void* itcDefaultAlloc(size_t size, void* argument);
 static int itcDefaultFree(void* ptr, void* argument);
 static void itcInitMemStorage(Track_MemStorage_t* storage, int block_size);

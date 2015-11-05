@@ -9,8 +9,6 @@
     *  @brief    : 一些错误的处理 
 **************************************************************************/
 
-#include <stdlib.h>
-
 #ifndef itcerror_h__
 #define itcerror_h__
 

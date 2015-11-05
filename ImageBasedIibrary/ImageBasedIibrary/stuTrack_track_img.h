@@ -1,5 +1,6 @@
 #ifndef stuTrack_track_img_h__
 #define stuTrack_track_img_h__
+
 #include "itctype.h"
 #include "itcerror.h"
 #include "itcdatastructs.h"
@@ -17,6 +18,7 @@ extern "C" {
 
 #define _PRINTF ((callbackmsg)(interior_params_p->callbackmsg_func))
 
+#include <time.h>
 typedef struct StuTrack_Stand_t
 {
 	int direction;
@@ -45,16 +47,16 @@ typedef struct StuTrack_BigMoveObj_t
 
 typedef struct _StuITRACK_InteriorParams
 {
-	int _count;			//统计帧数
-	int img_size;		//图像大小w*h
+	size_t _count;			//统计帧数
+	size_t img_size;		//图像大小w*h
 
-	int count_trackObj_stand;		//起立区域计数
+	size_t count_trackObj_stand;		//起立区域计数
 	StuTrack_Stand_t* stuTrack_stand;
 
-	int count_trackObj_bigMove;		//移动目标计数
+	size_t count_trackObj_bigMove;		//移动目标计数
 	StuTrack_BigMoveObj_t* stuTrack_bigMOveObj;
 
-	int count_stuTrack_rect;		//运动区域计数
+	size_t count_stuTrack_rect;		//运动区域计数
 	Track_Rect_t *stuTrack_rect_arr;
 
 	Track_MemStorage_t* stuTrack_storage;
