@@ -1,71 +1,17 @@
 #include "tch_track.h"
 
-//判定旗帜
-//int g_isMulti;
-//int g_isOnStage;
-//int g_count;
-////预置位
-//int track_pos_width;
-//
-//Track_Point_t center;
-//Track_Point_t lastCenter;
-//
-//Itc_Mat_t *srcMat;
-//Itc_Mat_t *tempMatTch;
-//Itc_Mat_t *tempMatBlk;
-//Itc_Mat_t *prevMatTch;
-//Itc_Mat_t *prevMatBlk;
-//Itc_Mat_t *currMatTch;
-//Itc_Mat_t *mhiMatTch;
-//Itc_Mat_t *maskMatTch;
-//Itc_Mat_t *currMatBlk;
-//Itc_Mat_t *mhiMatBlk;
-//Itc_Mat_t *maskMatBlk;
-//
-//Track_MemStorage_t *storage;
-//Track_MemStorage_t *storageTch;
-//Track_MemStorage_t *storageBlk;
-
-
-//计时器定义
-//Tch_Timer_t slideTimer;
-
-//预置位滑块定义
-//Tch_CamPosSlide_t pos_slide;
-
-//初始化预置位块
-//Tch_CamPosition_t cam_pos[TRACK_NUMOF_POSITION];
-//
-////阈值
-//int track_standThreshold;
-//int track_targetAreaThreshold;
-//int track_tchOutsideThreshold;
-//
-//Track_Size_t g_frameSize;
-//Track_Rect_t g_tchWin;
-//Track_Rect_t g_blkWin;
-
-//double g_time = 0;
-//int g_posIndex;
-//int g_prevPosIndex;
-//int g_flag;
-//int g_rectCnt;
-//int tch_lastStatus;
-//int *tch_pos;
-
-
-
 int tch_trackInit(Tch_Data_t *data)
 {
-	/*track_standThreshold = 2;
-	track_targetAreaThreshold = 12000;
-	track_tchOutsideThreshold = 130;*/
+	if (!data)
+	{
+		return -1;
+	}
 	int i=0;
 	/*if (g_frameSize.width <= 0)
 	{
 		return -1;
 	}*/
-	data->track_pos_width = data->g_frameSize.width / TRACK_NUMOF_POSITION;
+	data->track_pos_width = data->g_frameSize.width / data->numOfPos;
 
 	data->tch_lastStatus = 0;
 
@@ -77,23 +23,34 @@ int tch_trackInit(Tch_Data_t *data)
 
 	data->g_isMulti = 0;
 	data->g_isOnStage = 0;
+	data->g_count = 0;
 	
 
 	data->slideTimer.start = 0;
 	data->slideTimer.finish = 0;
 	data->slideTimer.deltaTime = 0;
 
-	data->pos_slide.width = (TRACK_SLIDE_WIDTH - 1) / 2;
+	data->pos_slide.width = (data->numOfSlide - 1) / 2;
 	data->pos_slide.center = -1;
 	data->pos_slide.left = -1;
 	data->pos_slide.right = -1;
 
+	data->cam_pos = calloc(data->numOfPos, sizeof(Tch_CamPosition_t));
+	Tch_CamPosition_t *ptr = data->cam_pos;
+
 	for (i = 0; i < data->g_frameSize.width; i += data->track_pos_width)
 	{
-		data->cam_pos[i / data->track_pos_width].index = i / data->track_pos_width;
-		data->cam_pos[i / data->track_pos_width].left_pixel = i;
-		data->cam_pos[i / data->track_pos_width].right_pixel = i + data->track_pos_width;
+		ptr->index = i / data->track_pos_width;
+		ptr->left_pixel = i;
+		ptr->right_pixel = i + data->track_pos_width;
+		//printf("index:%d, left:%d, right:%d\r\n", ptr->index, ptr->left_pixel, ptr->right_pixel);
+		ptr++;
+		/*data->tempCams[i / data->track_pos_width].index = i / data->track_pos_width;
+		data->tempCams[i / data->track_pos_width].left_pixel = i;
+		data->tempCams[i / data->track_pos_width].right_pixel = i + data->track_pos_width;*/
 	}
+	
+	ptr = NULL;
 
 	data->srcMat = itc_create_mat(data->g_frameSize.height, data->g_frameSize.width, ITC_8UC1);
 
@@ -113,13 +70,24 @@ int tch_trackInit(Tch_Data_t *data)
 	data->storageTch = itcCreateChildMemStorage(data->storage);
 	data->storageBlk = itcCreateChildMemStorage(data->storage);
 
+	data->callbackmsg_func = printf;
 
 	return 0;
 }
 
 int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res)
+//int tch_track(Itc_Mat_t *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res)
 {
-	//Tch_Result_t res;
+	if (!src || !params || !data || !res)
+	{
+		return -2;
+	}
+	if (data->srcMat->data.ptr == NULL)
+	{
+		return -2;
+	}
+	res->pos = -1;
+	res->status = -1;
 	int i = 0, j = 0;
 	memcpy(data->srcMat->data.ptr, src, params->frame.width*params->frame.height);
 	if (data->g_count>0)
@@ -129,6 +97,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 	}
 	track_copyImage_ROI(data->srcMat, data->currMatTch, data->g_tchWin);
 	track_copyImage_ROI(data->srcMat, data->currMatBlk, data->g_blkWin);
+	/*track_copyImage_ROI(src, data->currMatTch, data->g_tchWin);
+	track_copyImage_ROI(src, data->currMatBlk, data->g_blkWin);*/
 
 	int s_contourRectTch = 0;//老师的轮廓数目
 	int s_contourRectBlk = 0;//板书的轮廓数目
@@ -141,7 +111,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 
 	if (data->g_count>0)
 	{
-		
+		data->g_count++;
 		//g_time = (double)cvGetTickCount();
 		track_update_MHI(data->currMatTch, data->prevMatTch, data->mhiMatTch, 10, data->maskMatTch, 235);
 		Track_Contour_t *contoursTch = NULL;
@@ -162,9 +132,14 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 			return res;*/
 			res->status = RETURN_TRACK_TCH_BLACKBOARD;
 			res->pos = data->g_prevPosIndex;
-			data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+			//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 			return RETURN_TRACK_TCH_BLACKBOARD;
 		}
+
+		/*if (data->g_count==378)
+		{
+			printf("err");
+		}*/
 
 		//比较多个Rect之间x坐标的距离
 		for (i = 0; i < s_contourRectTch; i++)
@@ -189,14 +164,14 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 						{
 							res->status = RETURN_TRACK_TCH_OUTSIDE;
 							res->pos = -1;
-							data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+							//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 							return RETURN_TRACK_TCH_OUTSIDE;
 						}
 						else
 						{
 							res->status = data->tch_lastStatus;
 							res->pos = data->g_prevPosIndex;
-							data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+							//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 							return data->tch_lastStatus;//返回特写镜头命令
 						}
 					}
@@ -230,12 +205,13 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 				data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 				res->status = RETURN_TRACK_TCH_MULITY;
 				res->pos = -1;
-				data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+				//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 				return RETURN_TRACK_TCH_MULITY;
 			}
 		}
 		else
 		{
+			
 			for (i = 0; i < s_rectCnt; i++)
 			{
 				data->g_isMulti = 0;
@@ -245,18 +221,24 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 				{
 					data->center = itcPoint(s_bigRects[i].x + (s_bigRects[i].width >> 1), s_bigRects[i].y + (s_bigRects[i].height >> 1));
 					data->lastCenter = data->center;
+					Tch_CamPosition_t *ptr;
+					ptr = data->cam_pos;
 					for (j = 0; j < TRACK_NUMOF_POSITION; j++)
 					{
-						if (data->cam_pos[j].left_pixel <= data->center.x&&data->center.x <= data->cam_pos[j].right_pixel)
+						//if (data->tempCams[j].left_pixel <= data->center.x&&data->center.x <= data->tempCams[j].right_pixel)
+						if (ptr->left_pixel<=data->center.x&&data->center.x<=ptr->right_pixel)
 						{
+							
 							if (!data->g_prevPosIndex)
 							{
-								data->g_prevPosIndex = data->cam_pos[j].index;
+								data->g_prevPosIndex = data->tempCams[j].index;
+								data->g_prevPosIndex = ptr->index;
 							}
 							else
 							{
 								//判断获得的位置和上次位置之间的距离，如果过大的话认为是多目标
-								data->g_posIndex = data->cam_pos[j].index;
+								data->g_posIndex = data->tempCams[j].index;
+								data->g_posIndex = ptr->index;
 								if (abs(data->g_prevPosIndex - data->g_posIndex)>data->pos_slide.width + 1)
 								{
 									if (data->g_isOnStage == 1)
@@ -267,7 +249,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 										data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 										res->status = RETURN_TRACK_TCH_MULITY;
 										res->pos = data->g_prevPosIndex;
-										data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+										//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+										ptr = NULL;
 										return RETURN_TRACK_TCH_MULITY;
 									}
 									else
@@ -331,7 +314,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 														data->g_isOnStage = 0;
 														data->tch_lastStatus = RETURN_TRACK_TCH_OUTSIDE;
 														res->status = RETURN_TRACK_TCH_OUTSIDE;
-														data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+														//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+														ptr = NULL;
 														return RETURN_TRACK_TCH_OUTSIDE;
 													}
 													else
@@ -339,7 +323,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 														data->g_isOnStage = 1;
 														data->tch_lastStatus = RETURN_TRACK_TCH_MOVEINVIEW;
 														res->status = RETURN_TRACK_TCH_MOVEINVIEW;
-														data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+														//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+														ptr = NULL;
 														return RETURN_TRACK_TCH_MOVEINVIEW;//返回全景镜头命令
 													}
 												}
@@ -347,7 +332,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 												{
 													data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 													res->status = RETURN_TRACK_TCH_MULITY;
-													data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+													//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+													ptr = NULL;
 													return RETURN_TRACK_TCH_MULITY;
 												}
 											}
@@ -355,7 +341,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 											{
 												data->tch_lastStatus = RETURN_TRACK_TCH_MOVEOUTVIEW;
 												res->status = RETURN_TRACK_TCH_MOVEOUTVIEW;
-												data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+												//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+												ptr = NULL;
 												return RETURN_TRACK_TCH_MOVEOUTVIEW;//返回全景镜头命令
 											}
 										}
@@ -384,7 +371,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 														data->g_isOnStage = 0;
 														data->tch_lastStatus = RETURN_TRACK_TCH_OUTSIDE;
 														res->status = RETURN_TRACK_TCH_OUTSIDE;
-														data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+														//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+														ptr = NULL;
 														return RETURN_TRACK_TCH_OUTSIDE;
 													}
 													else
@@ -392,7 +380,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 														data->g_isOnStage = 1;
 														data->tch_lastStatus = RETURN_TRACK_TCH_MOVEINVIEW;
 														res->status = RETURN_TRACK_TCH_MOVEINVIEW;
-														data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+														//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+														ptr = NULL;
 														return RETURN_TRACK_TCH_MOVEINVIEW;//返回全景镜头命令
 														
 													}
@@ -402,7 +391,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 													data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 													res->status = RETURN_TRACK_TCH_MULITY;
 													res->pos = -1;
-													data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+													//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+													ptr = NULL;
 													return RETURN_TRACK_TCH_MULITY;
 												}
 											}
@@ -410,7 +400,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 											{
 												data->tch_lastStatus = RETURN_TRACK_TCH_MOVEOUTVIEW;
 												res->status = RETURN_TRACK_TCH_MOVEOUTVIEW;
-												data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+												//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+												ptr = NULL;
 												return RETURN_TRACK_TCH_MOVEOUTVIEW;//返回全景镜头命令
 											}
 										}
@@ -489,7 +480,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 												data->g_isOnStage = 0;
 												data->tch_lastStatus = RETURN_TRACK_TCH_OUTSIDE;
 												res->status = RETURN_TRACK_TCH_OUTSIDE;
-												data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+												//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+												ptr = NULL;
 												return RETURN_TRACK_TCH_OUTSIDE;
 											}
 											else
@@ -497,7 +489,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 												data->g_isOnStage = 1;
 												data->tch_lastStatus = RETURN_TRACK_TCH_MOVEINVIEW;
 												res->status = RETURN_TRACK_TCH_MOVEINVIEW;
-												data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+												//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+												ptr = NULL;
 												return RETURN_TRACK_TCH_MOVEINVIEW;//返回全景镜头命令
 											}
 										}
@@ -506,7 +499,8 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 											data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 											res->status = RETURN_TRACK_TCH_MULITY;
 											res->pos = -1;
-											data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+											//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+											ptr = NULL;
 											return RETURN_TRACK_TCH_MULITY;
 										}
 									}
@@ -514,13 +508,15 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 									{
 										data->tch_lastStatus = RETURN_TRACK_TCH_MOVEOUTVIEW;
 										res->status = RETURN_TRACK_TCH_MOVEOUTVIEW;
-										data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+										//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+										ptr = NULL;
 										return RETURN_TRACK_TCH_MOVEOUTVIEW;//返回全景镜头命令
 									}
 									break;
 								}
 							}
 						}
+						ptr++;
 					}
 				}
 			}
@@ -528,7 +524,7 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 		//tch_pos = &g_prevPosIndex;
 		res->status = data->tch_lastStatus;
 		res->pos = data->g_prevPosIndex;
-		data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
+		//data->callbackmsg_func("status:%d, position:%d\n\r", res->status, res->pos);
 		return data->tch_lastStatus;
 	}
 	else
@@ -537,10 +533,11 @@ int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_
 		{
 			return -2;
 		}
-		data->callbackmsg_func("status:%d, position:%d\n\r", 0, 0);
+		//data->callbackmsg_func("status:%d, position:%d\n\r", 0, 0);
+		data->g_count++;
 		return 0;
 	}
-	data->callbackmsg_func("status:%d, position:%d\n\r", 0, 0);
+	//data->callbackmsg_func("status:%d, position:%d\n\r", 0, 0);
 	return 0;
 }
 
@@ -623,26 +620,33 @@ void tch_trackDestroy(Tch_Data_t *data)
 
 int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data)
 {
+	if (!params||!data)
+	{
+		return -1;
+	}
 	if (params->isSetParams==0)
 	{
-		params->frame.width = 640;
-		params->frame.height = 360;
+		params->frame.width = TRACK_DEFAULT_WIDTH;
+		params->frame.height = TRACK_DEFAULT_HEIGHT;
 
-		params->tch.x = 0;
-		params->tch.y = 100;
-		params->tch.width = 640;
-		params->tch.height = 200;
+		params->tch.x = TRACK_DEFAULT_TCH_X;
+		params->tch.y = TRACK_DEFAULT_TCH_Y;
+		params->tch.width = TRACK_DEFAULT_TCH_W;
+		params->tch.height = TRACK_DEFAULT_TCH_H;
 
-		params->blk.x = 0;
-		params->blk.y = 35;
-		params->blk.width = 640;
-		params->blk.height = 50;
+		params->blk.x = TRACK_DEFAULT_BLK_X;
+		params->blk.y = TRACK_DEFAULT_BLK_Y;
+		params->blk.width = TRACK_DEFAULT_BLK_W;
+		params->blk.height = TRACK_DEFAULT_BLK_H;
 
-		params->threshold.stand = 2;
-		params->threshold.outside = 130;
-		params->threshold.targetArea = 12000;
+		params->threshold.stand = TRACK_STAND_THRESHOLD;
+		params->threshold.outside = TRACK_TCHOUTSIDE_THRESHOLD;
+		params->threshold.targetArea = TRACK_TARGETAREA_THRESHOLD;
 
-		return 0;
+		params->numOfPos = TRACK_NUMOF_POSITION;
+		params->numOfSlide = TRACK_SLIDE_WIDTH;
+
+		//return 0;
 	}
 	//初始化帧的大小
 	if (params->frame.width <= 0 || params->frame.height <= 0)
@@ -695,6 +699,15 @@ int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data)
 	if (params->threshold.stand <= 0 || params->threshold.targetArea <= 0 || params->threshold.outside <= 0)
 	{
 		return -1;
+	}
+	if (params->numOfPos<params->numOfSlide||params->numOfPos<=0||params->numOfSlide<=0)
+	{
+		return -1;
+	}
+	else
+	{
+		data->numOfPos = params->numOfPos;
+		data->numOfSlide = params->numOfSlide;
 	}
 	/*else
 	{
