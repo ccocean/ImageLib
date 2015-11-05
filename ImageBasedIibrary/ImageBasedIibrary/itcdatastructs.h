@@ -4,6 +4,10 @@
 #include "itcerror.h"
 #include "itctype.h"
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 #ifdef _WIN32
 #define inline _inline
 #endif
@@ -427,9 +431,6 @@ Track_LinkedRunPoint_t;
 
 typedef Track_Contour_t Track_Point2DSeq_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 /****************************************************************************************/
 /*                                   declaration                                        */
 /****************************************************************************************/

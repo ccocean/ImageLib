@@ -1,5 +1,10 @@
 #include "itcCore.h"
+#include <stdio.h>
 #include <assert.h>
+#include <math.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <string.h>
 
 Itc_Mat_t itc_mat( int rows, int cols, int type, void* data)
 {
@@ -20,6 +25,11 @@ Itc_Mat_t itc_mat( int rows, int cols, int type, void* data)
 Itc_Mat_t*	itc_create_mat( int height, int width, int type )
 {
 	Itc_Mat_t* arr = itc_create_matHeader( height, width, type );
+	if (arr == NULL)
+	{
+		itc_release_mat(&arr);
+		return NULL;
+	}
 	size_t step, total_size;
 	Itc_Mat_t* mat = (Itc_Mat_t*)arr;
 	int64 _total_size;
@@ -36,9 +46,19 @@ Itc_Mat_t*	itc_create_mat( int height, int width, int type )
 
 	_total_size = (int64)step*mat->rows + sizeof(int)+ITC_MALLOC_ALIGN;	//int是用于保存统计计数的，ITC_MALLOC_ALIGN用与内存的对齐
 	total_size = (size_t)_total_size;				//根据系统不同，用size_t类型截取本系统能分配的空间大小
- 	if(_total_size != (int64)total_size)			//如果不相等，说明已经溢出
- 		ITC_ERROR_("Too big buffer is allocated");	//分配的空间超出当前系统的寻址范围
+	if (_total_size != (int64)total_size)			//如果不相等，说明已经溢出
+	{
+		ITC_ERROR_("Too big buffer is allocated");	//分配的空间超出当前系统的寻址范围}
+		itc_release_mat(&arr);
+		return arr;
+	}
+
 	mat->refcount = (int*)malloc( (size_t)total_size );
+	if (mat->refcount == NULL)
+	{
+		itc_release_mat(&arr);
+		return NULL;
+	}
 	memset(mat->refcount, 0, (size_t)total_size);	//初始化为0
 	mat->data.ptr = (uchar*)( mat->refcount + 1);
 	mat->data.ptr = (uchar*)(((size_t)mat->data.ptr + ITC_MALLOC_ALIGN - 1) &~ (size_t)(ITC_MALLOC_ALIGN - 1));//对齐到ITC_MALLOC_ALIGN整数位，比如说地址是110，ITC_MALLOC_ALIGN=16，那么就把地址对齐到112，如果地址是120，那么就对齐到128，
@@ -67,6 +87,10 @@ Itc_Mat_t*	itc_create_matHeader( int rows, int cols, int type )
 		ITC_ERROR_("Invalid matrix type");						//
 
 	Itc_Mat_t* pMat = (Itc_Mat_t*)malloc(sizeof(*pMat));
+	if (pMat == NULL)
+	{
+		return NULL;
+	}
 	memset(pMat, 0, sizeof(*pMat));								//
 
 	pMat->step = min_step;
@@ -250,7 +274,7 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 		{
 			for (j = 0; j < sizeMat.width; j++)
 			{
-				int k = abs(qsrc1[j] - qsrc2[j]);
+				int k = abs((int)(qsrc1[j] - qsrc2[j]));
 				if ( k > diffThreshold )
 				{
 					qmhi[j] = 255;
@@ -284,7 +308,7 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 		{
 			for (j = 1; j < sizeMat.width - 1; j++)
 			{
-				int k = abs(qsrc1[j] - qsrc2[j]);
+				int k = abs((int)(qsrc1[j] - qsrc2[j]));
 				if (k > diffThreshold)
 				{
 					qmask[j] = 1;//生成一个二值化掩码
@@ -423,6 +447,10 @@ int							nbd)
 
 int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemStorage_t*  storage)
 {
+	if (src == NULL || pContour == NULL || storage == NULL)
+	{
+		return 0;
+	}
 	int step = src->step;
 	//char *img0 = (char*)(src->data.ptr);
 	char *img = (char*)(src->data.ptr + step);
@@ -494,6 +522,11 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 
 int track_intersect_rect(Track_Rect_t *rectA, Track_Rect_t *rectB, int expand_dis)
 {
+	if (rectA == NULL || rectB == NULL)
+	{
+		return 0;
+	}
+
 	int x1_A = rectA->x;
 	int y1_A = rectA->y;
 	int x2_A = rectA->x + rectA->width;
@@ -672,6 +705,11 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 	//	}		
 	//}
 	
+	if (mhi == NULL || direct == NULL)
+	{
+		return 0;
+	}
+
 	int sum_gradientV = 0;		//垂直方向梯度
 	int sum_gradientH = 0;		//水平方向
 	int count_change = 0;

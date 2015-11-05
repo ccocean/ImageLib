@@ -20,13 +20,15 @@ extern "C" {
 #define TRUE 1
 #endif // !FALSE
 
-typedef unsigned int   size_t;
+typedef int BOOL;
+typedef unsigned int size_t;
 typedef signed long long int64;
 typedef unsigned long long uint64;
 
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 
+#define ITC_DEGREES	180
 #define ITC_PI   3.1415926535897932384626433832795
 #define ITC_RADIAN_TO_ANGLE   57.29577951308
 #define ITC_LOG2 0.69314718055994530941723212145818

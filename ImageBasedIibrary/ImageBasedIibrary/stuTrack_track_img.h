@@ -14,9 +14,20 @@ extern "C" {
 #define STUTRACK_IMG_HEIGHT 264
 #define STUTRACK_IMG_WIDTH	480
 
-#define MALLOC_ELEMENT_COUNT 100
+#define MALLOC_ELEMENT_COUNT 10
 
-#define _PRINTF ((callbackmsg)(interior_params_p->callbackmsg_func))
+#define _PRINTF											\
+if(interior_params_p->callbackmsg_func==NULL)			\
+{	interior_params_p->callbackmsg_func = printf;}		\
+((callbackmsg)(interior_params_p->callbackmsg_func))
+
+#define ITC_RETURN
+#define JUDEGE_POINTER_NULL(p,r)				\
+if ((p) == NULL)								\
+{												\
+	stuTrack_stopTrack(inst, interior_params_p);\
+	return r;									\
+}
 
 #include <time.h>
 typedef struct StuTrack_Stand_t
@@ -47,16 +58,19 @@ typedef struct StuTrack_BigMoveObj_t
 
 typedef struct _StuITRACK_InteriorParams
 {
-	size_t _count;			//统计帧数
+	BOOL initialize_flag;
+	unsigned int _count;	//统计帧数
 	size_t img_size;		//图像大小w*h
 
-	size_t count_trackObj_stand;		//起立区域计数
+	int result_flag;							//当前帧变化状态
+
+	unsigned int count_trackObj_stand;			//起立区域计数
 	StuTrack_Stand_t* stuTrack_stand;
 
-	size_t count_trackObj_bigMove;		//移动目标计数
+	unsigned int count_trackObj_bigMove;		//移动目标计数
 	StuTrack_BigMoveObj_t* stuTrack_bigMOveObj;
 
-	size_t count_stuTrack_rect;		//运动区域计数
+	unsigned int count_stuTrack_rect;			//运动区域计数
 	Track_Rect_t *stuTrack_rect_arr;
 
 	Track_MemStorage_t* stuTrack_storage;
@@ -71,15 +85,6 @@ typedef struct _StuITRACK_InteriorParams
 
 	callbackmsg callbackmsg_func;						//用于信息输出的函数指针
 }StuITRACK_InteriorParams;
-
-void stuTrack_filtrate_contours(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, Track_Contour_t** pContour);		//轮廓筛选
-
-int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, Track_Rect_t roi);					//匹配roi
-
-void stuTrack_analyze_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
-int stuTrack_judgeStand_ROI(StuITRACK_Params *inst, StuTrack_Stand_t teack_stand);			//判断是否起立
-
-void stuTrack_proStandDown_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 
 void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData);

@@ -1,5 +1,9 @@
 #include "itcdatastructs.h"
+#include <stdio.h>
 #include <assert.h>
+#include <malloc.h>
+#include <string.h>
+
 static void* itcDefaultAlloc(size_t size, void* argument);
 static int itcDefaultFree(void* ptr, void* argument);
 static void itcInitMemStorage(Track_MemStorage_t* storage, int block_size);
