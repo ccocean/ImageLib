@@ -28,10 +28,12 @@ typedef unsigned long long uint64;
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 
-#define ITC_DEGREES	180
-#define ITC_PI   3.1415926535897932384626433832795
-#define ITC_RADIAN_TO_ANGLE   57.29577951308
-#define ITC_LOG2 0.69314718055994530941723212145818
+#define FLT_EPSILON			1.192092896e-07F
+#define DBL_EPSILON			2.2204460492503131e-016
+#define ITC_DEGREES			180
+#define ITC_PI				3.1415926535897932384626433832795
+#define ITC_RADIAN_TO_ANGLE	57.29577951308
+#define ITC_LOG2			0.69314718055994530941723212145818
 
 #define ITC_SWAP(a,b,t) ((t) = (a), (a) = (b), (b) = (t))
 
@@ -201,26 +203,26 @@ static const char itcPower2ShiftTab[] =
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5
 };
 
-#define ITC_MEMCPY_AUTO( dst, src, len )                                             \
+#define ITC_MEMCPY_AUTO( dst, src, len )                                            \
 {                                                                                   \
 	size_t _icv_memcpy_i_, _icv_memcpy_len_ = (len);                                \
 	char* _icv_memcpy_dst_ = (char*)(dst);                                          \
 	const char* _icv_memcpy_src_ = (const char*)(src);                              \
-if ((_icv_memcpy_len_ & (sizeof(int)-1)) == 0)                                 \
-{                                                                               \
-	assert(((size_t)_icv_memcpy_src_&(sizeof(int)-1)) == 0 && \
-	((size_t)_icv_memcpy_dst_&(sizeof(int)-1)) == 0);                  \
-for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_;                 \
-	_icv_memcpy_i_ += sizeof(int))                                           \
-{                                                                           \
-	*(int*)(_icv_memcpy_dst_ + _icv_memcpy_i_) = \
-	*(const int*)(_icv_memcpy_src_ + _icv_memcpy_i_);                         \
-	}                                                                           \
+	if ((_icv_memcpy_len_ & (sizeof(int)-1)) == 0)									\
+	{                                                                               \
+		assert(((size_t)_icv_memcpy_src_&(sizeof(int)-1)) == 0 &&					\
+		((size_t)_icv_memcpy_dst_&(sizeof(int)-1)) == 0);							\
+		for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_;                 \
+			_icv_memcpy_i_ += sizeof(int))                                          \
+		{                                                                           \
+			*(int*)(_icv_memcpy_dst_ + _icv_memcpy_i_) =							\
+			*(const int*)(_icv_memcpy_src_ + _icv_memcpy_i_);                       \
+		}                                                                           \
 	}                                                                               \
 	else                                                                            \
-{                                                                               \
-for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_; _icv_memcpy_i_++)\
-	_icv_memcpy_dst_[_icv_memcpy_i_] = _icv_memcpy_src_[_icv_memcpy_i_];    \
+	{                                                                               \
+		for (_icv_memcpy_i_ = 0; _icv_memcpy_i_ < _icv_memcpy_len_; _icv_memcpy_i_++)\
+			_icv_memcpy_dst_[_icv_memcpy_i_] = _icv_memcpy_src_[_icv_memcpy_i_];    \
 	}                                                                               \
 }
 

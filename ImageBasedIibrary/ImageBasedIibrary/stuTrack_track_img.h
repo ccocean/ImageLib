@@ -11,10 +11,10 @@
 extern "C" {
 #endif
 
-#define STUTRACK_IMG_HEIGHT 264
-#define STUTRACK_IMG_WIDTH	480
+#define HEIGHT_STUTRACK_IMG_ 264
+#define WIDTH_STUTRACK_IMG_	480
 
-#define MALLOC_ELEMENT_COUNT 10
+#define COUNT_STUTRACK_MALLOC_ELEMENT 10
 
 #define _PRINTF											\
 if(interior_params_p->callbackmsg_func==NULL)			\
@@ -22,7 +22,7 @@ if(interior_params_p->callbackmsg_func==NULL)			\
 ((callbackmsg)(interior_params_p->callbackmsg_func))
 
 #define ITC_RETURN
-#define JUDEGE_POINTER_NULL(p,r)				\
+#define JUDEGE_STUREACK_IF_NULL(p,r)			\
 if ((p) == NULL)								\
 {												\
 	stuTrack_stopTrack(inst, interior_params_p);\
@@ -33,9 +33,9 @@ if ((p) == NULL)								\
 typedef struct StuTrack_Stand_t
 {
 	int direction;
-	int count_teack;	//
-	int count_up;		//
-	int count_down;		//
+	unsigned int count_teack;	//
+	unsigned int count_up;		//
+	unsigned int count_down;	//
 	int flag_Stand;		//起立标志
 	int flag_matching;	//匹配标志
 	Track_Point_t centre;
@@ -46,7 +46,7 @@ typedef struct StuTrack_Stand_t
 
 typedef struct StuTrack_BigMoveObj_t
 {
-	int count_track;
+	unsigned int count_track;
 	int flag_bigMove;		//标志
 	int dis_threshold;		//认为是移动目标的阈值
 	Track_Rect_t roi;
@@ -85,6 +85,26 @@ typedef struct _StuITRACK_InteriorParams
 
 	callbackmsg callbackmsg_func;						//用于信息输出的函数指针
 }StuITRACK_InteriorParams;
+
+//默认参数值
+#define THRESHOLD_STUTRACK_MOVE_DEFALUT_PARAMS			1.2
+#define THRESHOLD_STUTRACK_STANDCOUNT_DEFALUT_PARAMS	5
+#define THRESHOLD_STUTRACK_SITDOWNCOUNT_DEFALUT_PARAMS	5
+#define THRESHOLD_STUTRACK_MOVEDELAYED_DEFALUT_PARAMS	500
+#define RANGE_STUTRACK_STANDDIRECT_DEFALUT_PARAMS		9
+
+//用于计算筛选阈值的线性方程参数
+#define A_STUTRACK_SIZE_THRESHOLD_PARAMS	(0.25)
+#define B_STUTRACK_SIZE_THRESHOLD_PARAMS	(-6.0)
+#define A_STUTRACK_DIRECT_THRESHOLD_PARAMS	(0.125)
+#define B_STUTRACK_DIRECT_THRESHOLD_PARAMS	(240.0)
+#define MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS		20
+#define MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS		55
+#define MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS	225
+#define MAXTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS	315
+
+#define COMPUTER_STUTRACK_SIZE_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS));
+#define COMPUTER_STUTRACK_DIRECT_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS));
 
 void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData);
