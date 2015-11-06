@@ -20,21 +20,21 @@
 #define TRACK_SLIDE_WIDTH 5
 #define TRACK_NUMOF_POSITION 10
 
-#define TRACK_DEFAULT_WIDTH 640
-#define TRACK_DEFAULT_HEIGHT 300
+#define TRACK_DEFAULT_WIDTH 480
+#define TRACK_DEFAULT_HEIGHT 264
 #define TRACK_DEFAULT_TCH_X 0
-#define TRACK_DEFAULT_TCH_Y 100
-#define TRACK_DEFAULT_TCH_W 640
-#define TRACK_DEFAULT_TCH_H 200
+#define TRACK_DEFAULT_TCH_Y 75
+#define TRACK_DEFAULT_TCH_W 480
+#define TRACK_DEFAULT_TCH_H 150
 #define TRACK_DEFAULT_BLK_X 0
-#define TRACK_DEFAULT_BLK_Y 35
-#define TRACK_DEFAULT_BLK_W 640
-#define TRACK_DEFAULT_BLK_H 50
+#define TRACK_DEFAULT_BLK_Y 26
+#define TRACK_DEFAULT_BLK_W 480
+#define TRACK_DEFAULT_BLK_H 37
 
 //站定时间的阈值
 #define TRACK_STAND_THRESHOLD 2
-#define TRACK_TARGETAREA_THRESHOLD 12000
-#define TRACK_TCHOUTSIDE_THRESHOLD 130
+#define TRACK_TARGETAREA_THRESHOLD 7200
+#define TRACK_TCHOUTSIDE_THRESHOLD 95
 
 
 //计时器
@@ -116,7 +116,7 @@ typedef struct Data
 	Tch_CamPosSlide_t pos_slide;
 
 	//初始化预置位块
-	Tch_CamPosition_t tempCams[TRACK_NUMOF_POSITION];
+	//Tch_CamPosition_t tempCams[TRACK_NUMOF_POSITION];
 	Tch_CamPosition_t *cam_pos;
 
 
@@ -128,7 +128,7 @@ typedef struct Data
 
 int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data);//先调用这个
 
-int tch_track(char *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res);//开始跟踪调用这个
+int tch_track(uchar *src, uchar* pUV, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res);//开始跟踪调用这个
 
 //int tch_track(Itc_Mat_t *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res);//开始跟踪调用这个
 
