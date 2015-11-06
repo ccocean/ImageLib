@@ -30,6 +30,13 @@ if ((p) == NULL)								\
 	return r;									\
 }
 
+#ifdef STUTRACK_DEBUG_SWICTH
+#define ITC_FUNCNAME(name) _PRINTF(name)
+#endif
+#ifndef STUTRACK_DEBUG_SWICTH
+#define ITC_FUNCNAME(name)
+#endif
+
 #include <time.h>
 typedef struct StuTrack_Stand_t
 {
@@ -95,10 +102,11 @@ typedef struct _StuITRACK_InteriorParams
 #define RANGE_STUTRACK_STANDDIRECT_DEFALUT_PARAMS		9
 
 //用于计算筛选阈值的线性方程参数
-#define A_STUTRACK_SIZE_THRESHOLD_PARAMS	(0.25)
-#define B_STUTRACK_SIZE_THRESHOLD_PARAMS	(-6.0)
-#define A_STUTRACK_DIRECT_THRESHOLD_PARAMS	(0.125)
-#define B_STUTRACK_DIRECT_THRESHOLD_PARAMS	(240.0)
+#define A_STUTRACK_SIZE_THRESHOLD_PARAMS		(0.25)
+#define B_STUTRACK_SIZE_THRESHOLD_PARAMS		(-6.0)
+#define DIRECT_STUTRACK_TRANSMUTABLILITY_RANGE	(40.0)
+#define A_STUTRACK_DIRECT_THRESHOLD_PARAMS		(DIRECT_STUTRACK_TRANSMUTABLILITY_RANGE/WIDTH_STUTRACK_IMG_)
+#define B_STUTRACK_DIRECT_THRESHOLD_PARAMS		(270-DIRECT_STUTRACK_TRANSMUTABLILITY_RANGE/2)
 #define MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS		20
 #define MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS		55
 #define MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS	225
@@ -108,7 +116,7 @@ typedef struct _StuITRACK_InteriorParams
 #define COMPUTER_STUTRACK_DIRECT_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS))
 
 void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
-void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData);
+void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData, char* bufferuv);
 void stuTrack_stopTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 
 #ifdef  __cplusplus  
