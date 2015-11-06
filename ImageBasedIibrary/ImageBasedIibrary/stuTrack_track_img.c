@@ -12,6 +12,7 @@
 #define TRACK_MOVE_STATE		1
 #define TRACK_BIG_STATE			2
 
+#define TRACK_INTERSECT_EXPAND (-3)
 static void stuTrack_filtrate_contours(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p,Track_Contour_t** pContour)
 {
 	//轮廓筛选
@@ -41,7 +42,7 @@ static void stuTrack_filtrate_contours(StuITRACK_Params *inst, StuITRACK_Interio
 	{
 		for (j = i + 1; j < count_rect; j++)
 		{
-			if (track_intersect_rect(stuTrack_rect_arr + i, stuTrack_rect_arr + j, -1))	//判断是否相交，如果相交则直接合并
+			if (track_intersect_rect(stuTrack_rect_arr + i, stuTrack_rect_arr + j, TRACK_INTERSECT_EXPAND))	//判断是否相交，如果相交则直接合并
 			{
 				count_rect--;
 				*(stuTrack_rect_arr + j) = *(stuTrack_rect_arr + count_rect);
@@ -93,7 +94,7 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, StuITRACK_Interior
 			Track_Rect_t _roi = roi;
 			if (min_distance < threshold)
 			{
-				track_intersect_rect(&_roi, &(interior_params_p->stuTrack_stand[min_ID].roi), -1);
+				track_intersect_rect(&_roi, &(interior_params_p->stuTrack_stand[min_ID].roi), TRACK_INTERSECT_EXPAND);
 				//_PRINTF("角度：原角度:%d,当前角度:%d，范围:%d\n", interior_params_p->stuTrack_stand[min_ID].direction, direct, stuTrack_direct_range);
 				if ((abs(interior_params_p->stuTrack_stand[min_ID].direction - direct) <= stuTrack_direct_range))
 				{
@@ -313,7 +314,9 @@ static void stuTrack_analyze_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParam
 			{
 				int centre_y = interior_params_p->stuTrack_bigMOveObj[i].roi.y + interior_params_p->stuTrack_bigMOveObj[i].roi.width;
 				int size_threshold = stuTrack_size_threshold[centre_y] + stuTrack_size_threshold[centre_y];
-				if ((interior_params_p->stuTrack_bigMOveObj[i].roi.width > size_threshold && interior_params_p->stuTrack_bigMOveObj[i].roi.height > size_threshold))
+				int size_threshold2 = size_threshold + stuTrack_size_threshold[centre_y];
+				if ((interior_params_p->stuTrack_bigMOveObj[i].roi.width > size_threshold && interior_params_p->stuTrack_bigMOveObj[i].roi.height > size_threshold)
+					|| interior_params_p->stuTrack_bigMOveObj[i].roi.height > size_threshold2)
 				{
 					//_PRINTF("find big：origin:%d,%d,size:%d,%d\n", interior_params_p->stuTrack_bigMOveObj[i].origin_position.x, interior_params_p->stuTrack_bigMOveObj[i].origin_position.y, interior_params_p->stuTrack_bigMOveObj[i].roi.width, interior_params_p->stuTrack_bigMOveObj[i].roi.height);
 					interior_params_p->stuTrack_bigMOveObj[i].flag_bigMove = TRACK_BIG_STATE;
@@ -339,7 +342,8 @@ static void stuTrack_proStandDown_ROI(StuITRACK_Params *inst, StuITRACK_Interior
 	stuTrack_analyze_ROI(inst, interior_params_p);			//分析候选roi
 }
 
-#define TRACK_DRAWCOLOUR_SETTING 	Trcak_Colour_t move_colour = colour_RGB2YUV(255, 0, 255);	\
+#define TRACK_DRAWCOLOUR_SETTING \
+Trcak_Colour_t move_colour		= colour_RGB2YUV(255,   0, 255);					\
 Trcak_Colour_t big_colour		= colour_RGB2YUV(  0,   0, 255);					\
 Trcak_Colour_t noBogMove_colour = colour_RGB2YUV(155, 155, 255);					\
 Trcak_Colour_t line_colour		= colour_RGB2YUV(  0, 255,   0);					\
