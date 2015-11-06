@@ -507,11 +507,11 @@ void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* 
 	int i = 0;
 	for (i = 0; i < inst->height; i++)
 	{
-		interior_params_p->stuTrack_size_threshold[i] = (int)COMPUTER_STUTRACK_SIZE_THRESHOLD_PARAMS(i, size_threshold_a, size_threshold_b) + 0.5;
+		interior_params_p->stuTrack_size_threshold[i] = (int)(COMPUTER_STUTRACK_SIZE_THRESHOLD_PARAMS(i, size_threshold_a, size_threshold_b) + 0.5);
 	}
 	for (i = 0; i < inst->width; i++)
 	{
-		interior_params_p->stuTrack_direct_threshold[i] = (int)COMPUTER_STUTRACK_DIRECT_THRESHOLD_PARAMS(i, direct_threshold_a, direct_threshold_b) + 0.5;
+		interior_params_p->stuTrack_direct_threshold[i] = (int)(COMPUTER_STUTRACK_DIRECT_THRESHOLD_PARAMS(i, direct_threshold_a, direct_threshold_b) + 0.5);
 	}
 
 	interior_params_p->initialize_flag = TRUE;
