@@ -1,5 +1,6 @@
 #include "itcTrack_draw_img.h"
 #include <math.h>
+#include <stdlib.h>
 
 static void _track_draw_point(uchar *buffer_y, uchar *buffer_u, uchar *buffer_v, Track_Size_t* img_size, int point_x, int point_y, Trcak_Colour_t *yuv_value)
 {
@@ -26,7 +27,7 @@ static void _track_draw_point(uchar *buffer_y, uchar *buffer_u, uchar *buffer_v,
 
 Trcak_Colour_t colour(uchar y, uchar u, uchar v)
 {
-	Trcak_Colour_t yuv = { 0, 0, 0 };
+	Trcak_Colour_t yuv;
 	yuv.val[0] = y;
 	yuv.val[1] = u;
 	yuv.val[2] = v;

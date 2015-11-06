@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <math.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <string.h>
 
 Itc_Mat_t itc_mat( int rows, int cols, int type, void* data)

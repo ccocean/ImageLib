@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <malloc.h>
 #include <string.h>
 
 #define STATE_STUTRACK_NULL_FLAG	0
@@ -96,7 +95,7 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, StuITRACK_Interior
 			if (min_distance < threshold)
 			{
 				track_intersect_rect(&_roi, &(interior_params_p->stuTrack_stand[min_ID].roi), EXPAND_STUTRACK_INTERSECT_RECT);
-				_PRINTF("角度：原角度:%d,当前角度:%d，范围:%d\n", interior_params_p->stuTrack_stand[min_ID].direction, direct, stuTrack_direct_range);
+				//_PRINTF("角度：原角度:%d,当前角度:%d，范围:%d\n", interior_params_p->stuTrack_stand[min_ID].direction, direct, stuTrack_direct_range);
 				if ((abs(interior_params_p->stuTrack_stand[min_ID].direction - direct) <= stuTrack_direct_range))
 				{
 					interior_params_p->stuTrack_stand[min_ID].count_up++;
