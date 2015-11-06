@@ -3,6 +3,7 @@
 
 #include "itcCore.h"
 #include "tch_params.h"
+#include "itcTrack_draw_img.h"
 #include<time.h>
 
 
