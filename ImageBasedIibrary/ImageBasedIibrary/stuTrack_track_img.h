@@ -25,6 +25,7 @@ if(interior_params_p->callbackmsg_func==NULL)			\
 #define JUDEGE_STUREACK_IF_NULL(p,r)			\
 if ((p) == NULL)								\
 {												\
+	_PRINTF("Memory allocation error!\n");		\
 	stuTrack_stopTrack(inst, interior_params_p);\
 	return r;									\
 }
@@ -33,9 +34,9 @@ if ((p) == NULL)								\
 typedef struct StuTrack_Stand_t
 {
 	int direction;
-	unsigned int count_teack;	//
-	unsigned int count_up;		//
-	unsigned int count_down;	//
+	int count_teack;	//
+	int count_up;		//
+	int count_down;	//
 	int flag_Stand;		//起立标志
 	int flag_matching;	//匹配标志
 	Track_Point_t centre;
@@ -46,7 +47,7 @@ typedef struct StuTrack_Stand_t
 
 typedef struct StuTrack_BigMoveObj_t
 {
-	unsigned int count_track;
+	int count_track;
 	int flag_bigMove;		//标志
 	int dis_threshold;		//认为是移动目标的阈值
 	Track_Rect_t roi;
@@ -59,18 +60,18 @@ typedef struct StuTrack_BigMoveObj_t
 typedef struct _StuITRACK_InteriorParams
 {
 	BOOL initialize_flag;
-	unsigned int _count;	//统计帧数
+	int _count;	//统计帧数
 	size_t img_size;		//图像大小w*h
 
 	int result_flag;							//当前帧变化状态
 
-	unsigned int count_trackObj_stand;			//起立区域计数
+	int count_trackObj_stand;			//起立区域计数
 	StuTrack_Stand_t* stuTrack_stand;
 
-	unsigned int count_trackObj_bigMove;		//移动目标计数
+	int count_trackObj_bigMove;		//移动目标计数
 	StuTrack_BigMoveObj_t* stuTrack_bigMOveObj;
 
-	unsigned int count_stuTrack_rect;			//运动区域计数
+	int count_stuTrack_rect;			//运动区域计数
 	Track_Rect_t *stuTrack_rect_arr;
 
 	Track_MemStorage_t* stuTrack_storage;

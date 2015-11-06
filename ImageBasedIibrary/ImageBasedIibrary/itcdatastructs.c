@@ -4,8 +4,8 @@
 #include <malloc.h>
 #include <string.h>
 
-static void* itcDefaultAlloc(size_t size, void* argument);
-static int itcDefaultFree(void* ptr, void* argument);
+static void* itcDefaultAlloc(size_t size);
+static int itcDefaultFree(void* ptr);
 static void itcInitMemStorage(Track_MemStorage_t* storage, int block_size);
 static void itcDestroyMemStorage(Track_MemStorage_t* storage);
 static void itcGoNextMemBlock(Track_MemStorage_t * storage);
@@ -13,7 +13,6 @@ static void itcGrowSeq(Track_Seq_t *seq, int in_front_of);
 static void itcFreeSeqBlock(Track_Seq_t *seq, int in_front_of);
 
 // pointers to allocation functions, initially set to default
-static void* p_cvAllocUserData = 0;
 
 inline int  itcAlign(int size, int align)
 {
@@ -22,7 +21,7 @@ inline int  itcAlign(int size, int align)
 }
 
 inline void* itcAlignPtr( const void* ptr, int align )
-{
+{	
 	//align = 32;
 	assert( (align & (align-1)) == 0 );
 	return (void*)( ((size_t)ptr + align - 1) & ~(size_t)(align-1) );
@@ -38,7 +37,7 @@ inline int
 
 // default <malloc>
 static void*
-	itcDefaultAlloc( size_t size, void*  argument)
+	itcDefaultAlloc( size_t size)
 {
 	//多申请的内存是为了维护内存，这是因为在某些架构上，只有被指定的数（如4,16）整除的地址才能访问，否则会crash或出错和程序变慢
 	char *ptr, *ptr0 = (char*)malloc(
@@ -60,7 +59,7 @@ static void*
 
 // default <free>
 static int
-	itcDefaultFree( void* ptr, void* argument)
+	itcDefaultFree( void* ptr)
 {
 	// Pointer must be aligned by CV_MALLOC_ALIGN
 	if( ((size_t)ptr & (ITC_MALLOC_ALIGN-1)) != 0 )		//将指针对齐到之前多分配的(char*)位置以释放内存
@@ -84,7 +83,7 @@ void*  itcAlloc( size_t size )
 	if ((size_t)size > ITC_MAX_ALLOC_SIZE)
 		ITC_ERROR_DETAIL(ITC_StsOutOfRange, "");
 
-	ptr = itcDefaultAlloc( size, p_cvAllocUserData );
+	ptr = itcDefaultAlloc( size );
 	if( !ptr )
 		ITC_ERROR_DETAIL(ITC_StsNoMem,"");
 
@@ -101,7 +100,7 @@ void  itcFree_( void* ptr )
 
 	if( ptr )
 	{
-		int status = itcDefaultFree( ptr, p_cvAllocUserData );
+		int status = itcDefaultFree( ptr);
 		if (status < 0)
 			printf("Deallocation error\n");
 	}

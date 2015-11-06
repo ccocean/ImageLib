@@ -26,7 +26,10 @@ static void _track_draw_point(uchar *buffer_y, uchar *buffer_u, uchar *buffer_v,
 
 Trcak_Colour_t colour(uchar y, uchar u, uchar v)
 {
-	Trcak_Colour_t yuv = { y, u, v };
+	Trcak_Colour_t yuv = { 0, 0, 0 };
+	yuv.val[0] = y;
+	yuv.val[1] = u;
+	yuv.val[2] = v;
 	return yuv;
 }
 
