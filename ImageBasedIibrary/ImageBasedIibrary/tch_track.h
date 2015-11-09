@@ -66,6 +66,12 @@ typedef struct CamPositionSlide
 	int width;
 }Tch_CamPosSlide_t;
 
+typedef struct FromSystem
+{
+	int width;
+	int height;
+	callbackmsg callbackmsg_func;
+}Tch_SysData_t;
 
 
 typedef struct Data
@@ -119,8 +125,8 @@ typedef struct Data
 	//Tch_CamPosition_t tempCams[TRACK_NUMOF_POSITION];
 	Tch_CamPosition_t *cam_pos;
 
-
-	callbackmsg callbackmsg_func;
+	Tch_SysData_t *sysData;
+	
 
 }Tch_Data_t;
 
