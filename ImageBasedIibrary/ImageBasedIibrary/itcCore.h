@@ -79,10 +79,11 @@ int track_intersect_rect(Track_Rect_t *rectA, Track_Rect_t *rectB, int expand_di
 
 int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct);	//返回roi区域内的目标整体运动方向，
 
-void track_update_midValueBK(Itc_Mat_t* mat, Itc_Mat_t* matBK);				//用中值法更新背景
+void track_update_midValueBK(Itc_Mat_t* mat, Itc_Mat_t* matBK);					//用中值法更新背景
 
 int track_copyImage_ROI(Itc_Mat_t* src, Itc_Mat_t* dst, Track_Rect_t roi);
 
+BOOL  track_resize_matData(char* srcData, Track_Size_t* ssize, char* dstData, Track_Size_t* dsize);
 #ifdef  __cplusplus  
 }
 #endif  /* end of __cplusplus */ 

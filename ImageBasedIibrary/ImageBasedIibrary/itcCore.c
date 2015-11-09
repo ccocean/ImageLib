@@ -1045,3 +1045,46 @@ int track_copyImage_ROI(Itc_Mat_t* src, Itc_Mat_t* dst, Track_Rect_t roi)
 		return 0;
 	}
 }
+
+BOOL track_resize_matData(char* srcData, Track_Size_t *ssize, char* dstData, Track_Size_t *dsize)
+{
+	if (srcData == NULL || ssize==NULL
+		|| dstData == NULL || dsize == NULL)
+	{
+		return FALSE;
+	}
+
+	int* x_ofs = (int*)itcAlloc(dsize->width * sizeof(x_ofs[0]));
+	if (x_ofs == NULL)
+	{
+		return FALSE;
+	}
+
+	int x, y, t;
+
+	for (x = 0; x < dsize->width; x++)
+	{
+		t = (ssize->width*x * 2 + ITC_IMIN(ssize->width, dsize->width) - 1) / (dsize->width * 2);
+		t -= t >= ssize->width;
+		x_ofs[x] = t;
+	}
+
+	for (y = 0; y < dsize->height; y++, dstData += dsize->width)
+	{
+		const uchar* tsrc;
+		t = (ssize->height*y * 2 + ITC_IMIN(ssize->height, dsize->height) - 1) / (dsize->height * 2);
+		t -= t >= ssize->height;
+		tsrc = srcData + ssize->width*t;
+		for (x = 0; x <= dsize->width - 2; x += 2)
+		{
+			uchar t0 = tsrc[x_ofs[x]];
+			uchar t1 = tsrc[x_ofs[x + 1]];
+
+			dstData[x] = t0;
+			dstData[x + 1] = t1;
+		}
+	}
+	itcFree_(x_ofs);
+	x_ofs = NULL;
+	return TRUE;
+}
