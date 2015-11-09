@@ -80,6 +80,13 @@ int tch_trackInit(Tch_Data_t *data)
 int tch_track(uchar *src, uchar* pUV, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res)
 //int tch_track(IplImage *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res)
 {
+#ifdef _WIN32
+	int YUV420_type = TRACK_DRAW_YUV420P;
+#endif
+#ifndef _WIN32
+	int YUV420_type = TRACK_DRAW_YUV420SP;
+#endif
+
 	if (src==NULL || pUV==NULL|| params==NULL || data==NULL || res==NULL)
 	{
 		return -2;
@@ -138,7 +145,7 @@ int tch_track(uchar *src, uchar* pUV, TeaITRACK_Params *params, Tch_Data_t *data
 				drawRect.y = s_rectsBlk[i].y + data->g_blkWin.y;
 				drawRect.width = s_rectsBlk[i].width;
 				drawRect.height = s_rectsBlk[i].height;
-				track_draw_rectangle(src, &imgSize, &drawRect, &color);
+				track_draw_rectangle(src, pUV, &imgSize, &drawRect, &color, YUV420_type);
 			}
 			res->status = RETURN_TRACK_TCH_BLACKBOARD;
 			res->pos = data->g_prevPosIndex;
@@ -221,7 +228,7 @@ int tch_track(uchar *src, uchar* pUV, TeaITRACK_Params *params, Tch_Data_t *data
 				drawRect.y = s_bigRects[i].y + data->g_tchWin.y;
 				drawRect.width = s_rectsTch[i].width;
 				drawRect.height = s_rectsTch[i].height;
-				track_draw_rectangle(src, &imgSize, &drawRect, &color);
+				track_draw_rectangle(src, pUV, &imgSize, &drawRect, &color, YUV420_type);
 				direct = tch_calculateDirect_TCH(data->mhiMatTch, s_rectsTch[i]);
 				if (direct>-1)
 				{
