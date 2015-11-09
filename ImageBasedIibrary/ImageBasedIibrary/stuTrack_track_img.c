@@ -61,8 +61,8 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, StuITRACK_Interior
 	int *stuTrack_size_threshold = interior_params_p->stuTrack_size_threshold;
 	int *stuTrack_direct_threshold = interior_params_p->stuTrack_direct_threshold;
 
-	int stuTrack_direct_range = inst->stuTrack_direct_range;
-	double stuTrack_move_threshold = inst->stuTrack_move_threshold;
+	int stuTrack_direct_range = inst->clientParams.stuTrack_direct_range;
+	double stuTrack_move_threshold = inst->clientParams.stuTrack_move_threshold;
 
 	int standard_direct = stuTrack_direct_threshold[roi.x + (roi.width >> 1)];
 	int direct = 0;
@@ -194,7 +194,7 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_Params *inst, StuITRACK_Interior
 static BOOL stuTrack_judgeStand_ROI(StuITRACK_Params *inst, StuTrack_Stand_t track_stand)
 {
 	//判断是否起立
-	int stuTrack_standCount_threshold = inst->stuTrack_standCount_threshold;
+	int stuTrack_standCount_threshold = inst->clientParams.stuTrack_standCount_threshold;
 	double ratio_lengthWidth = (((double)track_stand.roi.height) / track_stand.roi.width);
 	if (((track_stand.count_up > stuTrack_standCount_threshold && track_stand.count_teack > (stuTrack_standCount_threshold + EXPADN_STURECK_STAND_COUNTTAK_THRESHOLD))
 		|| track_stand.count_up > (stuTrack_standCount_threshold + EXPADN_STURECK_STAND_COUNTUP_THRESHOLD))
@@ -215,9 +215,9 @@ static void stuTrack_analyze_ROI(StuITRACK_Params *inst, StuITRACK_InteriorParam
 	int *stuTrack_size_threshold = interior_params_p->stuTrack_size_threshold;
 	int *stuTrack_direct_threshold = interior_params_p->stuTrack_direct_threshold;
 
-	int stuTrack_direct_range = inst->stuTrack_direct_range;
-	int stuTrack_sitdownCount_threshold = inst->stuTrack_sitdownCount_threshold;
-	int stuTrack_moveDelayed_threshold = inst->stuTrack_moveDelayed_threshold;
+	int stuTrack_direct_range = inst->clientParams.stuTrack_direct_range;
+	int stuTrack_sitdownCount_threshold = inst->clientParams.stuTrack_sitdownCount_threshold;
+	int stuTrack_moveDelayed_threshold = inst->clientParams.stuTrack_moveDelayed_threshold;
 
 	Itc_Mat_t *mhi = (Itc_Mat_t *)interior_params_p->mhiMat;
 
@@ -351,22 +351,23 @@ static void stuTrack_proStandDown_ROI(StuITRACK_Params *inst, StuITRACK_Interior
 }
 
 #define DEFINTION_DRAWCOLOUR_SETTING \
-Trcak_Colour_t pink_colour		= colour_RGB2YUV(255,   0, 255);/*粉红*/			\
-Trcak_Colour_t blue_colour		= colour_RGB2YUV(  0,   0, 255);/*纯蓝*/			\
-Trcak_Colour_t lilac_colour		= colour_RGB2YUV(155, 155, 255);/*淡紫*/			\
-Trcak_Colour_t green_colour		= colour_RGB2YUV(  0, 255,   0);/*纯绿*/			\
-Trcak_Colour_t red_colour		= colour_RGB2YUV(255,   0,   0);/*纯红*/			\
-Trcak_Colour_t dullred_colour	= colour_RGB2YUV(127,   0,   0);/*暗红*/			\
-Trcak_Colour_t yellow_colour	= colour_RGB2YUV(255, 255,   0);/*纯黄*/
+	Track_Colour_t pink_colour = colour_RGB2YUV(255, 0, 255);/*粉红*/			\
+	Track_Colour_t blue_colour = colour_RGB2YUV(0, 0, 255);/*纯蓝*/				\
+	Track_Colour_t lilac_colour = colour_RGB2YUV(155, 155, 255);/*淡紫*/		\
+	Track_Colour_t green_colour = colour_RGB2YUV(0, 255, 0);/*纯绿*/			\
+	Track_Colour_t red_colour = colour_RGB2YUV(255, 0, 0);/*纯红*/				\
+	Track_Colour_t dullred_colour = colour_RGB2YUV(127, 0, 0);/*暗红*/			\
+	Track_Colour_t yellow_colour = colour_RGB2YUV(255, 255, 0);/*纯黄*/
 
 static void stuTrack_drawShow_imgData(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, uchar* imageData, uchar* bufferuv)
 {
 	ITC_FUNCNAME("FUNCNAME:stuTrack_drawShow_imgData\n");
 	//画出结果
 	int i = 0;
-	Track_Size_t img_size = { 0, 0 };
-	img_size.width = inst->width;
-	img_size.height = inst->height;
+	double zoom_scale = interior_params_p->stuTrack_zoom_scale;
+	Track_Rect_t rect = { 0, 0, 0, 0 };
+	Track_Point_t current_position = { 0, 0 };
+	Track_Point_t origin_position = { 0, 0 };
 
 #ifdef _WIN32
 	int YUV420_type = TRACK_DRAW_YUV420P;
@@ -378,46 +379,57 @@ static void stuTrack_drawShow_imgData(StuITRACK_Params *inst, StuITRACK_Interior
 	DEFINTION_DRAWCOLOUR_SETTING;
 	for (i = 0; i < interior_params_p->count_trackObj_bigMove; i++)
 	{
-
+		rect.x = interior_params_p->stuTrack_bigMOveObj[i].roi.x*zoom_scale;
+		rect.y = interior_params_p->stuTrack_bigMOveObj[i].roi.y*zoom_scale;
+		rect.height = interior_params_p->stuTrack_bigMOveObj[i].roi.height*zoom_scale;
+		rect.width = interior_params_p->stuTrack_bigMOveObj[i].roi.width*zoom_scale;
+		current_position.x = interior_params_p->stuTrack_bigMOveObj[i].current_position.x*zoom_scale;
+		current_position.y = interior_params_p->stuTrack_bigMOveObj[i].current_position.y*zoom_scale;
+		origin_position.x = interior_params_p->stuTrack_bigMOveObj[i].origin_position.x*zoom_scale;
+		origin_position.y = interior_params_p->stuTrack_bigMOveObj[i].origin_position.y*zoom_scale;
 		if (interior_params_p->stuTrack_bigMOveObj[i].flag_bigMove != STATE_STUTRACK_NULL_FLAG)
 		{
 			if (interior_params_p->stuTrack_bigMOveObj[i].flag_bigMove == STATE_STUTRACK_MOVE_FLAG)
 			{
-				track_draw_rectangle(imageData, bufferuv, &img_size, &(interior_params_p->stuTrack_bigMOveObj[i].roi), &pink_colour, YUV420_type);
+				track_draw_rectangle(imageData, bufferuv, &interior_params_p->srcimg_size, &rect, &pink_colour, YUV420_type);
 			}
 			else if (interior_params_p->stuTrack_bigMOveObj[i].flag_bigMove == STATE_STUTRACK_BIG_FLAG)
 			{
-				track_draw_rectangle(imageData, bufferuv, &img_size, &(interior_params_p->stuTrack_bigMOveObj[i].roi), &blue_colour, YUV420_type);
+				track_draw_rectangle(imageData, bufferuv, &interior_params_p->srcimg_size, &rect, &blue_colour, YUV420_type);
 			}
-			track_draw_line(imageData, bufferuv, &img_size, &(interior_params_p->stuTrack_bigMOveObj[i].current_position), &(interior_params_p->stuTrack_bigMOveObj[i].origin_position), &green_colour, YUV420_type);
+			track_draw_line(imageData, bufferuv, &interior_params_p->srcimg_size, &current_position, &origin_position, &green_colour, YUV420_type);
 		}
 		else
 		{
-			track_draw_rectangle(imageData, bufferuv, &img_size, &(interior_params_p->stuTrack_bigMOveObj[i].roi), &lilac_colour, YUV420_type);
+			track_draw_rectangle(imageData, bufferuv, &interior_params_p->srcimg_size, &rect, &lilac_colour, YUV420_type);
 		}
 	}
 
 	for (i = 0; i < interior_params_p->count_trackObj_stand; i++)
 	{
+		rect.x = interior_params_p->stuTrack_stand[i].roi.x*zoom_scale;
+		rect.y = interior_params_p->stuTrack_stand[i].roi.y*zoom_scale;
+		rect.height = interior_params_p->stuTrack_stand[i].roi.height*zoom_scale;
+		rect.width = interior_params_p->stuTrack_stand[i].roi.width*zoom_scale;
 		if (interior_params_p->stuTrack_stand[i].flag_Stand != STATE_STUTRACK_NULL_FLAG)
 		{
 			if (interior_params_p->stuTrack_stand[i].flag_Stand == STATE_STUTRACK_STANDUP_FLAG)
 			{
-				track_draw_rectangle(imageData, bufferuv, &img_size, &(interior_params_p->stuTrack_stand[i].roi), &red_colour, YUV420_type);
+				track_draw_rectangle(imageData, bufferuv, &interior_params_p->srcimg_size, &rect, &red_colour, YUV420_type);
 			}
 			else if (interior_params_p->stuTrack_stand[i].flag_Stand == STATE_STUTRACK_SITDOWN_FLAG)
 			{
-				track_draw_rectangle(imageData, bufferuv, &img_size, &(interior_params_p->stuTrack_stand[i].roi), &dullred_colour, YUV420_type);
+				track_draw_rectangle(imageData, bufferuv, &interior_params_p->srcimg_size, &rect, &dullred_colour, YUV420_type);
 			}
 		}
 		else
 		{
-			track_draw_rectangle(imageData, bufferuv, &img_size, &(interior_params_p->stuTrack_stand[i].roi), &yellow_colour, YUV420_type);
+			track_draw_rectangle(imageData, bufferuv, &interior_params_p->srcimg_size, &rect, &yellow_colour, YUV420_type);
 		}
 	}
 }
 
-static void stuTrack_reslut(StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params)
+static void stuTrack_reslut(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params)
 {
 	ITC_FUNCNAME("FUNCNAME:stuTrack_reslut\n");
 	//填写返回结果结构体
@@ -447,116 +459,142 @@ static void stuTrack_reslut(StuITRACK_InteriorParams* interior_params_p, StuITRA
 	}
 }
 
-void stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p)
+BOOL stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p)
 {
 	ITC_FUNCNAME("FUNCNAME:stuTrack_initializeTrack\n");
 	if (inst == NULL || interior_params_p == NULL)
 	{
-		interior_params_p->initialize_flag = FALSE;
-		return;
+		return FALSE;
 	}
 	stuTrack_stopTrack(inst, interior_params_p);
 	interior_params_p->initialize_flag = FALSE;
-	if (inst->height != HEIGHT_STUTRACK_IMG_ || inst->width != WIDTH_STUTRACK_IMG_)
+	if (inst->systemParams.nsrcHeight <= 1 || inst->systemParams.nsrcWidth <= 1)
 	{
-		_PRINTF("Wide high parameter error!\n");
-		return;
+		_PRINTF("Wide high parameter error: size<1!\n");
+		return FALSE;
 	}
+
+	//默认的参数
+	float size_threshold_a = A_STUTRACK_SIZE_THRESHOLD_PARAMS;
+	float size_threshold_b = B_STUTRACK_SIZE_THRESHOLD_PARAMS;
+	float direct_threshold_a = A_STUTRACK_DIRECT_THRESHOLD_PARAMS;
+	float direct_threshold_b = B_STUTRACK_DIRECT_THRESHOLD_PARAMS;
+	if (inst->clientParams.flag_setting == TRUE)
+	{
+		//非默认参数
+		int y1 = (inst->clientParams.stuTrack_vertex[0].y + inst->clientParams.stuTrack_vertex[1].y) / 2;
+		int y2 = (inst->clientParams.stuTrack_vertex[2].y + inst->clientParams.stuTrack_vertex[3].y) / 2;
+		if (y1 == y2)
+		{
+			_PRINTF("The input parameter error:y1 == y2!\n");
+			return;
+		}
+		int width1 = (inst->clientParams.stuTrack_stuWidth_standard[0] + inst->clientParams.stuTrack_stuWidth_standard[1]) / 2;
+		int width2 = (inst->clientParams.stuTrack_stuWidth_standard[2] + inst->clientParams.stuTrack_stuWidth_standard[3]) / 2;
+		size_threshold_a = (width1 - width2) / (y1 - y2);
+		size_threshold_b = width1 - size_threshold_a*y1;
+
+		int x1 = (inst->clientParams.stuTrack_vertex[0].x + inst->clientParams.stuTrack_vertex[1].x) / 2;
+		int x2 = (inst->clientParams.stuTrack_vertex[2].x + inst->clientParams.stuTrack_vertex[2].x) / 2;
+		if (x1 == x2)
+		{
+			_PRINTF("The input parameter error:x1 == x2!\n");
+			return;
+		}
+		int direct1 = (inst->clientParams.stuTrack_direct_standard[0] + inst->clientParams.stuTrack_direct_standard[1]) / 2;
+		int direct2 = (inst->clientParams.stuTrack_direct_standard[2] + inst->clientParams.stuTrack_direct_standard[3]) / 2;
+		direct_threshold_a = (direct1 - direct2) / (x1 - x2);
+		direct_threshold_b = direct1 - direct_threshold_a*direct_threshold_a;
+
+		if (inst->clientParams.height != 0 && inst->clientParams.width != 0)
+		{
+			double scale_h = ((double)inst->clientParams.height) / inst->systemParams.nsrcHeight;
+			double scale_w = ((double)inst->clientParams.width) / inst->systemParams.nsrcWidth;
+			if (scale_h > scale_w)//保持长宽比，以缩放比例大的为基准
+			{
+				inst->clientParams.height = scale_w*inst->systemParams.nsrcHeight;
+			}
+			else
+			{
+				inst->clientParams.width = scale_h*inst->systemParams.nsrcWidth;
+			}
+		}
+		else
+		{
+			inst->clientParams.height = HEIGHT_STUTRACK_IMG_;
+			inst->clientParams.width = WIDTH_STUTRACK_IMG_;
+		}
+	}
+	else
+	{
+		inst->clientParams.stuTrack_debugMsg_flag = 1;
+		inst->clientParams.stuTrack_Draw_flag = TRUE;
+		inst->clientParams.stuTrack_move_threshold = THRESHOLD_STUTRACK_MOVE_DEFALUT_PARAMS;					//判定是移动目标的偏离阈值（相对于自身宽度的比值）
+		inst->clientParams.stuTrack_standCount_threshold = THRESHOLD_STUTRACK_STANDCOUNT_DEFALUT_PARAMS;		//判定为起立的帧数阈值
+		inst->clientParams.stuTrack_sitdownCount_threshold = THRESHOLD_STUTRACK_SITDOWNCOUNT_DEFALUT_PARAMS;	//判定为坐下的帧数阈值
+		inst->clientParams.stuTrack_moveDelayed_threshold = THRESHOLD_STUTRACK_MOVEDELAYED_DEFALUT_PARAMS;
+		inst->clientParams.stuTrack_direct_range = RANGE_STUTRACK_STANDDIRECT_DEFALUT_PARAMS;
+	}
+
 	//分配内存
-	interior_params_p->currMat = itc_create_mat(inst->height, inst->width, ITC_8UC1);
-	JUDEGE_STUREACK_IF_NULL(interior_params_p->currMat, ITC_RETURN);
+	interior_params_p->currMat = itc_create_mat(inst->clientParams.height, inst->clientParams.width, ITC_8UC1);
+	JUDEGE_STUREACK_IF_NULL(interior_params_p->currMat, FALSE);
 
-	interior_params_p->lastMat = itc_create_mat(inst->height, inst->width, ITC_8UC1);
-	JUDEGE_STUREACK_IF_NULL(interior_params_p->lastMat, ITC_RETURN);
+	interior_params_p->lastMat = itc_create_mat(inst->clientParams.height, inst->clientParams.width, ITC_8UC1);
+	JUDEGE_STUREACK_IF_NULL(interior_params_p->lastMat, FALSE);
 
-	interior_params_p->mhiMat = itc_create_mat(inst->height, inst->width, ITC_8UC1);
-	JUDEGE_STUREACK_IF_NULL(interior_params_p->mhiMat, ITC_RETURN);
+	interior_params_p->mhiMat = itc_create_mat(inst->clientParams.height, inst->clientParams.width, ITC_8UC1);
+	JUDEGE_STUREACK_IF_NULL(interior_params_p->mhiMat, FALSE);
 
-	interior_params_p->maskMat = itc_create_mat(inst->height, inst->width, ITC_8UC1);
-	JUDEGE_STUREACK_IF_NULL(interior_params_p->maskMat, ITC_RETURN);
+	interior_params_p->maskMat = itc_create_mat(inst->clientParams.height, inst->clientParams.width, ITC_8UC1);
+	JUDEGE_STUREACK_IF_NULL(interior_params_p->maskMat, FALSE);
 
 	interior_params_p->stuTrack_storage = itcCreateMemStorage(0);
-	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_storage, ITC_RETURN);
+	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_storage, FALSE);
 
 	interior_params_p->stuTrack_stand = (StuTrack_Stand_t*)itcAlloc(sizeof(StuTrack_Stand_t)* COUNT_STUTRACK_MALLOC_ELEMENT);
-	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_stand, ITC_RETURN);
+	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_stand, FALSE);
 
 	interior_params_p->stuTrack_bigMOveObj = (StuTrack_BigMoveObj_t*)itcAlloc(sizeof(StuTrack_BigMoveObj_t)* COUNT_STUTRACK_MALLOC_ELEMENT);
-	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_bigMOveObj, ITC_RETURN);
+	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_bigMOveObj, FALSE);
 
 	interior_params_p->stuTrack_rect_arr = (Track_Rect_t*)itcAlloc(sizeof(Track_Rect_t)* COUNT_STUTRACK_MALLOC_ELEMENT);
-	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_rect_arr, ITC_RETURN);
+	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_rect_arr, FALSE);
 
-	interior_params_p->stuTrack_size_threshold = (int *)itcAlloc(sizeof(int)* inst->height);
-	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_size_threshold, ITC_RETURN);
+	interior_params_p->stuTrack_size_threshold = (int *)itcAlloc(sizeof(int)* inst->clientParams.height);
+	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_size_threshold, FALSE);
 
-	interior_params_p->stuTrack_direct_threshold = (int *)itcAlloc(sizeof(int)* inst->width);
-	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_direct_threshold, ITC_RETURN);
+	interior_params_p->stuTrack_direct_threshold = (int *)itcAlloc(sizeof(int)* inst->clientParams.width);
+	JUDEGE_STUREACK_IF_NULL(interior_params_p->stuTrack_direct_threshold, FALSE);
 
 	//初始化自有的内部参数
 	interior_params_p->_count = 0;
-	interior_params_p->img_size = inst->height*inst->width;
+	interior_params_p->stuTrack_zoom_scale = ((double)inst->systemParams.nsrcWidth) / inst->clientParams.width;
+	interior_params_p->img_size.width = inst->clientParams.width;
+	interior_params_p->img_size.height = inst->clientParams.height;
+	interior_params_p->srcimg_size.width = inst->systemParams.nsrcWidth;
+	interior_params_p->srcimg_size.height = inst->systemParams.nsrcHeight;
 	interior_params_p->count_trackObj_stand = 0;
 	interior_params_p->count_trackObj_bigMove = 0;
 	interior_params_p->count_stuTrack_rect = 0;
 	memset(interior_params_p->stuTrack_stand, 0, sizeof(StuTrack_Stand_t)* COUNT_STUTRACK_MALLOC_ELEMENT);
 	memset(interior_params_p->stuTrack_bigMOveObj, 0, sizeof(StuTrack_BigMoveObj_t)* COUNT_STUTRACK_MALLOC_ELEMENT);
 	memset(interior_params_p->stuTrack_rect_arr, 0, sizeof(Track_Rect_t)* COUNT_STUTRACK_MALLOC_ELEMENT);
-	memset(interior_params_p->stuTrack_size_threshold, 0, sizeof(int)* inst->height);
-	memset(interior_params_p->stuTrack_direct_threshold, 0, sizeof(int)* inst->width);
-	
-	//默认的参数
-	float size_threshold_a = A_STUTRACK_SIZE_THRESHOLD_PARAMS;
-	float size_threshold_b = B_STUTRACK_SIZE_THRESHOLD_PARAMS;
-	float direct_threshold_a = A_STUTRACK_DIRECT_THRESHOLD_PARAMS;
-	float direct_threshold_b = B_STUTRACK_DIRECT_THRESHOLD_PARAMS;
-	if (inst->flag_setting == TRUE)
-	{
-		//非默认参数
-		int y1 = (inst->stuTrack_vertex[0].y + inst->stuTrack_vertex[1].y) / 2;
-		int y2 = (inst->stuTrack_vertex[2].y + inst->stuTrack_vertex[3].y) / 2;
-		if (y1 == y2)
-		{
-			_PRINTF("The input parameter error:y1 == y2!\n");
-			return;
-		}
-		int width1 = (inst->stuTrack_stuWidth_standard[0] + inst->stuTrack_stuWidth_standard[1]) / 2;	
-		int width2 = (inst->stuTrack_stuWidth_standard[2] + inst->stuTrack_stuWidth_standard[3]) / 2;
-		size_threshold_a = (width1 - width2) / (y1 - y2);
-		size_threshold_b = width1 - size_threshold_a*y1;
-
-		int x1 = (inst->stuTrack_vertex[0].x + inst->stuTrack_vertex[1].x) / 2;
-		int x2 = (inst->stuTrack_vertex[2].x + inst->stuTrack_vertex[2].x) / 2;
-		if (x1 == x2)
-		{
-			_PRINTF("The input parameter error:x1 == x2!\n");
-			return;
-		}
-		int direct1 = (inst->stuTrack_direct_standard[0] + inst->stuTrack_direct_standard[1]) / 2;
-		int direct2 = (inst->stuTrack_direct_standard[2] + inst->stuTrack_direct_standard[3]) / 2;
-		direct_threshold_a = (direct1 - direct2) / (x1 - x2);
-		direct_threshold_b = direct1 - direct_threshold_a*direct_threshold_a;
-	}
-	else
-	{
-		inst->stuTrack_move_threshold = THRESHOLD_STUTRACK_MOVE_DEFALUT_PARAMS;			//判定是移动目标的偏离阈值（比值）
-		inst->stuTrack_standCount_threshold = THRESHOLD_STUTRACK_STANDCOUNT_DEFALUT_PARAMS;		//判定为起立的帧数阈值
-		inst->stuTrack_sitdownCount_threshold = THRESHOLD_STUTRACK_SITDOWNCOUNT_DEFALUT_PARAMS;	//判定为坐下的帧数阈值
-		inst->stuTrack_moveDelayed_threshold = THRESHOLD_STUTRACK_MOVEDELAYED_DEFALUT_PARAMS;
-		inst->stuTrack_direct_range = RANGE_STUTRACK_STANDDIRECT_DEFALUT_PARAMS;
-	}
+	memset(interior_params_p->stuTrack_size_threshold, 0, sizeof(int)* inst->clientParams.height);
+	memset(interior_params_p->stuTrack_direct_threshold, 0, sizeof(int)* inst->clientParams.width);
 
 	int i = 0;
-	for (i = 0; i < inst->height; i++)
+	for (i = 0; i < inst->clientParams.height; i++)
 	{
 		interior_params_p->stuTrack_size_threshold[i] = (int)(COMPUTER_STUTRACK_SIZE_THRESHOLD_PARAMS(i, size_threshold_a, size_threshold_b) + 0.5);
 	}
-	for (i = 0; i < inst->width; i++)
+	for (i = 0; i < inst->clientParams.width; i++)
 	{
 		interior_params_p->stuTrack_direct_threshold[i] = (int)(COMPUTER_STUTRACK_DIRECT_THRESHOLD_PARAMS(i, direct_threshold_a, direct_threshold_b) + 0.5);
 	}
 
 	interior_params_p->initialize_flag = TRUE;
+	return interior_params_p->initialize_flag;
 }
 
 #define THRESHOLD_STUTRACK_FRAME_DIFF	12
@@ -565,7 +603,7 @@ void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior
 {
 	ITC_FUNCNAME("FUNCNAME:stuTrack_process\n");
 	if (imageData == NULL || return_params == NULL || interior_params_p == NULL || inst == NULL )
-	{	
+	{
 		return;
 	}
 	else if (interior_params_p->initialize_flag == FALSE)
@@ -573,7 +611,7 @@ void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior
 		_PRINTF("Failed to initialize!\n");
 		return;
 	}
-	memcpy(interior_params_p->currMat->data.ptr, imageData, interior_params_p->img_size);
+	track_resize_matData(imageData, &interior_params_p->srcimg_size, interior_params_p->currMat->data.ptr, &interior_params_p->img_size);
 
 	interior_params_p->result_flag = RESULT_STUTRACK_NULL_FLAG;	//清空变化状态
 	Track_Contour_t* firstContour = NULL;
@@ -591,7 +629,7 @@ void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior
 	interior_params_p->_count++;
 
 	stuTrack_drawShow_imgData(inst, interior_params_p, (uchar*)imageData, (uchar*)bufferuv);	//绘制处理效果
-	stuTrack_reslut(interior_params_p, return_params);				//填写返回结果
+	stuTrack_reslut(inst, interior_params_p, return_params);									//填写返回结果
 }
 
 void stuTrack_stopTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p)

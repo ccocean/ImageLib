@@ -33,9 +33,6 @@ inline int
 	return size & -align;
 }
 
-
-
-// default <malloc>
 static void*
 	itcDefaultAlloc( size_t size)
 {
