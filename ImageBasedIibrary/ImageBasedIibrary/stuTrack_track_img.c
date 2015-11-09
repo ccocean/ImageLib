@@ -351,13 +351,13 @@ static void stuTrack_proStandDown_ROI(StuITRACK_Params *inst, StuITRACK_Interior
 }
 
 #define DEFINTION_DRAWCOLOUR_SETTING \
-	Track_Colour_t pink_colour = colour_RGB2YUV(255, 0, 255);/*煨綻*/			\
-	Track_Colour_t blue_colour = colour_RGB2YUV(0, 0, 255);/*曾懦*/				\
-	Track_Colour_t lilac_colour = colour_RGB2YUV(155, 155, 255);/*筏豜*/		\
-	Track_Colour_t green_colour = colour_RGB2YUV(0, 255, 0);/*曾蟯*/			\
-	Track_Colour_t red_colour = colour_RGB2YUV(255, 0, 0);/*曾綻*/				\
-	Track_Colour_t dullred_colour = colour_RGB2YUV(127, 0, 0);/*做綻*/			\
-	Track_Colour_t yellow_colour = colour_RGB2YUV(255, 255, 0);/*曾酴*/
+	Track_Colour_t pink_colour    = colour_RGB2YUV(255,   0, 255);/*煨綻*/			\
+	Track_Colour_t blue_colour    = colour_RGB2YUV(  0,   0, 255);/*曾懦*/			\
+	Track_Colour_t lilac_colour   = colour_RGB2YUV(155, 155, 255);/*筏豜*/			\
+	Track_Colour_t green_colour   = colour_RGB2YUV(  0, 255,   0);/*曾蟯*/			\
+	Track_Colour_t red_colour     = colour_RGB2YUV(255,   0,   0);/*曾綻*/			\
+	Track_Colour_t dullred_colour = colour_RGB2YUV(127,   0,   0);/*做綻*/			\
+	Track_Colour_t yellow_colour  = colour_RGB2YUV(255, 255,   0);/*曾酴*/
 
 static void stuTrack_drawShow_imgData(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, uchar* imageData, uchar* bufferuv)
 {
@@ -491,22 +491,22 @@ BOOL stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* 
 		}
 		int width1 = (inst->clientParams.stuTrack_stuWidth_standard[0] + inst->clientParams.stuTrack_stuWidth_standard[1]) / 2;
 		int width2 = (inst->clientParams.stuTrack_stuWidth_standard[2] + inst->clientParams.stuTrack_stuWidth_standard[3]) / 2;
-		size_threshold_a = (width1 - width2) / (y1 - y2);
+		size_threshold_a = ((double)(width1 - width2)) / (y1 - y2);
 		size_threshold_b = width1 - size_threshold_a*y1;
 
-		int x1 = (inst->clientParams.stuTrack_vertex[0].x + inst->clientParams.stuTrack_vertex[1].x) / 2;
-		int x2 = (inst->clientParams.stuTrack_vertex[2].x + inst->clientParams.stuTrack_vertex[2].x) / 2;
+		int x1 = (inst->clientParams.stuTrack_vertex[0].x + inst->clientParams.stuTrack_vertex[2].x) / 2;
+		int x2 = (inst->clientParams.stuTrack_vertex[1].x + inst->clientParams.stuTrack_vertex[3].x) / 2;
 		if (x1 == x2)
 		{
 			_PRINTF("The input parameter error:x1 == x2!\n");
 			return;
 		}
-		int direct1 = (inst->clientParams.stuTrack_direct_standard[0] + inst->clientParams.stuTrack_direct_standard[1]) / 2;
-		int direct2 = (inst->clientParams.stuTrack_direct_standard[2] + inst->clientParams.stuTrack_direct_standard[3]) / 2;
-		direct_threshold_a = (direct1 - direct2) / (x1 - x2);
+		int direct1 = (inst->clientParams.stuTrack_direct_standard[0] + inst->clientParams.stuTrack_direct_standard[2]) / 2;
+		int direct2 = (inst->clientParams.stuTrack_direct_standard[1] + inst->clientParams.stuTrack_direct_standard[3]) / 2;
+		direct_threshold_a = ((double)(direct1 - direct2)) / (x1 - x2);
 		direct_threshold_b = direct1 - direct_threshold_a*direct_threshold_a;
 
-		if (inst->clientParams.height != 0 && inst->clientParams.width != 0)
+		if (inst->clientParams.height >= HEIGHT_STUTRACK_IMG_ && inst->clientParams.width >= WIDTH_STUTRACK_IMG_)
 		{
 			double scale_h = ((double)inst->clientParams.height) / inst->systemParams.nsrcHeight;
 			double scale_w = ((double)inst->clientParams.width) / inst->systemParams.nsrcWidth;
