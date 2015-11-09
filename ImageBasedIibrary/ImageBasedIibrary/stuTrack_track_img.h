@@ -17,9 +17,9 @@ extern "C" {
 #define COUNT_STUTRACK_MALLOC_ELEMENT 10
 
 #define _PRINTF											\
-if (inst->systemParams.callbackmsg_func == NULL)		\
-{	inst->systemParams.callbackmsg_func = printf; }		\
-((callbackmsg)(inst->systemParams.callbackmsg_func))
+if (interior_params_p->callbackmsg_func == NULL)		\
+{	interior_params_p->callbackmsg_func = printf; }		\
+((callbackmsg)(interior_params_p->callbackmsg_func))
 
 #define ITC_RETURN
 #define JUDEGE_STUREACK_IF_NULL(p,r)			\
@@ -38,6 +38,8 @@ if ((p) == NULL)								\
 #endif
 
 #include <time.h>
+
+typedef int(*_callbackmsg)(const char *format, ...);//用于输出调试信息的函数指针
 typedef struct StuTrack_Stand_t
 {
 	int direction;
@@ -68,35 +70,40 @@ typedef struct _StuITRACK_InteriorParams
 {
 	BOOL initialize_flag;
 	int _count;	//统计帧数
-	Track_Size_t img_size;		//图像大小
+	Track_Size_t img_size;		//处理图像大小
 	Track_Size_t srcimg_size;	//原始图像大小
 
-	int result_flag;							//当前帧变化状态
+	int result_flag;					//当前帧变化状态
 
 	int count_trackObj_stand;			//起立区域计数
 	StuTrack_Stand_t* stuTrack_stand;
-
-	int count_trackObj_bigMove;		//移动目标计数
+	int count_trackObj_bigMove;			//移动目标计数
 	StuTrack_BigMoveObj_t* stuTrack_bigMOveObj;
-
 	int count_stuTrack_rect;			//运动区域计数
 	Track_Rect_t *stuTrack_rect_arr;
 
-	Track_MemStorage_t* stuTrack_storage;
-
 	double stuTrack_zoom_scale;					//原图像/处理后图像
+	int *stuTrack_resize_tabx;					//用于计算缩放的映射表
+	int *stuTrack_resize_taby;
 
+	int stuTrack_debugMsg_flag;					//调试信息输出等级
+	int stuTrack_Draw_flag;						//是否绘制结果
+	int stuTrack_direct_range;					//起立时允许的角度偏离范围
+	int stuTrack_standCount_threshold;			//判定为起立的帧数阈值
+	int stuTrack_sitdownCount_threshold;		//判定为坐下的帧数阈值
+	int stuTrack_moveDelayed_threshold;			//移动目标保持跟踪的延时，超过这个时间无运动，则放弃跟踪(单位：毫秒)
+	double stuTrack_move_threshold;				//判定是移动目标的偏离阈值（比值）
 	int *stuTrack_size_threshold;				//运动目标大小过滤阈值（根据位置不同阈值不同）
 	int *stuTrack_direct_threshold;				//起立的标准角度,大小为width
+
 	Itc_Mat_t *tempMat;
 	Itc_Mat_t *currMat;
 	Itc_Mat_t *lastMat;
 	Itc_Mat_t *mhiMat;
 	Itc_Mat_t *maskMat;
-
+	Track_MemStorage_t* stuTrack_storage;
+	_callbackmsg callbackmsg_func;					//用于信息输出的函数指针
 }StuITRACK_InteriorParams;
-
-typedef int(*_callbackmsg)(const char *format, ...);//用于输出调试信息的函数指针
 
 typedef struct _StuITRACK_SystemParams
 {

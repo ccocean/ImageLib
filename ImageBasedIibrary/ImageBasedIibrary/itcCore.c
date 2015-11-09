@@ -52,7 +52,7 @@ Itc_Mat_t*	itc_create_mat( int height, int width, int type )
 		return arr;
 	}
 
-	mat->refcount = (int*)malloc( (size_t)total_size );
+	mat->refcount = (int*)itcAlloc((size_t)total_size);
 	if (mat->refcount == NULL)
 	{
 		itc_release_mat(&arr);
@@ -60,7 +60,8 @@ Itc_Mat_t*	itc_create_mat( int height, int width, int type )
 	}
 	memset(mat->refcount, 0, (size_t)total_size);	//初始化为0
 	mat->data.ptr = (uchar*)( mat->refcount + 1);
-	mat->data.ptr = (uchar*)(((size_t)mat->data.ptr + ITC_MALLOC_ALIGN - 1) &~ (size_t)(ITC_MALLOC_ALIGN - 1));//对齐到ITC_MALLOC_ALIGN整数位，比如说地址是110，ITC_MALLOC_ALIGN=16，那么就把地址对齐到112，如果地址是120，那么就对齐到128，
+	//mat->data.ptr = (uchar*)(((size_t)mat->data.ptr + ITC_MALLOC_ALIGN - 1) &~ (size_t)(ITC_MALLOC_ALIGN - 1));//对齐到ITC_MALLOC_ALIGN整数位，比如说地址是110，ITC_MALLOC_ALIGN=16，那么就把地址对齐到112，如果地址是120，那么就对齐到128，
+	mat->data.ptr = itcAlignPtr(mat->data.ptr, ITC_MALLOC_ALIGN);
 	*mat->refcount = 1;
 
 	return arr;
@@ -85,7 +86,7 @@ Itc_Mat_t*	itc_create_matHeader( int rows, int cols, int type )
 	if( min_step <= 0 )
 		ITC_ERROR_("Invalid matrix type");						//
 
-	Itc_Mat_t* pMat = (Itc_Mat_t*)malloc(sizeof(*pMat));
+	Itc_Mat_t* pMat = (Itc_Mat_t*)itcAlloc(sizeof(*pMat));
 	if (pMat == NULL)
 	{
 		return NULL;
@@ -151,9 +152,9 @@ void itc_release_mat(Itc_Mat_t** arr)
 	{
 		mat->data.ptr = NULL;
 		if (mat->refcount != NULL && --*mat->refcount == 0)//引用计数为0时才释放数据内存
-			free(mat->refcount);
+			itcFree_(mat->refcount);
 		mat->refcount = NULL;
-		free(mat);
+		itcFree_(mat);
 		mat = NULL;
 	}
 }
