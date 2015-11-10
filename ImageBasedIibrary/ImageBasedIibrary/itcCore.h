@@ -83,7 +83,7 @@ void track_update_midValueBK(Itc_Mat_t* mat, Itc_Mat_t* matBK);					//用中值法更
 
 int track_copyImage_ROI(Itc_Mat_t* src, Itc_Mat_t* dst, Track_Rect_t roi);
 
-BOOL  track_resize_matData(char* srcData, Track_Size_t* ssize, char* dstData, Track_Size_t* dsize);
+BOOL  track_resize_matData(uchar* srcData, Track_Size_t* ssize, char* dstData, Track_Size_t* dsize);
 #ifdef  __cplusplus  
 }
 #endif  /* end of __cplusplus */ 

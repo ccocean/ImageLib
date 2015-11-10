@@ -30,10 +30,12 @@ typedef unsigned short ushort;
 
 #define FLT_EPSILON			1.192092896e-07F
 #define DBL_EPSILON			2.2204460492503131e-016
-#define ITC_DEGREES			180
+#define ITC_180DEGREE			180
+#define ITC_360DEGREE			360
 #define ITC_PI				3.1415926535897932384626433832795
 #define ITC_RADIAN_TO_ANGLE	57.29577951308
 #define ITC_LOG2			0.69314718055994530941723212145818
+#define ITC_FIXEDPOINT_ALIGN	10
 
 #define ITC_SWAP(a,b,t) ((t) = (a), (a) = (b), (b) = (t))
 
@@ -48,7 +50,7 @@ typedef unsigned short ushort;
 #define  ITC_CMP(a,b)    (((a) > (b)) - ((a) < (b)))
 #define  ITC_SIGN(a)     ITC_CMP((a),0)
 
-
+#define ITC_IMAGE_ALIGN    8
 #define ITC_CN_MAX     512			//不应超过2047
 #define ITC_CN_SHIFT   3
 #define ITC_DEPTH_MAX  (1 << ITC_CN_SHIFT)
@@ -308,6 +310,10 @@ typedef struct Track_Size_t
 	int height;
 }Track_Size_t;
 
+typedef struct _colour
+{
+	uchar val[3];
+}Track_Colour_t;
 //_inline Track_Size_t itcSize(int width, int height);
 
 typedef int(*callbackmsg)(const char *format, ...);//用于输出调试信息的函数指针

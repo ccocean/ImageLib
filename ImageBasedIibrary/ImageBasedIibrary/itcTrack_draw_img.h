@@ -5,10 +5,6 @@
 #ifdef  __cplusplus
 extern "C" {
 #endif
-typedef struct _colour
-{
-	uchar val[3];
-}Track_Colour_t;
 
 Track_Colour_t colour(uchar y, uchar u, uchar v);
 Track_Colour_t colour_RGB2YUV(int R, int G, int B);

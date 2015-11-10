@@ -35,7 +35,9 @@ Itc_Mat_t*	itc_create_mat( int height, int width, int type )
 	step = mat->step;
 	
 	if( mat->rows == 0 || mat->cols == 0 )
+	{	
 		return arr;
+	}
 
 	if( mat->data.ptr != 0 )
 		free( mat->data.ptr);//"Data is already allocated"
@@ -304,9 +306,12 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 			ITC_ERROR_("矩阵类型不一致");
 		if (!ITC_ARE_SIZES_EQ(src1, maskT))//检查大小是否一致
 			ITC_ERROR_("矩阵大小不一致");
-		for (i = 1; i < sizeMat.height - 1; i++)
+		//边缘不处理
+		sizeMat.height--;
+		sizeMat.width--;
+		for (i = 1; i < sizeMat.height; i++)
 		{
-			for (j = 1; j < sizeMat.width - 1; j++)
+			for (j = 1; j < sizeMat.width; j++)
 			{
 				int k = abs((int)(qsrc1[j] - qsrc2[j]));
 				if (k > diffThreshold)
@@ -509,7 +514,7 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 				prev = img[x];		//不能直接等于p,因为itcFetchContourEx会改变当前扫描过的点
 				//if (prev & -2)		//只保存已知的边缘
 				//{
-				//	lnbd.x = x;		//记录当前扫描到边缘点的位置，用于下一扫描使用
+				//	lnbd.x = x;		//记录当前扫描到边缘点的位置，用于下一扫描使用，判断包含关系
 				//}
 			}
 		}
@@ -732,7 +737,7 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 	uchar *img0 = (uchar*)(mhi->data.ptr + step*y1);
 	uchar *img1 = img0;
 	
-	int k_int_enhance = 10;	//用于提高除法精度
+	int k_int_enhance = 100;	//用于提高除法精度
 	int k = 0;
 	//计算水平方向速度
 	for (i = y1; i < y2; i++)
@@ -936,15 +941,15 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 
 	int threshold = (roi.width*roi.height) >> 3;
 	count_change = count_change >> 1;
-	sum_gradientH = sum_gradientH << 10;
-	sum_gradientV = sum_gradientV << 10;
+	sum_gradientH = sum_gradientH << ITC_FIXEDPOINT_ALIGN;
+	sum_gradientV = sum_gradientV << ITC_FIXEDPOINT_ALIGN;
 	int gradientH = 0, gradientV = 0;
 	if (count_changeX > 0)
 		gradientH = sum_gradientH / (count_changeX*k_int_enhance);
 	if (count_changeY)
 		gradientV = sum_gradientV / (count_changeY*k_int_enhance);
 	int angle = (int)(atan2(gradientV, gradientH) * ITC_RADIAN_TO_ANGLE);
-	angle = angle < 0 ? angle + 360 : angle;
+	angle = angle < 0 ? angle + ITC_360DEGREE : angle;
 	*direct = angle;
 	if (count_change>threshold)
 	{
@@ -952,10 +957,10 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 		int gradientH_abs = abs(gradientH);
 		if (gradientV_abs>gradientH_abs)
 		{
-			if (gradientV_abs > 512)
+			if (gradientV_abs > (1 << (ITC_FIXEDPOINT_ALIGN - 1)))
 				return 1;
 		}
-		else if (gradientH_abs > 512)
+		else if (gradientH_abs > (1 << (ITC_FIXEDPOINT_ALIGN - 1)))
 		{
 			return 2;
 		}
@@ -1047,7 +1052,7 @@ int track_copyImage_ROI(Itc_Mat_t* src, Itc_Mat_t* dst, Track_Rect_t roi)
 	}
 }
 
-BOOL track_resize_matData(char* srcData, Track_Size_t *ssize, char* dstData, Track_Size_t *dsize)
+BOOL track_resize_matData(uchar* srcData, Track_Size_t *ssize, char* dstData, Track_Size_t *dsize)
 {
 	if (srcData == NULL || ssize==NULL
 		|| dstData == NULL || dsize == NULL)

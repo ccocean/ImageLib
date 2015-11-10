@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#define HEIGHT_STUTRACK_IMG_ 270
+#define HEIGHT_STUTRACK_IMG_ 264
 #define WIDTH_STUTRACK_IMG_	480
 
 #define COUNT_STUTRACK_MALLOC_ELEMENT 10
@@ -40,6 +40,7 @@ if ((p) == NULL)								\
 #include <time.h>
 
 typedef int(*_callbackmsg)(const char *format, ...);//用于输出调试信息的函数指针
+
 typedef struct StuTrack_Stand_t
 {
 	int direction;
@@ -102,6 +103,16 @@ typedef struct _StuITRACK_InteriorParams
 	Itc_Mat_t *mhiMat;
 	Itc_Mat_t *maskMat;
 	Track_MemStorage_t* stuTrack_storage;
+
+	//用于绘制的颜色
+	Track_Colour_t pink_colour;
+	Track_Colour_t blue_colour;
+	Track_Colour_t lilac_colour;
+	Track_Colour_t green_colour;
+	Track_Colour_t red_colour;
+	Track_Colour_t dullred_colour;
+	Track_Colour_t yellow_colour;
+
 	_callbackmsg callbackmsg_func;					//用于信息输出的函数指针
 }StuITRACK_InteriorParams;
 
@@ -140,9 +151,9 @@ typedef struct 	_StuITRACK_Params
 #define COMPUTER_STUTRACK_SIZE_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS))
 #define COMPUTER_STUTRACK_DIRECT_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS))
 
-BOOL stuTrack_initializeTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
-void stuTrack_process(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData, char* bufferuv);
-void stuTrack_stopTrack(StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
+BOOL stuTrack_initializeTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
+void stuTrack_process(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData, char* bufferuv);
+void stuTrack_stopTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 
 #ifdef  __cplusplus  
 }
