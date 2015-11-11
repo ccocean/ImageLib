@@ -9,12 +9,12 @@
 
 
 //定义老师跟踪状态
-#define RETURN_TRACK_TCH_STAND 1
-#define RETURN_TRACK_TCH_MOVEINVIEW 2
-#define RETURN_TRACK_TCH_MOVEOUTVIEW 3
-#define RETURN_TRACK_TCH_OUTSIDE 4
-#define RETURN_TRACK_TCH_BLACKBOARD 5
-#define RETURN_TRACK_TCH_MULITY 6
+#define RETURN_TRACK_TCH_STAND 1			//老师处在站立状态
+#define RETURN_TRACK_TCH_MOVEINVIEW 2		//老师在特写镜头内
+#define RETURN_TRACK_TCH_MOVEOUTVIEW 3		//老师走出特写镜头
+#define RETURN_TRACK_TCH_OUTSIDE 4			//老师离开跟踪区域
+#define RETURN_TRACK_TCH_BLACKBOARD 5		//老师书写板书状态
+#define RETURN_TRACK_TCH_MULITY 6			//讲台多目标状态
 
 //定义默认参数
 #define TRACK_SLIDE_WIDTH 5
@@ -125,7 +125,7 @@ typedef struct Data
 	//Tch_CamPosition_t tempCams[TRACK_NUMOF_POSITION];
 	Tch_CamPosition_t *cam_pos;
 
-	Tch_SysData_t *sysData;
+	Tch_SysData_t sysData;
 	
 
 }Tch_Data_t;

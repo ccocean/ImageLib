@@ -4,14 +4,10 @@ int tch_trackInit(Tch_Data_t *data)
 {
 	if (!data)
 	{
-		data->sysData->callbackmsg_func("Tch_Data_t err.");
+		data->sysData.callbackmsg_func("Tch_Data_t err.");
 		return -1;
 	}
 	int i=0;
-	/*if (g_frameSize.width <= 0)
-	{
-		return -1;
-	}*/
 	data->track_pos_width = data->g_frameSize.width / data->numOfPos;
 
 	data->tch_lastStatus = 0;
@@ -123,6 +119,10 @@ int tch_track(uchar *src, uchar* pUV, TeaITRACK_Params *params, Tch_Data_t *data
 	if (data->g_count>0)
 	{
 		data->g_count++;
+		if (data->g_count>50000)
+		{
+			data->g_count = 1;
+		}
 		//g_time = (double)cvGetTickCount();
 		track_update_MHI(data->currMatTch, data->prevMatTch, data->mhiMatTch, 10, data->maskMatTch, 235);
 		Track_Contour_t *contoursTch = NULL;
@@ -639,7 +639,7 @@ int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data)
 {
 	if (params==NULL||data==NULL)
 	{
-		data->sysData->callbackmsg_func("params err.");
+		data->sysData.callbackmsg_func("params err.");
 		return -1;
 	}
 	if (params->isSetParams==0)
@@ -669,7 +669,7 @@ int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data)
 	//初始化帧的大小
 	if (params->frame.width != 480 || params->frame.height != 264)
 	{
-		data->sysData->callbackmsg_func("frame size err.");
+		data->sysData.callbackmsg_func("frame size err.");
 		return -1;
 	}
 	data->g_frameSize.width = params->frame.width;
@@ -677,17 +677,17 @@ int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data)
 	//初始化教师框
 	if (params->tch.width<0 || params->tch.height<0)
 	{
-		data->sysData->callbackmsg_func("teacher window size err.");
+		data->sysData.callbackmsg_func("teacher window size err.");
 		return -1;
 	}
 	else if (params->tch.width>params->frame.width || params->tch.height>params->frame.height)
 	{
-		data->sysData->callbackmsg_func("teacher window size err.");
+		data->sysData.callbackmsg_func("teacher window size err.");
 		return -1;
 	}
 	else if (params->tch.x<0 || params->tch.x>params->frame.width || params->tch.y<0 || params->tch.y>params->frame.height)
 	{
-		data->sysData->callbackmsg_func("teacher window size err.");
+		data->sysData.callbackmsg_func("teacher window size err.");
 		return -1;
 	}
 	else
@@ -700,17 +700,17 @@ int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data)
 	//初始化板书框体
 	if (params->blk.width < 0 || params->blk.height < 0)
 	{
-		data->sysData->callbackmsg_func("blackboard window size err.");
+		data->sysData.callbackmsg_func("blackboard window size err.");
 		return -1;
 	}
 	else if (params->blk.width > params->frame.width || params->blk.height > params->frame.height)
 	{
-		data->sysData->callbackmsg_func("blackboard window size err.");
+		data->sysData.callbackmsg_func("blackboard window size err.");
 		return -1;
 	}
 	else if (params->blk.x < 0 || params->blk.x > params->frame.width || params->blk.y < 0 || params->blk.y > params->frame.height)
 	{
-		data->sysData->callbackmsg_func("blackboard window size err.");
+		data->sysData.callbackmsg_func("blackboard window size err.");
 		return -1;
 	}
 	else
@@ -723,12 +723,12 @@ int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data)
 	//初始化阈值
 	if (params->threshold.stand <= 0 || params->threshold.targetArea <= 0 || params->threshold.outside <= 0)
 	{
-		data->sysData->callbackmsg_func("threshold err.");
+		data->sysData.callbackmsg_func("threshold err.");
 		return -1;
 	}
 	if (params->numOfPos<params->numOfSlide||params->numOfPos<=0||params->numOfSlide<=0)
 	{
-		data->sysData->callbackmsg_func("camera position err.");
+		data->sysData.callbackmsg_func("camera position err.");
 		return -1;
 	}
 	else
