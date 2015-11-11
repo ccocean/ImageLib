@@ -62,8 +62,7 @@ Itc_Mat_t*	itc_create_mat( int height, int width, int type )
 	}
 	memset(mat->refcount, 0, (size_t)total_size);	//初始化为0
 	mat->data.ptr = (uchar*)( mat->refcount + 1);
-	//mat->data.ptr = (uchar*)(((size_t)mat->data.ptr + ITC_MALLOC_ALIGN - 1) &~ (size_t)(ITC_MALLOC_ALIGN - 1));//对齐到ITC_MALLOC_ALIGN整数位，比如说地址是110，ITC_MALLOC_ALIGN=16，那么就把地址对齐到112，如果地址是120，那么就对齐到128，
-	mat->data.ptr = itcAlignPtr(mat->data.ptr, ITC_MALLOC_ALIGN);
+	mat->data.ptr = (uchar*)(((size_t)mat->data.ptr + ITC_MALLOC_ALIGN - 1) &~ (size_t)(ITC_MALLOC_ALIGN - 1));//对齐到ITC_MALLOC_ALIGN整数位，比如说地址是110，ITC_MALLOC_ALIGN=16，那么就把地址对齐到112，如果地址是120，那么就对齐到128，
 	*mat->refcount = 1;
 
 	return arr;
@@ -829,7 +828,7 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 		k -= k_int_enhance;
 		if (img1[j - 1] != 0)//边界处理
 		{
-			if (flag_signLase > 0)
+			if (flag_signLase < 0)
 			{
 				sum_gradientH += (k - startX) / flag_signLase;
 				count_changeX++;

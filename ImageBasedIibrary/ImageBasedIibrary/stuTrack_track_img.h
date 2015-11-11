@@ -84,8 +84,8 @@ typedef struct _StuITRACK_InteriorParams
 	Track_Rect_t *stuTrack_rect_arr;
 
 	double stuTrack_zoom_scale;					//原图像/处理后图像
-	int *stuTrack_resize_tabx;					//用于计算缩放的映射表
-	int *stuTrack_resize_taby;
+	int *stuTrack_resize_tabOffsetX;			//用于计算缩放的映射表
+	int *stuTrack_resize_tabOffsetY;
 
 	int stuTrack_debugMsg_flag;					//调试信息输出等级
 	int stuTrack_Draw_flag;						//是否绘制结果
