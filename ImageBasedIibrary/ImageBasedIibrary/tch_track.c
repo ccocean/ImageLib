@@ -112,8 +112,8 @@ int tch_track(uchar *src, uchar* pUV, TeaITRACK_Params *params, Tch_Data_t *data
 	Track_Rect_t s_bigRects[100];//筛选出来的大面积运动物体
 	int s_maxdist = -1;//比较多个面积
 	int s_rectCnt = 0;
-	Trcak_Colour_t color = colour_RGB2YUV(255, 255, 0);
-	Track_Size_t imgSize = { 480, 264 };
+	/*Trcak_Colour_t color = colour_RGB2YUV(255, 255, 0);
+	Track_Size_t imgSize = { 480, 264 };*/
 	
 
 	if (data->g_count>0)
@@ -145,7 +145,7 @@ int tch_track(uchar *src, uchar* pUV, TeaITRACK_Params *params, Tch_Data_t *data
 				drawRect.y = s_rectsBlk[i].y + data->g_blkWin.y;
 				drawRect.width = s_rectsBlk[i].width;
 				drawRect.height = s_rectsBlk[i].height;
-				track_draw_rectangle(src, pUV, &imgSize, &drawRect, &color, YUV420_type);
+				//track_draw_rectangle(src, pUV, &imgSize, &drawRect, &color, YUV420_type);
 			}
 			res->status = RETURN_TRACK_TCH_BLACKBOARD;
 			res->pos = data->g_prevPosIndex;
@@ -228,7 +228,7 @@ int tch_track(uchar *src, uchar* pUV, TeaITRACK_Params *params, Tch_Data_t *data
 				drawRect.y = s_bigRects[i].y + data->g_tchWin.y;
 				drawRect.width = s_rectsTch[i].width;
 				drawRect.height = s_rectsTch[i].height;
-				track_draw_rectangle(src, pUV, &imgSize, &drawRect, &color, YUV420_type);
+				//track_draw_rectangle(src, pUV, &imgSize, &drawRect, &color, YUV420_type);
 				direct = tch_calculateDirect_TCH(data->mhiMatTch, s_rectsTch[i]);
 				if (direct>-1)
 				{
