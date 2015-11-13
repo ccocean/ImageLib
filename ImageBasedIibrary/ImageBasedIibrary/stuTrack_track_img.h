@@ -11,9 +11,6 @@
 extern "C" {
 #endif
 
-#define HEIGHT_STUTRACK_IMG_ 264
-#define WIDTH_STUTRACK_IMG_	480
-
 #define COUNT_STUTRACK_MALLOC_ELEMENT 10
 
 #define _PRINTF											\
@@ -37,8 +34,6 @@ if ((p) == NULL)								\
 #define ITC_FUNCNAME(name)
 #endif
 
-#include <time.h>
-
 typedef int(*_callbackmsg)(const char *format, ...);//用于输出调试信息的函数指针
 
 typedef struct StuTrack_Stand_t
@@ -51,8 +46,8 @@ typedef struct StuTrack_Stand_t
 	int flag_matching;	//匹配标志
 	Track_Point_t centre;
 	Track_Rect_t roi;
-	clock_t start_tClock;
-	clock_t current_tClock;
+	unsigned int start_tClock;
+	unsigned int current_tClock;
 }StuTrack_Stand_t;
 
 typedef struct StuTrack_BigMoveObj_t
@@ -61,8 +56,8 @@ typedef struct StuTrack_BigMoveObj_t
 	int flag_bigMove;		//标志
 	int dis_threshold;		//认为是移动目标的阈值
 	Track_Rect_t roi;
-	clock_t start_tClock;
-	clock_t current_tClock;
+	unsigned int start_tClock;
+	unsigned int current_tClock;
 	Track_Point_t origin_position;
 	Track_Point_t current_position;
 }StuTrack_BigMoveObj_t;
@@ -82,10 +77,6 @@ typedef struct _StuITRACK_InteriorParams
 	StuTrack_BigMoveObj_t* stuTrack_bigMOveObj;
 	int count_stuTrack_rect;			//运动区域计数
 	Track_Rect_t *stuTrack_rect_arr;
-
-	double stuTrack_zoom_scale;					//原图像/处理后图像
-	int *stuTrack_resize_tabOffsetX;			//用于计算缩放的映射表
-	int *stuTrack_resize_tabOffsetY;
 
 	int stuTrack_debugMsg_flag;					//调试信息输出等级
 	int stuTrack_Draw_flag;						//是否绘制结果
@@ -129,7 +120,7 @@ typedef struct 	_StuITRACK_Params
 	StuITRACK_ClientParams_t clientParams;
 }StuITRACK_Params;
 
-//默认参数值
+//默认输入参数值
 #define SCALE_STURACK_DEFAULT_ZOOM						0.333333333333333333
 #define THRESHOLD_STUTRACK_MOVE_DEFALUT_PARAMS			1.2
 #define THRESHOLD_STUTRACK_STANDCOUNT_DEFALUT_PARAMS	5
@@ -150,6 +141,34 @@ typedef struct 	_StuITRACK_Params
 
 #define COMPUTER_STUTRACK_SIZE_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS))
 #define COMPUTER_STUTRACK_DIRECT_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS))
+
+//---------------------------------------------------------------------输出参数相关
+#define RESULT_STUTRACK_NEWCHANGE_FLAG		(1<<30)
+#define RESULT_STUTRACK_IF_NEWCHANGE(n)	((n & RESULT_STUTRACK_NEWCHANGE_FLAG)== RESULT_STUTRACK_NEWCHANGE_FLAG)	//判断是否有变化
+
+//变化状态宏
+#define RESULT_STUTRACK_NULL_FLAG		0
+#define	RESULT_STUTRACK_STANDUP_FLAG	1
+#define	RESULT_STUTRACK_SITDOWN_FLAG	2
+#define	RESULT_STUTRACK_MOVE_FLAG		4
+#define RESULT_STUTRACK_STOPMOVE_FLAG	8
+
+#define RESULT_STUTRACK_IF_STANDUP(n)		((n & RESULT_STUTRACK_STANDUP_FLAG)== RESULT_STUTRACK_STANDUP_FLAG)	//判断是否有起立
+#define RESULT_STUTRACK_IF_SITDOWN(n)		((n & RESULT_STUTRACK_SITDOWN_FLAG)== RESULT_STUTRACK_SITDOWN_FLAG)	//判断是否有坐下
+#define RESULT_STUTRACK_IF_MOVE(n)			((n & RESULT_STUTRACK_MOVE_FLAG)== RESULT_STUTRACK_MOVE_FLAG)			//判断是否有移动目标
+#define RESULT_STUTRACK_IF_STOPMOVE(n)		((n & RESULT_STUTRACK_STOPMOVE_FLAG)== RESULT_STUTRACK_STOPMOVE_FLAG)	//判断是否有移动目标停止运动
+
+typedef struct _StuITRACK_OutParams
+{
+	int result_flag;							//当前帧变化状态
+	unsigned int count_trackObj_stand;			//起立目标个数
+	unsigned int count_trackObj_bigMove;		//移动目标个数
+	TrackPrarms_Point_t stand_position;			//起立目标位置
+	TrackPrarms_Point_t move_position;			//移动目标位置
+	TrackPrarms_Size_t standObj_size;			//起立目标大小
+	TrackPrarms_Size_t moveObj_size;			//移动目标大小
+}StuITRACK_OutParams_t;
+//-----------------------------------------------------------------------
 
 BOOL stuTrack_initializeTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 void stuTrack_process(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData, char* bufferuv);

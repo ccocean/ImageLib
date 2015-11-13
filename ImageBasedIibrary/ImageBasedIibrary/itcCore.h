@@ -18,6 +18,18 @@
 extern "C" {
 #endif
 
+#include <time.h>
+#define CONVERSION_STUTRACK_UNITStoMS (1000)
+
+#ifdef _WIN32
+#include <windows.h>
+#define  gettime GetTickCount
+#else
+#include <mcfw/src_bios6/utils/utils.h>
+#include <mcfw/interfaces/ti_media_std.h>
+#define  gettime Utils_getCurTimeInMsec
+#endif
+
 typedef struct Itc_Mat
 {
 	int type;

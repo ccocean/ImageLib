@@ -37,6 +37,8 @@ typedef unsigned short ushort;
 #define ITC_LOG2			0.69314718055994530941723212145818
 #define ITC_FIXEDPOINT_ALIGN	10
 
+#define ITC_NORM_ANGLE360(angle) (angle < 0 ? angle + ITC_360DEGREE : angle)
+
 #define ITC_SWAP(a,b,t) ((t) = (a), (a) = (b), (b) = (t))
 
 #define ITC_MIN(a,b)  ((a) > (b) ? (b) : (a))

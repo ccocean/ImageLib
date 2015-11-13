@@ -484,7 +484,7 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 						goto resume_scan;		//跳出扫描器
 					is_hole = 1;				//设置孔标志
 				}
-				count++;
+				
 				Track_Seq_t* contour = itcCreateSeq(0, sizeof(Track_Contour_t), sizeof(Track_Point_t), storage);
 				contour->flags = is_hole;
 				//跟踪边缘的起点
@@ -493,8 +493,8 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 				itcFetchContourEx(img + x - is_hole, step, itcPoint(origin.x, origin.y), contour, 126);
 				//lnbd.x = x - is_hole;			//当前扫描到边缘点的位置，用于下次扫描判断是否有包含关系
 
-				if (((Track_Contour_t*)(contour))->rect.width != 0 &&
-					((Track_Contour_t*)(contour))->rect.height != 0)
+				if (((Track_Contour_t*)(contour))->rect.width > 1 &&
+					((Track_Contour_t*)(contour))->rect.height > 1)
 				{
 					if ((*pContour) == NULL)
 					{
@@ -507,6 +507,7 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 						contour->h_next = (*pContour)->h_next;
 						(*pContour)->h_next = contour;
 						contour->h_prev = (*pContour)->h_prev;
+						count++;
 					}
 				}
 			resume_scan:
@@ -631,7 +632,7 @@ int track_filtrate_contours(Track_Contour_t** pContour, int size_Threshold, Trac
 
 //************************************
 // 函数名称: track_caluclateDirect_ROI
-// 函数说明：本函数假设运动像素速度较小，只计算连续的运动，即时间戳之差为1的运动
+// 函数说明：本函数假设运动像素速度较小
 // 作    者：XueYB
 // 作成日期：2015/10/14
 // 返 回 值: 
@@ -765,8 +766,8 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 							}
 							else
 							{
-								if (flag_signCurr > 0)				//flag_signCurr > 0说明flag_signLase<0
-								{
+								if (flag_signCurr > 0)				//flag_signCurr > 0说明flag_signLase<0，
+								{									//当前是升序的，所以要是有效的起点，上一次是降序，那么当前点也是一个有效的结束点
 									sum_gradientH += (k - startX) / flag_signCurr;
 									count_changeX++;
 									sum_gradientH += (k - startX) / flag_signLase;
@@ -808,7 +809,7 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 					else
 					{
 						//还未确定当前梯度的方向
-						if (flag_signCurr > 0)						//当前位置如果是升序的，那么是有效的
+						if (flag_signCurr > 0)						//当前位置如果是升序的，那么是有效的,因为是从左开始扫描
 						{
 							sum_gradientH += (k - startX) / flag_signCurr;
 							count_changeX++;
