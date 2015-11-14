@@ -198,7 +198,7 @@ void itc_release_mat(Itc_Mat_t** arr)
 	ICV_DEF_BIN_ARI_OP_2D(__op__, icv##name##_64f_C1R, double, double, ITC_CAST_64F)
 
 #undef ITC_SUB_R
-#define ITC_SUB_R(a,b) ((a) - (b))							//定义sub操作
+#define ITC_SUB_R(a,b) ((a) - (b))						//定义sub操作
 ICV_DEF_BIN_ARI_ALL(ITC_SUB_R, Sub)						//定义sub操作的函数
 
 void itc_sub_mat(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* dst)
@@ -245,6 +245,7 @@ void itc_sub_mat(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* dst)
 	}
 }
 
+#define MHT_TRACH_RESERVE_THRESHOLD 228
 void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diffThreshold, Itc_Mat_t* maskT, int Threshold)
 {
 	if (!ITC_ARE_TYPES_EQ(src1, src2) || !ITC_ARE_TYPES_EQ(src1, mhi))//检测类型是否一致
@@ -283,7 +284,7 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 				else
 				{
 					//mhi不能取小于0的值
-					qmhi[j] = qmhi[j] > 228 ? qmhi[j] : 1;
+					qmhi[j] = qmhi[j] > MHT_TRACH_RESERVE_THRESHOLD ? qmhi[j] : 1;
 					//qmhi[j] = ITC_IMAX(qmhi[j], 1);
 					qmhi[j]--;
 				}
@@ -322,7 +323,7 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 				{
 					//mhi不能取小于0的值
 					qmask[j] = qmhi[j] > Threshold;//生成一个二值化掩码
-					qmhi[j] = qmhi[j] > 228 ? qmhi[j] : 1;
+					qmhi[j] = qmhi[j] > MHT_TRACH_RESERVE_THRESHOLD ? qmhi[j] : 1;
 					//qmhi[j] = ITC_IMAX(qmhi[j], 1);
 					qmhi[j]--;
 				}
@@ -574,7 +575,7 @@ int track_intersect_rect(Track_Rect_t *rectA, Track_Rect_t *rectB, int expand_di
 		{
 			//对expand_dis进行处理
 			expand_dis = -expand_dis;
-			expand_dis = ITC_IMIN(expand_dis, rectA->width -( rectA->width>>2));
+			expand_dis = ITC_IMIN(expand_dis, rectA->width - (rectA->width >> 2));
 			expand_dis = ITC_IMIN(expand_dis, rectA->height - (rectA->height >> 2));
 			expand_dis = ITC_IMIN(expand_dis, rectB->width - (rectB->width >> 2));
 			expand_dis = ITC_IMIN(expand_dis, rectB->height - (rectB->height >> 2));
@@ -737,7 +738,8 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 	uchar *img0 = (uchar*)(mhi->data.ptr + step*y1);
 	uchar *img1 = img0;
 	
-	int k_int_enhance = 100;	//用于提高除法精度
+	int sign_Value = 0;		//用于标示两次方向是否相等
+	int k_int_enhance = 1 << ITC_FIXEDPOINT_ALIGN;	//用于提高除法精度
 	int k = 0;
 	//计算水平方向速度
 	for (i = y1; i < y2; i++)
@@ -759,7 +761,8 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 						///已经确定当前梯度的方向
 						if (img1[j] != 0 )
 						{
-							if (flag_signCurr*flag_signLase > 0)	//方向一致的才有效
+							sign_Value = flag_signCurr*flag_signLase;
+							if (sign_Value > 0)	//方向一致的才有效
 							{
 								sum_gradientH += (k - startX) / flag_signCurr;
 								count_changeX++;
@@ -767,11 +770,9 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 							else
 							{
 								if (flag_signCurr > 0)				//flag_signCurr > 0说明flag_signLase<0，
-								{									//当前是升序的，所以要是有效的起点，上一次是降序，那么当前点也是一个有效的结束点
-									sum_gradientH += (k - startX) / flag_signCurr;
-									count_changeX++;
-									sum_gradientH += (k - startX) / flag_signLase;
-									count_changeX++;
+								{									//当前是升序的，所以要是有效的起点，上一次是降序，那么当前点也是一个有效的结束点,所以是+2
+									sum_gradientH += ((k - startX)*(flag_signLase + flag_signCurr) / sign_Value);	//((k - startX) / flag_signCurr)+((k - startX) / flag_signLase)
+									count_changeX += 2;
 								}
 							}
 						}
@@ -858,7 +859,8 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 						//已经确定当前梯度的方向
 						if (img1[j] != 0)
 						{
-							if (flag_signCurr*flag_signLase > 0)
+							sign_Value = flag_signCurr*flag_signLase;
+							if (sign_Value > 0)
 							{
 								sum_gradientV += (k - startY) / flag_signCurr;
 								count_changeY++;
@@ -867,10 +869,8 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 							{
 								if (flag_signCurr > 0)				//flag_signCurr > 0说明flag_signLase<0
 								{
-									sum_gradientV += (k - startY) / flag_signCurr;
-									count_changeY++;
-									sum_gradientV += (k - startY) / flag_signLase;
-									count_changeY++;
+									sum_gradientV += ((k - startY)*(flag_signLase + flag_signCurr) / sign_Value);	//((k - startX) / flag_signCurr)+((k - startX) / flag_signLase)
+									count_changeY += 2;
 								}
 							}
 						}
@@ -1067,21 +1067,27 @@ BOOL track_resize_matData(uchar* srcData, Track_Size_t *ssize, char* dstData, Tr
 	}
 
 	int x, y, t;
-
+	int swidth2 = ssize->width << 1;
+	int sheight2 = ssize->height << 1;
+	int dwidth2 = dsize->width << 1;
+	int dheight2 = dsize->height << 1;
+	int minWidth = ITC_IMIN(ssize->width, dsize->width) - 1;
+	int minHeight = ITC_IMIN(ssize->height, dsize->height) - 1;
 	for (x = 0; x < dsize->width; x++)
 	{
-		t = (ssize->width*x * 2 + ITC_IMIN(ssize->width, dsize->width) - 1) / (dsize->width * 2);
+		t = (swidth2*x + minWidth) / dwidth2;
 		t -= t >= ssize->width;
 		x_ofs[x] = t;
 	}
 
+	int x_count = dsize->width - 2;
 	for (y = 0; y < dsize->height; y++, dstData += dsize->width)
 	{
 		const uchar* tsrc;
-		t = (ssize->height*y * 2 + ITC_IMIN(ssize->height, dsize->height) - 1) / (dsize->height * 2);
+		t = (sheight2*y + minHeight) / dheight2;
 		t -= t >= ssize->height;
 		tsrc = srcData + ssize->width*t;
-		for (x = 0; x <= dsize->width - 2; x += 2)
+		for (x = 0; x <= x_count; x += 2)
 		{
 			uchar t0 = tsrc[x_ofs[x]];
 			uchar t1 = tsrc[x_ofs[x + 1]];
