@@ -377,11 +377,11 @@ static void stuTrack_drawShow_imgData(StuITRACK_InteriorParams* interior_params_
 	int YUV420_type = TRACK_DRAW_YUV420SP;
 #endif
 
-	for (i = 0; i < interior_params_p->count_stuTrack_rect; i++)
-	{
-		rect = &stuTrack_rect_arr[i];
-		track_draw_rectangle(imageData, bufferuv, srcimg_size, rect, &interior_params_p->yellow_colour, YUV420_type);
-	}
+	//for (i = 0; i < interior_params_p->count_stuTrack_rect; i++)
+	//{
+	//	rect = &stuTrack_rect_arr[i];
+	//	track_draw_rectangle(imageData, bufferuv, srcimg_size, rect, &interior_params_p->yellow_colour, YUV420_type);
+	//}
 
 	for (i = 0; i < interior_params_p->count_trackObj_bigMove; i++)
 	{
@@ -398,7 +398,7 @@ static void stuTrack_drawShow_imgData(StuITRACK_InteriorParams* interior_params_
 			{
 				track_draw_rectangle(imageData, bufferuv, srcimg_size, rect, &interior_params_p->blue_colour, YUV420_type);
 			}
-			track_draw_line(imageData, bufferuv, srcimg_size, current_position, origin_position, &interior_params_p->green_colour, YUV420_type);//
+			//track_draw_line(imageData, bufferuv, srcimg_size, current_position, origin_position, &interior_params_p->green_colour, YUV420_type);//
 		}
 		else
 		{
@@ -431,8 +431,8 @@ static void stuTrack_drawShow_imgData(StuITRACK_InteriorParams* interior_params_
 	//	int direct;
 	//	track_calculateDirect_ROI((Itc_Mat_t *)interior_params_p->mhiMat, interior_params_p->stuTrack_rect_arr[i], &direct);
 	//	_PRINTF("½Ç¶È£º%d\n", direct);
-	//	int x1 = 20 * cos(direct*ITC_PI / 180);
-	//	int y1 = 20 * sin(direct*ITC_PI / 180);
+	//	int x1 = 20 * cos(direct*ITC_PI / ITC_180DEGREE);
+	//	int y1 = 20 * sin(direct*ITC_PI / ITC_180DEGREE);
 	//	Track_Point_t pt1 = { 0, 0 };
 	//	pt1.x = interior_params_p->stuTrack_rect_arr[i].x + interior_params_p->stuTrack_rect_arr[i].width / 2;
 	//	pt1.y = interior_params_p->stuTrack_rect_arr[i].y + interior_params_p->stuTrack_rect_arr[i].height / 2;

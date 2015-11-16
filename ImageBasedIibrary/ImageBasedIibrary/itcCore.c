@@ -245,7 +245,7 @@ void itc_sub_mat(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* dst)
 	}
 }
 
-#define MHT_TRACH_RESERVE_THRESHOLD 228
+#define MHT_TRACH_RESERVE_THRESHOLD 227  //只保留大于该值的点，否则置为0
 void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diffThreshold, Itc_Mat_t* maskT, int Threshold)
 {
 	if (!ITC_ARE_TYPES_EQ(src1, src2) || !ITC_ARE_TYPES_EQ(src1, mhi))//检测类型是否一致
@@ -322,7 +322,7 @@ void track_update_MHI(Itc_Mat_t* src1, Itc_Mat_t* src2, Itc_Mat_t* mhi, int diff
 				else
 				{
 					//mhi不能取小于0的值
-					qmask[j] = qmhi[j] > Threshold;//生成一个二值化掩码
+					qmask[j] = (qmhi[j] > Threshold) & 1;//生成一个二值化掩码
 					qmhi[j] = qmhi[j] > MHT_TRACH_RESERVE_THRESHOLD ? qmhi[j] : 1;
 					//qmhi[j] = ITC_IMAX(qmhi[j], 1);
 					qmhi[j]--;
@@ -739,7 +739,7 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 	uchar *img1 = img0;
 	
 	int sign_Value = 0;		//用于标示两次方向是否相等
-	int k_int_enhance = 1 << ITC_FIXEDPOINT_ALIGN;	//用于提高除法精度
+	int k_int_enhance = 1 << (ITC_FIXEDPOINT_ALIGN - 2);	//用于提高除法精度
 	int k = 0;
 	//计算水平方向速度
 	for (i = y1; i < y2; i++)
