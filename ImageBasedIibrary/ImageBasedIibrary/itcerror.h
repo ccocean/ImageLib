@@ -30,3 +30,4 @@
 #define  ITC_BADARG_ERR   -49  //ipp comp
 
 #endif // itcerror_h__
+
