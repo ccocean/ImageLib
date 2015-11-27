@@ -32,16 +32,18 @@
 #define TRACK_DEFAULT_BLK_H 37
 
 //站定时间的阈值
-#define TRACK_STAND_THRESHOLD 2
+#define TRACK_STAND_THRESHOLD 2000
 #define TRACK_TARGETAREA_THRESHOLD 7200
-#define TRACK_TCHOUTSIDE_THRESHOLD 95
+#define TRACK_TCHOUTSIDE_THRESHOLD TRACK_DEFAULT_TCH_H*0.65
 
 
 //计时器
 typedef struct TrackTimer
 {
-	clock_t start;
-	clock_t finish;
+	DWORD start;
+	DWORD finish;
+	//clock_t start;
+	//clock_t finish;
 	/*double timeLast;
 	double timeNow;*/
 	double deltaTime;
@@ -95,8 +97,9 @@ typedef struct Data
 	Track_Point_t center;
 	Track_Point_t lastCenter;
 
-	Track_Size_t g_frameSize;
-	Track_Rect_t g_tchWin;
+	Track_Size_t g_frameSize; //压缩后的大小
+	Track_Size_t src_size;	//原始图像大小
+	Track_Rect_t g_tchWin;  //处理教师的图片大小
 	Track_Rect_t g_blkWin;
 
 	Itc_Mat_t *srcMat;
@@ -134,7 +137,7 @@ typedef struct Data
 
 int tch_Init(TeaITRACK_Params *params, Tch_Data_t *data);//先调用这个
 
-int tch_track(uchar *src, uchar* pUV, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res);//开始跟踪调用这个
+int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res);//开始跟踪调用这个
 
 //int tch_track(Itc_Mat_t *src, TeaITRACK_Params *params, Tch_Data_t *data, Tch_Result_t *res);//开始跟踪调用这个
 
