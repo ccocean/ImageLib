@@ -40,8 +40,8 @@
 //¼ÆÊ±Æ÷
 typedef struct TrackTimer
 {
-	DWORD start;
-	DWORD finish;
+	unsigned long start;
+	unsigned long finish;
 	//clock_t start;
 	//clock_t finish;
 	/*double timeLast;

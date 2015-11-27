@@ -102,7 +102,7 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 	int YUV420_type = TRACK_DRAW_YUV420P;
 #endif
 #ifndef _WIN32
-	int YUV420_type = TRACK_DRAW_YUV420SP;
+	//int YUV420_type = TRACK_DRAW_YUV420SP;
 #endif
 
 	if (src==NULL || pUV==NULL|| params==NULL || data==NULL || res==NULL)
@@ -142,7 +142,7 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 	int s_maxdist = -1;//比较多个面积
 	int s_rectCnt = 0;
 	Track_Colour_t color = colour_RGB2YUV(255, 255, 0);
-	Track_Size_t imgSize = { 480, 264 };
+	//Track_Size_t imgSize = { 480, 264 };
 	
 
 	if (data->g_count>0)
@@ -164,11 +164,11 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 		itcClearMemStorage(data->storageBlk);
 		track_find_contours(data->maskMatBlk, &contoursBlk, data->storageBlk);
 		s_contourRectBlk = track_filtrate_contours(&contoursBlk, 20, s_rectsBlk);
-		Track_Rect_t drawRect;
+		//Track_Rect_t drawRect;
 
 		if (s_contourRectBlk > 0)
 		{
-			for (i = 0; i < s_contourRectBlk;i++)
+		/*	for (i = 0; i < s_contourRectBlk;i++)
 			{
 				drawRect.x = s_rectsBlk[i].x + data->g_blkWin.x;
 				drawRect.y = s_rectsBlk[i].y + data->g_blkWin.y;
@@ -176,7 +176,7 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 				drawRect.height = s_rectsBlk[i].height;
 				//track_draw_rectangle(src, pUV, &imgSize, &drawRect, &color, YUV420_type);
 			}
-			res->status = RETURN_TRACK_TCH_BLACKBOARD;
+		*/	res->status = RETURN_TRACK_TCH_BLACKBOARD;
 			res->pos = data->g_prevPosIndex;
 			return RETURN_TRACK_TCH_BLACKBOARD;
 		}
@@ -255,10 +255,10 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 				//printf("y: %d, h: %d", s_bigRects[i].y, s_bigRects[i].height);
 				data->g_isMulti = 0;
 				int direct = -1;
-				drawRect.x = s_bigRects[i].x + data->g_tchWin.x;
-				drawRect.y = s_bigRects[i].y + data->g_tchWin.y;
-				drawRect.width = s_rectsTch[i].width;
-				drawRect.height = s_rectsTch[i].height;
+				//drawRect.x = s_bigRects[i].x + data->g_tchWin.x;
+				//drawRect.y = s_bigRects[i].y + data->g_tchWin.y;
+				//drawRect.width = s_rectsTch[i].width;
+				//drawRect.height = s_rectsTch[i].height;
 				//track_draw_rectangle(src, pUV, &imgSize, &drawRect, &color, YUV420_type);
 				direct = tch_calculateDirect_TCH(data->mhiMatTch, s_rectsTch[i]);
 				if (direct>-1)
@@ -547,7 +547,7 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 										ptr = NULL;
 										return RETURN_TRACK_TCH_MOVEOUTVIEW;//返回全景镜头命令
 									}
-									break;
+									//break;
 								}
 							}
 						}
@@ -589,7 +589,7 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 		data->g_count++;
 		return 0;
 	}
-	return 0;
+	//return 0;
 }
 
 int tch_calculateDirect_TCH(Itc_Mat_t* src, Track_Rect_t roi)

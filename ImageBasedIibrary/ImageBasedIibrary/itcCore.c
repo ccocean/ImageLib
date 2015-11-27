@@ -457,6 +457,7 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 		return 0;
 	}
 	int step = src->step;
+	Track_Seq_t* contour = NULL;
 	//char *img0 = (char*)(src->data.ptr);
 	char *img = (char*)(src->data.ptr + step);
 	
@@ -486,7 +487,7 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 					is_hole = 1;				//设置孔标志
 				}
 				
-				Track_Seq_t* contour = itcCreateSeq(0, sizeof(Track_Contour_t), sizeof(Track_Point_t), storage);
+				contour = itcCreateSeq(0, sizeof(Track_Contour_t), sizeof(Track_Point_t), storage);
 				contour->flags = is_hole;
 				//跟踪边缘的起点
 				origin.y = y;
@@ -1052,7 +1053,7 @@ int track_copyImage_ROI(Itc_Mat_t* src, Itc_Mat_t* dst, Track_Rect_t roi)
 	}
 }
 
-BOOL track_resize_matData(itc_uchar* srcData, Track_Size_t *ssize, char* dstData, Track_Size_t *dsize)
+itc_BOOL track_resize_matData(itc_uchar* srcData, Track_Size_t *ssize, char* dstData, Track_Size_t *dsize)
 {
 	if (srcData == NULL || ssize==NULL
 		|| dstData == NULL || dsize == NULL)

@@ -195,7 +195,7 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 #define EXPADN_STURECK_STAND_COUNTUP_THRESHOLD	10
 #define EXPADN_STURECK_STAND_COUNTTAK_THRESHOLD	(-2)
 #define THRESHOLD_STURECK_RATIO_HENIGHTWIDTH	(2.1)
-static BOOL stuTrack_judgeStand_ROI(StuITRACK_InteriorParams* interior_params_p, StuTrack_Stand_t track_stand)
+static itc_BOOL stuTrack_judgeStand_ROI(StuITRACK_InteriorParams* interior_params_p, StuTrack_Stand_t track_stand)
 {
 	//ÅÐ¶ÏÊÇ·ñÆðÁ¢
 	int stuTrack_standCount_threshold = interior_params_p->stuTrack_standCount_threshold;
@@ -550,7 +550,7 @@ static int stuTrack_check_clientParams(const StuITRACK_ClientParams_t* clientPar
 	return CHECH_STURRACK_RESULT_OK;
 }
 
-BOOL stuTrack_initializeTrack(const StuITRACK_Params * inst, StuITRACK_InteriorParams* interior_params_p)
+itc_BOOL stuTrack_initializeTrack(const StuITRACK_Params * inst, StuITRACK_InteriorParams* interior_params_p)
 {
 	if (inst == NULL || interior_params_p == NULL)
 	{

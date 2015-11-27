@@ -64,7 +64,7 @@ typedef struct StuTrack_BigMoveObj_t
 
 typedef struct _StuITRACK_InteriorParams
 {
-	BOOL initialize_flag;
+	itc_BOOL initialize_flag;
 	int _count;	//统计帧数
 	Track_Size_t img_size;		//处理图像大小
 	Track_Size_t srcimg_size;	//原始图像大小
@@ -142,7 +142,7 @@ typedef struct 	_StuITRACK_Params
 #define COMPUTER_STUTRACK_SIZE_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS))
 #define COMPUTER_STUTRACK_DIRECT_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS))
 
-BOOL stuTrack_initializeTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
+itc_BOOL stuTrack_initializeTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 void stuTrack_process(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData, char* bufferuv);
 void stuTrack_stopTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 
