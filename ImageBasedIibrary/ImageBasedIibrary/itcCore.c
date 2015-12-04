@@ -457,7 +457,7 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 		return 0;
 	}
 	int step = src->step;
-	Track_Seq_t* contour = NULL;
+
 	//char *img0 = (char*)(src->data.ptr);
 	char *img = (char*)(src->data.ptr + step);
 	
@@ -470,6 +470,7 @@ int track_find_contours(Itc_Mat_t* src, Track_Contour_t** pContour, Track_MemSto
 	int prev = img[x - 1];
 
 	int count = 0;
+	Track_Seq_t* contour = NULL;
 	for (; y < height; y++, img += step)		//行，从上至下
 	{
 		for (x = 1; x < width; x++)				//列，从左至右
@@ -1100,4 +1101,24 @@ itc_BOOL track_resize_matData(itc_uchar* srcData, Track_Size_t *ssize, char* dst
 	itcFree_(x_ofs);
 	x_ofs = NULL;
 	return TRUE;
+}
+
+void perspectiveConvert(Track_Point_t *inpt, Track_Point_t *outpt, Itc_Mat_t* M)
+{
+	if (M->cols != 3 && M->rows != 3)
+	{
+		return;
+	}
+	double *prtH = M->data.db;
+	double w = inpt->x*prtH[6] + inpt->y*prtH[7] + prtH[8];
+	if (w > -ITC_DBL_EPSILON && w < ITC_DBL_EPSILON)
+	{	
+		w = 0.0;
+	}
+	else
+	{	
+		w = 1.0 / w;
+	}
+	outpt->x = (inpt->x*prtH[0] + inpt->y*prtH[1] + prtH[2])*w;
+	outpt->y = (inpt->x*prtH[3] + inpt->y*prtH[4] + prtH[5])*w;
 }
