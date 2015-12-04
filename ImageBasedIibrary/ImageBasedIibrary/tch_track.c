@@ -3,7 +3,7 @@
 static Track_Point_t pos_1 = { -1 };
 static Track_Point_t pos_2 = { -1 };
 
-static void tchTrack_Copy_matData(Tch_Data_t* datas, itc_uchar* srcData)
+static void tchTrack_Copy_matData(Tch_Data_t* datas, itc_uchar* srcData, Track_Rect_t tch, Track_Rect_t blk)
 {
 	//ITC_FUNCNAME("FUNCNAME:stuTrack_resizeCopy_matData\n");
 	int y = 0;
@@ -17,13 +17,33 @@ static void tchTrack_Copy_matData(Tch_Data_t* datas, itc_uchar* srcData)
 		return;
 	}
 
-	itc_uchar* dst_p = datas->srcMat->data.ptr;
+	/*itc_uchar* dst_p = datas->srcMat->data.ptr;
 	for (y = 0; y < height; y++)
 	{
 		memcpy(dst_p, srcData, sizeof(itc_uchar)* dst_step);
 		dst_p += dst_step;
 		srcData += src_step;
+	}*/
+
+	itc_uchar* dst_blk = datas->currMatBlk->data.ptr;
+	itc_uchar* src_blk = srcData + src_step*blk.y + blk.x;
+	for (y = 0; y < blk.height; y++)
+	{
+		memcpy(dst_blk, src_blk, sizeof(itc_uchar)* dst_step);
+		dst_blk += dst_step;
+		src_blk += src_step;
 	}
+
+	itc_uchar* dst_tch = datas->currMatTch->data.ptr;
+	itc_uchar* src_tch = srcData + src_step*tch.y + tch.x;
+
+	for (y = 0; y < tch.height; y++)
+	{
+		memcpy(dst_tch, src_tch, sizeof(itc_uchar)* dst_step);
+		dst_tch += dst_step;
+		src_tch += src_step;
+	}
+
 }
 
 int tch_trackInit(Tch_Data_t *data)
@@ -71,7 +91,7 @@ int tch_trackInit(Tch_Data_t *data)
 	
 	ptr = NULL;
 
-	data->srcMat = itc_create_mat(data->g_frameSize.height, data->g_frameSize.width, ITC_8UC1);
+	//data->srcMat = itc_create_mat(data->g_frameSize.height, data->g_frameSize.width, ITC_8UC1);
 
 	data->prevMatTch = itc_create_mat(data->g_tchWin.height, data->g_tchWin.width, ITC_8UC1);
 	data->prevMatBlk = itc_create_mat(data->g_blkWin.height, data->g_blkWin.width, ITC_8UC1);
@@ -114,10 +134,6 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 	{
 		return -2;
 	}
-	if (data->srcMat->data.ptr == NULL)
-	{
-		return -2;
-	}
 	res->pos = -1;
 	res->status = -1;
 	int i = 0, j = 0;
@@ -125,15 +141,16 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 //#ifdef _WIN32
 //	memcpy(data->srcMat->data.ptr, src, data->srcMat->step*data->srcMat->rows);
 //#else
-	tchTrack_Copy_matData(data,src);
+	
 //#endif
 	if (data->g_count>0)
 	{
 		ITC_SWAP(data->currMatTch, data->prevMatTch, data->tempMatTch);
 		ITC_SWAP(data->currMatBlk, data->prevMatBlk, data->tempMatBlk);
 	}
-	track_copyImage_ROI(data->srcMat, data->currMatTch, data->g_tchWin);
-	track_copyImage_ROI(data->srcMat, data->currMatBlk, data->g_blkWin);
+	tchTrack_Copy_matData(data, src, data->g_tchWin, data->g_blkWin);
+	/*track_copyImage_ROI(data->srcMat, data->currMatTch, data->g_tchWin);
+	track_copyImage_ROI(data->srcMat, data->currMatBlk, data->g_blkWin);*/
 	/*track_copyImage_ROI(src, data->currMatTch, data->g_tchWin);
 	track_copyImage_ROI(src, data->currMatBlk, data->g_blkWin);*/
 

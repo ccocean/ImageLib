@@ -104,7 +104,7 @@ typedef struct Data
 	Track_Rect_t g_tchWin;  //处理教师的图片大小
 	Track_Rect_t g_blkWin;
 
-	Itc_Mat_t *srcMat;
+	//Itc_Mat_t *srcMat;
 	Itc_Mat_t *tempMatTch;
 	Itc_Mat_t *tempMatBlk;
 	Itc_Mat_t *prevMatTch;
