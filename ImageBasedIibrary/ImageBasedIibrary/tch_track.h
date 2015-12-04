@@ -6,7 +6,9 @@
 #include "itcTrack_draw_img.h"
 #include<time.h>
 
-
+#ifdef  __cplusplus
+extern "C" {
+#endif
 
 //定义老师跟踪状态
 #define RETURN_TRACK_TCH_STAND 1			//老师处在站立状态
@@ -27,21 +29,21 @@
 #define TRACK_DEFAULT_TCH_W 480
 #define TRACK_DEFAULT_TCH_H 150
 #define TRACK_DEFAULT_BLK_X 0
-#define TRACK_DEFAULT_BLK_Y 26
+#define TRACK_DEFAULT_BLK_Y 30
 #define TRACK_DEFAULT_BLK_W 480
 #define TRACK_DEFAULT_BLK_H 37
 
 //站定时间的阈值
-#define TRACK_STAND_THRESHOLD 2000
-#define TRACK_TARGETAREA_THRESHOLD 7200
+#define TRACK_STAND_THRESHOLD 3500
+#define TRACK_TARGETAREA_THRESHOLD 6000 //7200
 #define TRACK_TCHOUTSIDE_THRESHOLD TRACK_DEFAULT_TCH_H*0.65
 
 
 //计时器
 typedef struct TrackTimer
 {
-	unsigned long start;
-	unsigned long finish;
+	DWORD start;
+	DWORD finish;
 	//clock_t start;
 	//clock_t finish;
 	/*double timeLast;
@@ -130,6 +132,14 @@ typedef struct Data
 
 	Tch_SysData_t sysData;
 	
+	//用于绘制的颜色
+	Track_Colour_t pink_colour;
+	Track_Colour_t blue_colour;
+	Track_Colour_t lilac_colour;
+	Track_Colour_t green_colour;
+	Track_Colour_t red_colour;
+	Track_Colour_t dullred_colour;
+	Track_Colour_t yellow_colour;
 
 }Tch_Data_t;
 
@@ -147,5 +157,8 @@ int tch_trackInit(Tch_Data_t *data);//不用管
 
 int tch_calculateDirect_TCH(Itc_Mat_t* src, Track_Rect_t roi);//不用管
 
+#ifdef  __cplusplus  
+}
+#endif  /* end of __cplusplus */ 
 
 #endif
