@@ -46,8 +46,8 @@ typedef struct StuTrack_Stand_t
 	int flag_matching;	//匹配标志
 	Track_Point_t centre;
 	Track_Rect_t roi;
-	unsigned int start_tClock;
-	unsigned int current_tClock;
+	unsigned long start_tClock;
+	unsigned long current_tClock;
 }StuTrack_Stand_t;
 
 typedef struct StuTrack_BigMoveObj_t
@@ -56,8 +56,8 @@ typedef struct StuTrack_BigMoveObj_t
 	int flag_bigMove;		//标志
 	int dis_threshold;		//认为是移动目标的阈值
 	Track_Rect_t roi;
-	unsigned int start_tClock;
-	unsigned int current_tClock;
+	unsigned long start_tClock;
+	unsigned long current_tClock;
 	Track_Point_t origin_position;
 	Track_Point_t current_position;
 }StuTrack_BigMoveObj_t;
@@ -87,6 +87,9 @@ typedef struct _StuITRACK_InteriorParams
 	double stuTrack_move_threshold;				//判定是移动目标的偏离阈值（比值）
 	int *stuTrack_size_threshold;				//运动目标大小过滤阈值（根据位置不同阈值不同）
 	int *stuTrack_direct_threshold;				//起立的标准角度,大小为width
+
+	Itc_Mat_t *transformationMatrix;				//图像坐标与云台相机的变换矩阵
+	double stretchingAB[2];					//拉伸系数
 
 	Itc_Mat_t *tempMat;
 	Itc_Mat_t *currMat;
@@ -122,7 +125,7 @@ typedef struct 	_StuITRACK_Params
 
 //默认输入参数值
 #define SCALE_STURACK_DEFAULT_ZOOM						0.333333333333333333
-#define THRESHOLD_STUTRACK_MOVE_DEFALUT_PARAMS			1.2
+#define THRESHOLD_STUTRACK_MOVE_DEFALUT_PARAMS			1.0
 #define THRESHOLD_STUTRACK_STANDCOUNT_DEFALUT_PARAMS	5
 #define THRESHOLD_STUTRACK_SITDOWNCOUNT_DEFALUT_PARAMS	5
 #define THRESHOLD_STUTRACK_MOVEDELAYED_DEFALUT_PARAMS	500

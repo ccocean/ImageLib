@@ -35,6 +35,9 @@ typedef struct _StuITRACK_ClientParams
 	int stuTrack_moveDelayed_threshold;			//移动目标保持跟踪的延时，超过这个时间无运动，则放弃跟踪(单位：毫秒)
 	double stuTrack_move_threshold;				//判定是移动目标的偏离阈值（比值）
 	TrackPrarms_Point_t stuTrack_vertex[4];		//学生区域四个顶点位置
+
+	double transformationMatrix[9];				//图像坐标与云台相机的变换矩阵
+	double stretchingAB[2];					//拉伸系数
 }StuITRACK_ClientParams_t;
 
 //---------------------------------------------------------------------输出参数相关
@@ -62,6 +65,9 @@ typedef struct _StuITRACK_OutParams
 	TrackPrarms_Point_t move_position;			//移动目标位置
 	TrackPrarms_Size_t standObj_size;			//起立目标大小
 	TrackPrarms_Size_t moveObj_size;			//移动目标大小
+
+	int stretchingCoefficient_stand;
+	int stretchingCoefficient_bigMove;
 }StuITRACK_OutParams_t;
 //-----------------------------------------------------------------------
 
