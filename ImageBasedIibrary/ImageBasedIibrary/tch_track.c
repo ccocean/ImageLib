@@ -7,7 +7,7 @@ static void tchTrack_Copy_matData(Tch_Data_t* datas, itc_uchar* srcData, Track_R
 {
 	//ITC_FUNCNAME("FUNCNAME:stuTrack_resizeCopy_matData\n");
 	int y = 0;
-	int height = datas->g_frameSize.height;
+	//int height = datas->g_frameSize.height;
 	int dst_step = datas->g_frameSize.width;
 	int src_step = datas->sysData.width;
 	if (dst_step > src_step)
@@ -114,7 +114,7 @@ int tch_trackInit(Tch_Data_t *data)
 	return 0;
 }
 
-static void tchTrack_drawShow_imgData(Tch_Data_t* interior_params, itc_uchar* imageData, itc_uchar* bufferuv, Track_Rect_t *rect, Track_Contour_t *color)
+static void tchTrack_drawShow_imgData(Tch_Data_t* interior_params, itc_uchar* imageData, itc_uchar* bufferuv, Track_Rect_t *rect, Track_Colour_t *color)
 {
 	Track_Size_t srcimg_size = { interior_params->sysData.width, interior_params ->sysData.height};	//原始图像大小
 #ifdef _WIN32
@@ -308,8 +308,8 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 				//printf("last position:%d,   current position:%d\r\n", data->g_prevPosIndex, data->g_posIndex);
 				if (abs(data->g_prevPosIndex - data->g_posIndex) > data->pos_slide.width + 1)
 				{
-					data->g_posIndex = data->g_prevPosIndex;
-					//data->g_prevPosIndex = data->g_posIndex;
+					//data->g_posIndex = data->g_prevPosIndex;
+					data->g_prevPosIndex = data->g_posIndex;
 					data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 					res->status = RETURN_TRACK_TCH_MULITY;
 					res->pos = data->pos_slide.center;
