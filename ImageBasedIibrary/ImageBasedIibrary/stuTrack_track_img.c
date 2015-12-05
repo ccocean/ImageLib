@@ -101,7 +101,7 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 			if (min_distance < threshold)
 			{
 				track_intersect_rect(&_roi, &(interior_params_p->stuTrack_stand[min_ID].roi), EXPAND_STUTRACK_INTERSECT_RECT);
-				_PRINTF("m角度：原角度:%d,当前角度:%d，范围:%d\n", stuTrack_stand[min_ID].direction, direct, stuTrack_direct_range);
+				//_PRINTF("m角度：原角度:%d,当前角度:%d，范围:%d\n", stuTrack_stand[min_ID].direction, direct, stuTrack_direct_range);
 				if ((abs(stuTrack_stand[min_ID].direction - direct) <= stuTrack_direct_range))
 				{
 					stuTrack_stand[min_ID].count_up++;
@@ -125,7 +125,7 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 		if (abs(standard_direct - direct) < (stuTrack_direct_range + EXPADN_STURECK_ADDSATND_DIRECT_RANGE) && interior_params_p->count_trackObj_stand < COUNT_STUTRACK_MALLOC_ELEMENT)
 		{
 			//add
-			_PRINTF("add stand：origin:%d,%d,size:%d,%d\n", x, y, roi.width, roi.height);
+			//_PRINTF("add stand：origin:%d,%d,size:%d,%d\n", x, y, roi.width, roi.height);
 			direct = ITC_IMAX(direct, standard_direct - (stuTrack_direct_range >> 1));
 			stuTrack_stand[interior_params_p->count_trackObj_stand].direction = ITC_IMIN(direct, standard_direct + (stuTrack_direct_range >> 1));
 			stuTrack_stand[interior_params_p->count_trackObj_stand].count_teack = 1;
@@ -251,7 +251,7 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 			{
 				standard_direct = stuTrack_direct_threshold[stuTrack_stand[i].centre.x];
 				flag_ROI = track_calculateDirect_ROI(mhi, stuTrack_stand[i].roi, &direct);
-				_PRINTF("a角度：原角度:%d,当前角度:%d，范围:%d\n", stuTrack_stand[i].direction, direct, stuTrack_direct_range);
+				//_PRINTF("a角度：原角度:%d,当前角度:%d，范围:%d\n", stuTrack_stand[i].direction, direct, stuTrack_direct_range);
 				if ((flag_ROI == 1) && ((abs(stuTrack_stand[i].direction - direct)) <= stuTrack_direct_range))
 				{
 					stuTrack_stand[i].count_up++;
@@ -260,7 +260,7 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 			_PRINTF("判断：%d, %d\n", stuTrack_stand[i].count_teack, stuTrack_stand[i].count_up);
 			if (stuTrack_judgeStand_ROI(interior_params_p, stuTrack_stand[i]))	//确定是否站立
 			{
-				_PRINTF("stand up：origin:%d,%d,size:%d,%d\n", stuTrack_stand[i].centre.x, stuTrack_stand[i].centre.y, stuTrack_stand[i].roi.width, stuTrack_stand[i].roi.height);
+				//_PRINTF("stand up：origin:%d,%d,size:%d,%d\n", stuTrack_stand[i].centre.x, stuTrack_stand[i].centre.y, stuTrack_stand[i].roi.width, stuTrack_stand[i].roi.height);
 				//设置起立的标记
 				interior_params_p->result_flag |= RESULT_STUTRACK_STANDUP_FLAG;
 				stuTrack_stand[i].flag_Stand = STATE_STUTRACK_STANDUP_FLAG;
@@ -380,8 +380,8 @@ static void stuTrack_drawShow_imgData(StuITRACK_InteriorParams* interior_params_
 	StuTrack_BigMoveObj_t* stuTrack_bigMOveObj = interior_params_p->stuTrack_bigMOveObj;
 
 	Track_Rect_t *rect;
-	Track_Point_t *current_position;
-	Track_Point_t *origin_position;
+	//Track_Point_t *current_position;
+	//Track_Point_t *origin_position;
 
 #ifdef _WIN32
 	int YUV420_type = TRACK_DRAW_YUV420P;
@@ -399,8 +399,8 @@ static void stuTrack_drawShow_imgData(StuITRACK_InteriorParams* interior_params_
 	for (i = 0; i < interior_params_p->count_trackObj_bigMove; i++)
 	{
 		rect = &stuTrack_bigMOveObj[i].roi;
-		current_position = &stuTrack_bigMOveObj[i].current_position;
-		origin_position = &stuTrack_bigMOveObj[i].origin_position;
+		//current_position = &stuTrack_bigMOveObj[i].current_position;
+		//origin_position = &stuTrack_bigMOveObj[i].origin_position;
 		if (interior_params_p->stuTrack_bigMOveObj[i].flag_bigMove != STATE_STUTRACK_NULL_FLAG)
 		{
 			if (interior_params_p->stuTrack_bigMOveObj[i].flag_bigMove == STATE_STUTRACK_MOVE_FLAG)
@@ -445,13 +445,13 @@ static void stuTrack_drawShow_imgData(StuITRACK_InteriorParams* interior_params_
 	for (i = 0; i < interior_params_p->count_stuTrack_rect; i++)
 	{
 		int direct;
-		track_calculateDirect_ROI((Itc_Mat_t *)interior_params_p->mhiMat, interior_params_p->stuTrack_rect_arr[i], &direct);
+		track_calculateDirect_ROI((Itc_Mat_t *)interior_params_p->mhiMat, stuTrack_rect_arr[i], &direct);
 		_PRINTF("角度：%d\n", direct);
 		int x1 = 20 * cos(direct*ITC_PI / ITC_180DEGREE);
 		int y1 = 20 * sin(direct*ITC_PI / ITC_180DEGREE);
 		Track_Point_t pt1 = { 0, 0 };
-		pt1.x = interior_params_p->stuTrack_rect_arr[i].x + interior_params_p->stuTrack_rect_arr[i].width / 2;
-		pt1.y = interior_params_p->stuTrack_rect_arr[i].y + interior_params_p->stuTrack_rect_arr[i].height / 2;
+		pt1.x = stuTrack_rect_arr[i].x + stuTrack_rect_arr[i].width / 2;
+		pt1.y = stuTrack_rect_arr[i].y + stuTrack_rect_arr[i].height / 2;
 		Track_Point_t pt2 = { 0, 0 };
 		pt2.x = pt1.x + x1;
 		pt2.y = pt1.y + y1;
