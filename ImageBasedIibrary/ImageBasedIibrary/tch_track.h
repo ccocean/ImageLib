@@ -48,7 +48,7 @@ typedef struct TrackTimer
 	//clock_t finish;
 	/*double timeLast;
 	double timeNow;*/
-	unsigned long deltaTime;
+	double deltaTime;
 }Tch_Timer_t;
 
 //‘§÷√ŒªøÈ
