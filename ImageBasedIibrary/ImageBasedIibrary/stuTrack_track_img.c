@@ -101,7 +101,10 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 			if (min_distance < threshold)
 			{
 				track_intersect_rect(&_roi, &(interior_params_p->stuTrack_stand[min_ID].roi), EXPAND_STUTRACK_INTERSECT_RECT);
-				_PRINTF("m角度：原角度:%d,当前角度:%d，范围:%d\n", stuTrack_stand[min_ID].direction, direct, stuTrack_direct_range);
+				if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
+				{	
+					_PRINTF("匹配环节！角度：原角度:%d,当前角度:%d，范围:%d\n", stuTrack_stand[min_ID].direction, direct, stuTrack_direct_range);
+				}
 				if ((abs(stuTrack_stand[min_ID].direction - direct) <= stuTrack_direct_range))
 				{
 					stuTrack_stand[min_ID].count_up++;
@@ -125,7 +128,10 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 		if (abs(standard_direct - direct) < (stuTrack_direct_range + EXPADN_STURECK_ADDSATND_DIRECT_RANGE) && interior_params_p->count_trackObj_stand < COUNT_STUTRACK_MALLOC_ELEMENT)
 		{
 			//add
-			_PRINTF("add stand：origin:%d,%d,size:%d,%d\n", x, y, roi.width, roi.height);
+			if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_2)
+			{	
+				_PRINTF("add stand：origin:%d,%d,size:%d,%d\n", x, y, roi.width, roi.height);
+			}
 			direct = ITC_IMAX(direct, standard_direct - (stuTrack_direct_range >> 1));
 			stuTrack_stand[interior_params_p->count_trackObj_stand].direction = ITC_IMIN(direct, standard_direct + (stuTrack_direct_range >> 1));
 			stuTrack_stand[interior_params_p->count_trackObj_stand].count_teack = 1;
@@ -189,7 +195,10 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 			}
 			if (interior_params_p->count_trackObj_bigMove < COUNT_STUTRACK_MALLOC_ELEMENT)
 			{
-				_PRINTF("add bigMove：origin:%d,%d,size:%d,%d,移动阈值:%d\n", x, y, roi.width, roi.height, (int)(ITC_IMIN(roi.width, roi.height) * stuTrack_move_threshold));
+				if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_2)
+				{	
+					_PRINTF("add bigMove：origin:%d,%d,size:%d,%d,移动阈值:%d\n", x, y, roi.width, roi.height, (int)(ITC_IMIN(roi.width, roi.height) * stuTrack_move_threshold));
+				}
 				stuTrack_bigMOveObj[interior_params_p->count_trackObj_bigMove].count_track = 1;
 				stuTrack_bigMOveObj[interior_params_p->count_trackObj_bigMove].flag_bigMove = STATE_STUTRACK_NULL_FLAG;
 				stuTrack_bigMOveObj[interior_params_p->count_trackObj_bigMove].dis_threshold = (int)(ITC_IMIN(roi.width, roi.height) * stuTrack_move_threshold);
@@ -251,16 +260,25 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 			{
 				standard_direct = stuTrack_direct_threshold[stuTrack_stand[i].centre.x];
 				flag_ROI = track_calculateDirect_ROI(mhi, stuTrack_stand[i].roi, &direct);
-				_PRINTF("a角度：原角度:%d,当前角度:%d，范围:%d\n", stuTrack_stand[i].direction, direct, stuTrack_direct_range);
+				if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
+				{
+					_PRINTF("角度：原角度:%d,当前角度:%d，范围:%d\n", stuTrack_stand[i].direction, direct, stuTrack_direct_range);
+				}
 				if ((flag_ROI == 1) && ((abs(stuTrack_stand[i].direction - direct)) <= stuTrack_direct_range))
 				{
 					stuTrack_stand[i].count_up++;
 				}
 			}
-			_PRINTF("判断：%d, %d\n", stuTrack_stand[i].count_teack, stuTrack_stand[i].count_up);
+			if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
+			{	
+				_PRINTF("判断：%d, %d\n", stuTrack_stand[i].count_teack, stuTrack_stand[i].count_up);
+			}
 			if (stuTrack_judgeStand_ROI(interior_params_p, stuTrack_stand[i]))	//确定是否站立
 			{
-				_PRINTF("stand up：origin:%d,%d,size:%d,%d\n", stuTrack_stand[i].centre.x, stuTrack_stand[i].centre.y, stuTrack_stand[i].roi.width, stuTrack_stand[i].roi.height);
+				if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_1)
+				{
+					_PRINTF("stand up：origin:%d,%d,size:%d,%d\n", stuTrack_stand[i].centre.x, stuTrack_stand[i].centre.y, stuTrack_stand[i].roi.width, stuTrack_stand[i].roi.height);
+				}
 				//设置起立的标记
 				interior_params_p->result_flag |= RESULT_STUTRACK_STANDUP_FLAG;
 				stuTrack_stand[i].flag_Stand = STATE_STUTRACK_STANDUP_FLAG;
@@ -277,7 +295,10 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 				stuTrack_stand[i].count_down++;
 				if (stuTrack_stand[i].count_down>stuTrack_sitdownCount_threshold)
 				{
-					_PRINTF("sit down：origin:%d,%d,size:%d,%d\n", stuTrack_stand[i].centre.x, stuTrack_stand[i].centre.y, stuTrack_stand[i].roi.width, stuTrack_stand[i].roi.height);
+					if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_1)
+					{
+						_PRINTF("sit down：origin:%d,%d,size:%d,%d\n", stuTrack_stand[i].centre.x, stuTrack_stand[i].centre.y, stuTrack_stand[i].roi.width, stuTrack_stand[i].roi.height);
+					}
 					//设置坐下的标记
 					interior_params_p->result_flag |= RESULT_STUTRACK_SITDOWN_FLAG;
 					stuTrack_stand[i].flag_Stand = STATE_STUTRACK_SITDOWN_FLAG;
@@ -312,7 +333,10 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 				{
 					if (track_intersect_rect(&roi, &stuTrack_bigMOveObj[k].roi, -(roi.width >> 1)))//检测求与移动目标是否相交
 					{
-						_PRINTF("stand to bigMove：origin:%d,%d,size:%d,%d\n", stuTrack_stand[i].centre.x, stuTrack_stand[i].centre.y, stuTrack_stand[i].roi.width, stuTrack_stand[i].roi.height);
+						if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_1)
+						{
+							_PRINTF("stand to bigMove：origin:%d,%d,size:%d,%d\n", stuTrack_stand[i].centre.x, stuTrack_stand[i].centre.y, stuTrack_stand[i].roi.width, stuTrack_stand[i].roi.height);
+						}
 						stuTrack_stand[i] = stuTrack_stand[--(interior_params_p->count_trackObj_stand)];
 						i--;
 						break;//跳出k循环
@@ -328,7 +352,10 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 		unsigned int _time = gettime() - stuTrack_bigMOveObj[i].current_tClock;
 		if (_time > THRESHOLD_STURECK_MOVETIME_DELETE_TIME)
 		{
-			//_PRINTF("delete bigMove:origin:%d,%d,current:%d,%d\n", stuTrack_bigMOveObj[i].origin_position.x, stuTrack_bigMOveObj[i].origin_position.y, stuTrack_bigMOveObj[i].current_position.x, stuTrack_bigMOveObj[i].current_position.y);
+			if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_2)
+			{
+				_PRINTF("delete bigMove:origin:%d,%d,current:%d,%d\n", stuTrack_bigMOveObj[i].origin_position.x, stuTrack_bigMOveObj[i].origin_position.y, stuTrack_bigMOveObj[i].current_position.x, stuTrack_bigMOveObj[i].current_position.y);
+			}
 			if (stuTrack_bigMOveObj[i].flag_bigMove != STATE_STUTRACK_NULL_FLAG)
 			{	
 				//设置停止运动的标记
@@ -348,7 +375,10 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 				_time = stuTrack_bigMOveObj[i].current_tClock - stuTrack_bigMOveObj[i].start_tClock;
 				if (_time > stuTrack_moveDelayed_threshold)
 				{
-					_PRINTF("find Move：origin:%d,%d,size:%d,%d\n", stuTrack_bigMOveObj[i].origin_position.x, stuTrack_bigMOveObj[i].origin_position.y, stuTrack_bigMOveObj[i].roi.width, stuTrack_bigMOveObj[i].roi.height);
+					if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_1)
+					{
+						_PRINTF("find Move：origin:%d,%d,size:%d,%d\n", stuTrack_bigMOveObj[i].origin_position.x, stuTrack_bigMOveObj[i].origin_position.y, stuTrack_bigMOveObj[i].roi.width, stuTrack_bigMOveObj[i].roi.height);
+					}
 					//设置移动目标的标记
 					interior_params_p->result_flag |= RESULT_STUTRACK_MOVE_FLAG;
 					stuTrack_bigMOveObj[i].flag_bigMove = STATE_STUTRACK_MOVE_FLAG;
@@ -363,7 +393,10 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 				if ((stuTrack_bigMOveObj[i].roi.width > size_threshold && stuTrack_bigMOveObj[i].roi.height > size_threshold)
 					|| stuTrack_bigMOveObj[i].roi.height > size_threshold2)
 				{
-					_PRINTF("find big：origin:%d,%d,size:%d,%d\n", stuTrack_bigMOveObj[i].origin_position.x, stuTrack_bigMOveObj[i].origin_position.y, stuTrack_bigMOveObj[i].roi.width, stuTrack_bigMOveObj[i].roi.height);
+					if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_1)
+					{
+						_PRINTF("find big：origin:%d,%d,size:%d,%d\n", stuTrack_bigMOveObj[i].origin_position.x, stuTrack_bigMOveObj[i].origin_position.y, stuTrack_bigMOveObj[i].roi.width, stuTrack_bigMOveObj[i].roi.height);
+					}
 					stuTrack_bigMOveObj[i].flag_bigMove = STATE_STUTRACK_BIG_FLAG;
 					interior_params_p->result_flag |= RESULT_STUTRACK_MOVE_FLAG;//设置移动目标的标记
 				}
@@ -478,7 +511,10 @@ static void stuTrack_reslut(StuITRACK_InteriorParams* interior_params_p, StuITRA
 	//填写返回结果结构体
 	if (interior_params_p->result_flag != RESULT_STUTRACK_NULL_FLAG)
 	{
-		_PRINTF("new change！\n");
+		if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_1)
+		{
+			_PRINTF("new change！\n");
+		}
 		return_params->result_flag = interior_params_p->result_flag | RESULT_STUTRACK_NEWCHANGE_FLAG;		//当前帧的变化,设置有变化的标记
 	}
 	return_params->count_trackObj_stand = 0;		//移动目标个数
@@ -531,7 +567,6 @@ static void stuTrack_reslut(StuITRACK_InteriorParams* interior_params_p, StuITRA
 		int size = ITC_IMAX(return_params->standObj_size.width, return_params->standObj_size.height);
 		return_params->stretchingCoefficient_stand = (int)(interior_params_p->stretchingAB[0] * size + interior_params_p->stretchingAB[1]);
 		return_params->stretchingCoefficient_stand = return_params->stretchingCoefficient_stand > 0 ? return_params->stretchingCoefficient_stand : 0;
-
 	}
 }
 

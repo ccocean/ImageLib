@@ -13,10 +13,15 @@ extern "C" {
 
 #define COUNT_STUTRACK_MALLOC_ELEMENT 10
 
+#define SATUTRACK_PRINTF_LEVEL_1 1
+#define SATUTRACK_PRINTF_LEVEL_2 2
+#define SATUTRACK_PRINTF_LEVEL_3 3
+#define SATUTRACK_PRINTF_LEVEL_4 4
+
 #define _PRINTF											\
-if (interior_params_p->callbackmsg_func == NULL)		\
-{	interior_params_p->callbackmsg_func = printf; }		\
-((callbackmsg)(interior_params_p->callbackmsg_func))
+	if (interior_params_p->callbackmsg_func == NULL)		\
+	{	interior_params_p->callbackmsg_func = printf; }		\
+	((callbackmsg)(interior_params_p->callbackmsg_func))
 
 #define ITC_RETURN
 #define JUDEGE_STUREACK_IF_NULL(p,r)			\
@@ -27,12 +32,12 @@ if ((p) == NULL)								\
 	return r;									\
 }
 
-#ifdef STUTRACK_DEBUG_SWICTH
-#define ITC_FUNCNAME(name) _PRINTF(name)
-#endif
-#ifndef STUTRACK_DEBUG_SWICTH
-#define ITC_FUNCNAME(name)
-#endif
+#define ITC_FUNCNAME(name) \
+	if ((interior_params_p->stuTrack_debugMsg_flag) >= SATUTRACK_PRINTF_LEVEL_4)\
+	{																			\
+		_PRINTF(name);															\
+	}
+
 
 typedef int(*_callbackmsg)(const char *format, ...);//用于输出调试信息的函数指针
 
