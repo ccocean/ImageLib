@@ -1119,6 +1119,6 @@ void perspectiveConvert(Track_Point_t *inpt, Track_Point_t *outpt, Itc_Mat_t* M)
 	{	
 		w = 1.0 / w;
 	}
-	outpt->x = (inpt->x*prtH[0] + inpt->y*prtH[1] + prtH[2])*w;
-	outpt->y = (inpt->x*prtH[3] + inpt->y*prtH[4] + prtH[5])*w;
+	outpt->x = (int)((inpt->x*prtH[0] + inpt->y*prtH[1] + prtH[2])*w + 0.5);
+	outpt->y = (int)((inpt->x*prtH[3] + inpt->y*prtH[4] + prtH[5])*w + 0.5);
 }

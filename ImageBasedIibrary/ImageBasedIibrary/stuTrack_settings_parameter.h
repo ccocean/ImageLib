@@ -37,7 +37,7 @@ typedef struct _StuITRACK_ClientParams
 	TrackPrarms_Point_t stuTrack_vertex[4];		//学生区域四个顶点位置
 
 	double transformationMatrix[9];				//图像坐标与云台相机的变换矩阵
-	double stretchingAB[2];					//拉伸系数
+	double stretchingAB[2];						//拉伸系数
 }StuITRACK_ClientParams_t;
 
 //---------------------------------------------------------------------输出参数相关
