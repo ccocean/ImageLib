@@ -464,6 +464,7 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 		data->g_count++;
 		return 0;
 	}
+	return 0;
 }
 
 int tch_calculateDirect_TCH(Itc_Mat_t* src, Track_Rect_t roi)
