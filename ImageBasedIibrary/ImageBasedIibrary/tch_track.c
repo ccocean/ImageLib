@@ -1,7 +1,7 @@
 #include "tch_track.h"
 
-static Track_Point_t pos_1 = { -1 };
-static Track_Point_t pos_2 = { -1 };
+//static Track_Point_t pos_1 = { -1 };
+//static Track_Point_t pos_2 = { -1 };
 
 static void tchTrack_Copy_matData(Tch_Data_t* datas, itc_uchar* srcData, Track_Rect_t tch, Track_Rect_t blk)
 {
