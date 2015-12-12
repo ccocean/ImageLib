@@ -94,10 +94,6 @@ typedef struct _StuITRACK_InteriorParams
 
 	int result_flag;					//当前帧变化状态
 
-	//int count_trackObj_stand;			//起立区域计数
-	//StuTrack_Stand_t* stuTrack_stand;
-	//int count_trackObj_bigMove;			//移动目标计数
-	//StuTrack_BigMoveObj_t* stuTrack_bigMOveObj;
 	int count_stuTrack_rect;			//运动区域计数
 	Track_Rect_t *stuTrack_rect_arr;
 
@@ -155,7 +151,7 @@ typedef struct 	_StuITRACK_Params
 #define THRESHOLD_STUTRACK_STANDCOUNT_DEFALUT_PARAMS	5
 #define THRESHOLD_STUTRACK_SITDOWNCOUNT_DEFALUT_PARAMS	5
 #define THRESHOLD_STUTRACK_MOVEDELAYED_DEFALUT_PARAMS	500
-#define RANGE_STUTRACK_STANDDIRECT_DEFALUT_PARAMS		9
+#define RANGE_STUTRACK_STANDDIRECT_DEFALUT_PARAMS		15
 
 //用于计算筛选阈值的线性方程参数
 #define A_STUTRACK_SIZE_THRESHOLD_PARAMS		(0.25)
@@ -171,8 +167,22 @@ typedef struct 	_StuITRACK_Params
 #define COMPUTER_STUTRACK_SIZE_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS))
 #define COMPUTER_STUTRACK_DIRECT_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS))
 
+
 itc_BOOL stuTrack_initializeTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
-void stuTrack_process(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData, char* bufferuv);
+
+typedef int stuTrackReturn;
+#define RETURN_STUTRACK_NEED_PROCESS 1		//需要处理
+#define RETURN_STUTRACK_noNEED_PROCESS 0	//不需要处理
+//************************************
+// 函数名称: stuTrack_Process
+// 函数说明：函数处理每一帧的图像数据，对学生区域进行起立跟踪和移动跟踪
+// 作    者：XueYB
+// 作成日期：2015/12/12
+// 返 回 值: RETURN_STUTRACK_NEED_PROCESS表示return_params是有变化的，RETURN_STUTRACK_noNEED_PROCESS表示没有变化不需要处理
+// 参    数: inst是输入的系统参数，interior_params_p用保存跟踪变量和参数，return_params是输出的跟踪结果
+//************************************
+stuTrackReturn stuTrack_process(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData, char* bufferuv);
+
 void stuTrack_stopTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 
 #ifdef  __cplusplus  
