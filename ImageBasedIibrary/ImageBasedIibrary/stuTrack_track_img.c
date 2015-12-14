@@ -703,12 +703,12 @@ stuTrackReturn stuTrack_process(const StuITRACK_Params *inst, StuITRACK_Interior
 {
 	if (imageData == NULL || return_params == NULL || interior_params_p == NULL || inst == NULL )
 	{
-		return;
+		return RETURN_STUTRACK_noNEED_PROCESS;
 	}
 	else if (interior_params_p->initialize_flag == FALSE)
 	{
 		_PRINTF("Failed to initialize!\n");
-		return;
+		return RETURN_STUTRACK_noNEED_PROCESS;
 	}
 	ITC_FUNCNAME("FUNCNAME:stuTrack_process\n");
 	if (interior_params_p->srcimg_size.width == 0 || interior_params_p->srcimg_size.height == 0)																									 
@@ -716,7 +716,7 @@ stuTrackReturn stuTrack_process(const StuITRACK_Params *inst, StuITRACK_Interior
 		if (inst->systemParams.nsrcWidth == 0 || inst->systemParams.nsrcHeight == 0)																												 
 		{																																															 
 			_PRINTF("The original image size error!\n");																																			 
-			return;																																													 
+			return RETURN_STUTRACK_noNEED_PROCESS;
 		}																																															 
 		interior_params_p->srcimg_size.width = inst->systemParams.nsrcWidth;																														 
 		interior_params_p->srcimg_size.height = inst->systemParams.nsrcHeight;									
