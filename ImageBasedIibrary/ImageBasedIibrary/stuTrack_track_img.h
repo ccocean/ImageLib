@@ -70,7 +70,8 @@ typedef struct StuTrack_BigMoveObj_t
 
 typedef struct StuTrack_allState_t
 {
-	int flag_state;			//标志
+	int flag_state;			//状态标志
+	int flag_matching;		//匹配标志
 	int count_teack;		//
 	int count_up;			//
 	int count_down;			//
@@ -111,7 +112,17 @@ typedef struct _StuITRACK_InteriorParams
 	int *stuTrack_direct_threshold;				//起立的标准角度,大小为width
 
 	Itc_Mat_t *transformationMatrix;				//图像坐标与云台相机的变换矩阵
-	double stretchingAB[2];					//拉伸系数
+	double stretchingAB[2];							//拉伸系数
+
+	unsigned int move_camera_time;
+	int old_move_Stopflag;
+	int OldResult_flag;
+	int move_csucceed_flag;
+
+	TrackPrarms_Point_t old_move_position;			//移动目标保存的镜头位置
+	int old_move_stretchingCoefficient;				//移动目标保存的拉伸系数
+	TrackPrarms_Point_t old_standup_position;		//起立保存的镜头位置
+	int old_standup_stretchingCoefficient;			//移动目标保存的拉伸系数
 
 	Itc_Mat_t *tempMat;
 	Itc_Mat_t *currMat;
@@ -144,6 +155,19 @@ typedef struct 	_StuITRACK_Params
 	StuITRACK_SystemParams_t systemParams;
 	StuITRACK_ClientParams_t clientParams;
 }StuITRACK_Params;
+
+//变化状态宏
+#define RESULT_STUTRACK_NULL_FLAG		0
+#define	RESULT_STUTRACK_STANDUP_FLAG	1
+#define	RESULT_STUTRACK_SITDOWN_FLAG	2
+#define	RESULT_STUTRACK_MOVE_FLAG		4
+#define RESULT_STUTRACK_STOPMOVE_FLAG	8
+
+//这几个宏对result_flag进行判断
+#define RESULT_STUTRACK_IF_STANDUP(n)		((n & RESULT_STUTRACK_STANDUP_FLAG)== RESULT_STUTRACK_STANDUP_FLAG)		//判断是否有起立的动作
+#define RESULT_STUTRACK_IF_SITDOWN(n)		((n & RESULT_STUTRACK_SITDOWN_FLAG)== RESULT_STUTRACK_SITDOWN_FLAG)		//判断是否有坐下的动作
+#define RESULT_STUTRACK_IF_MOVE(n)			((n & RESULT_STUTRACK_MOVE_FLAG)== RESULT_STUTRACK_MOVE_FLAG)			//判断是否有新的移动目标
+#define RESULT_STUTRACK_IF_STOPMOVE(n)		((n & RESULT_STUTRACK_STOPMOVE_FLAG)== RESULT_STUTRACK_STOPMOVE_FLAG)	//判断是否有移动目标停止运动
 
 //默认输入参数值
 #define SCALE_STURACK_DEFAULT_ZOOM						0.333333333333333333
