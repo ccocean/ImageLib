@@ -961,10 +961,16 @@ int track_calculateDirect_ROI(Itc_Mat_t* mhi, Track_Rect_t roi, int *direct)
 		{
 			if (gradientV_abs > (1 << (ITC_FIXEDPOINT_ALIGN - 1)))
 				return 1;
+			else
+				return -1;
 		}
 		else if (gradientH_abs > (1 << (ITC_FIXEDPOINT_ALIGN - 1)))
 		{
 			return 2;
+		}
+		else
+		{
+			return -2;
 		}
 	}
 	return 0;

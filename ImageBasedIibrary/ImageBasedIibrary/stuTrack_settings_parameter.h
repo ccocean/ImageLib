@@ -51,14 +51,15 @@ typedef struct _StuITRACK_ClientParams
 #define	RESULT_STUTRACK_MOVE_FLAG		4
 #define RESULT_STUTRACK_STOPMOVE_FLAG	8
 
-#define RESULT_STUTRACK_IF_STANDUP(n)		((n & RESULT_STUTRACK_STANDUP_FLAG)== RESULT_STUTRACK_STANDUP_FLAG)	//判断是否有起立
-#define RESULT_STUTRACK_IF_SITDOWN(n)		((n & RESULT_STUTRACK_SITDOWN_FLAG)== RESULT_STUTRACK_SITDOWN_FLAG)	//判断是否有坐下
-#define RESULT_STUTRACK_IF_MOVE(n)			((n & RESULT_STUTRACK_MOVE_FLAG)== RESULT_STUTRACK_MOVE_FLAG)			//判断是否有移动目标
+//这几个宏对result_flag进行判断
+#define RESULT_STUTRACK_IF_STANDUP(n)		((n & RESULT_STUTRACK_STANDUP_FLAG)== RESULT_STUTRACK_STANDUP_FLAG)		//判断是否有起立的动作
+#define RESULT_STUTRACK_IF_SITDOWN(n)		((n & RESULT_STUTRACK_SITDOWN_FLAG)== RESULT_STUTRACK_SITDOWN_FLAG)		//判断是否有坐下的动作
+#define RESULT_STUTRACK_IF_MOVE(n)			((n & RESULT_STUTRACK_MOVE_FLAG)== RESULT_STUTRACK_MOVE_FLAG)			//判断是否有新的移动目标
 #define RESULT_STUTRACK_IF_STOPMOVE(n)		((n & RESULT_STUTRACK_STOPMOVE_FLAG)== RESULT_STUTRACK_STOPMOVE_FLAG)	//判断是否有移动目标停止运动
 
 typedef struct _StuITRACK_OutParams
 {
-	int result_flag;							//当前帧变化状态
+	int result_flag;							//当前帧的变化状态()
 	unsigned int count_trackObj_stand;			//起立目标个数
 	unsigned int count_trackObj_bigMove;		//移动目标个数
 	TrackPrarms_Point_t stand_position;			//起立目标位置

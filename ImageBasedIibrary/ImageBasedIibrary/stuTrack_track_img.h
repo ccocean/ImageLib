@@ -46,11 +46,12 @@ typedef struct StuTrack_Stand_t
 	int direction;
 	int count_teack;	//
 	int count_up;		//
-	int count_down;	//
+	int count_down;		//
 	int flag_Stand;		//起立标志
 	int flag_matching;	//匹配标志
 	Track_Point_t centre;
 	Track_Rect_t roi;
+	int origin_y;
 	unsigned long start_tClock;
 	unsigned long current_tClock;
 }StuTrack_Stand_t;
@@ -67,6 +68,23 @@ typedef struct StuTrack_BigMoveObj_t
 	Track_Point_t current_position;
 }StuTrack_BigMoveObj_t;
 
+typedef struct StuTrack_allState_t
+{
+	int flag_state;			//标志
+	int count_teack;		//
+	int count_up;			//
+	int count_down;			//
+	int dis_threshold;		//认为是移动目标的阈值
+	Track_Rect_t roi;
+	unsigned long start_tClock;
+	unsigned long current_tClock;
+	int origin_top_y;
+	Track_Point_t origin_position;
+	Track_Point_t current_position;
+	Track_Point_t standUp_position;
+	int standUp_size;
+}StuTrack_allState_t;
+
 typedef struct _StuITRACK_InteriorParams
 {
 	itc_BOOL initialize_flag;
@@ -76,12 +94,11 @@ typedef struct _StuITRACK_InteriorParams
 
 	int result_flag;					//当前帧变化状态
 
-	int count_trackObj_stand;			//起立区域计数
-	StuTrack_Stand_t* stuTrack_stand;
-	int count_trackObj_bigMove;			//移动目标计数
-	StuTrack_BigMoveObj_t* stuTrack_bigMOveObj;
 	int count_stuTrack_rect;			//运动区域计数
 	Track_Rect_t *stuTrack_rect_arr;
+
+	int count_trackObj_allState;
+	StuTrack_allState_t* stuTrack_allState;
 
 	int stuTrack_debugMsg_flag;					//调试信息输出等级
 	int stuTrack_Draw_flag;						//是否绘制结果
@@ -134,7 +151,7 @@ typedef struct 	_StuITRACK_Params
 #define THRESHOLD_STUTRACK_STANDCOUNT_DEFALUT_PARAMS	5
 #define THRESHOLD_STUTRACK_SITDOWNCOUNT_DEFALUT_PARAMS	5
 #define THRESHOLD_STUTRACK_MOVEDELAYED_DEFALUT_PARAMS	500
-#define RANGE_STUTRACK_STANDDIRECT_DEFALUT_PARAMS		9
+#define RANGE_STUTRACK_STANDDIRECT_DEFALUT_PARAMS		15
 
 //用于计算筛选阈值的线性方程参数
 #define A_STUTRACK_SIZE_THRESHOLD_PARAMS		(0.25)
@@ -143,15 +160,29 @@ typedef struct 	_StuITRACK_Params
 #define A_STUTRACK_DIRECT_THRESHOLD_PARAMS		(DIRECT_STUTRACK_TRANSMUTABLILITY_RANGE/WIDTH_STUTRACK_IMG_)
 #define B_STUTRACK_DIRECT_THRESHOLD_PARAMS		(270-DIRECT_STUTRACK_TRANSMUTABLILITY_RANGE/2)
 #define MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS		20
-#define MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS		55
+#define MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS		60
 #define MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS	225
 #define MAXTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS	315
 
 #define COMPUTER_STUTRACK_SIZE_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS))
 #define COMPUTER_STUTRACK_DIRECT_THRESHOLD_PARAMS(n,a,b)  (ITC_MIN(ITC_MAX(((a *n + b)), MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS), MAXTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS))
 
+
 itc_BOOL stuTrack_initializeTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
-void stuTrack_process(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData, char* bufferuv);
+
+typedef int stuTrackReturn;
+#define RETURN_STUTRACK_NEED_PROCESS 1		//需要处理
+#define RETURN_STUTRACK_noNEED_PROCESS 0	//不需要处理
+//************************************
+// 函数名称: stuTrack_Process
+// 函数说明：函数处理每一帧的图像数据，对学生区域进行起立跟踪和移动跟踪
+// 作    者：XueYB
+// 作成日期：2015/12/12
+// 返 回 值: RETURN_STUTRACK_NEED_PROCESS表示return_params是有变化的，RETURN_STUTRACK_noNEED_PROCESS表示没有变化不需要处理
+// 参    数: inst是输入的系统参数，interior_params_p用保存跟踪变量和参数，return_params是输出的跟踪结果
+//************************************
+stuTrackReturn stuTrack_process(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params, char* imageData, char* bufferuv);
+
 void stuTrack_stopTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* interior_params_p);
 
 #ifdef  __cplusplus  
