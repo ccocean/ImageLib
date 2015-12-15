@@ -13,7 +13,7 @@ static void tchTrack_Copy_matData(Tch_Data_t* datas, itc_uchar* srcData, Track_R
 	if (dst_step > src_step)
 	{
 		//_PRINTF("The image cache size error!\n");
-		//datas->sysData.callbackmsg_func("The image cache size error!\n");
+		datas->sysData.callbackmsg_func("The image cache size error!\n");
 		return;
 	}
 
@@ -138,21 +138,14 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 	res->status = -1;
 	int i = 0, j = 0;
 
-//#ifdef _WIN32
-//	memcpy(data->srcMat->data.ptr, src, data->srcMat->step*data->srcMat->rows);
-//#else
-	
-//#endif
+
 	if (data->g_count>0)
 	{
 		ITC_SWAP(data->currMatTch, data->prevMatTch, data->tempMatTch);
 		ITC_SWAP(data->currMatBlk, data->prevMatBlk, data->tempMatBlk);
 	}
 	tchTrack_Copy_matData(data, src, data->g_tchWin, data->g_blkWin);
-	/*track_copyImage_ROI(data->srcMat, data->currMatTch, data->g_tchWin);
-	track_copyImage_ROI(data->srcMat, data->currMatBlk, data->g_blkWin);*/
-	/*track_copyImage_ROI(src, data->currMatTch, data->g_tchWin);
-	track_copyImage_ROI(src, data->currMatBlk, data->g_blkWin);*/
+
 
 	tchTrack_drawShow_imgData(data, src, pUV, &data->g_tchWin,&data->red_colour);
 	tchTrack_drawShow_imgData(data, src, pUV, &data->g_blkWin, &data->red_colour);
@@ -164,7 +157,7 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 	Track_Rect_t s_bigRects[100];//筛选出来的大面积运动物体
 	int s_maxdist = -1;//比较多个面积
 	int s_rectCnt = 0;
-	
+	int isChange = -1;
 
 	if (data->g_count>0)
 	{
@@ -198,8 +191,10 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 				tchTrack_drawShow_imgData(data, src, pUV, &drawRect, &data->green_colour);
 			}
 			res->status = RETURN_TRACK_TCH_BLACKBOARD;
+			isChange = (res->status != data->tch_lastStatus);
+			data->tch_lastStatus = RETURN_TRACK_TCH_BLACKBOARD;
 			res->pos = data->pos_slide.center;
-			return RETURN_TRACK_TCH_BLACKBOARD;
+			return isChange;
 		}
 
 		//比较多个Rect之间x坐标的距离
@@ -222,32 +217,34 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 				{
 					res->pos = data->pos_slide.center;
 					res->status = RETURN_TRACK_TCH_MOVEINVIEW;
+					isChange = (res->status != data->tch_lastStatus);
 					data->tch_lastStatus = RETURN_TRACK_TCH_MOVEINVIEW;
-					return 1;
+					return isChange;
 				}
 				else
 				{
 					res->pos = data->pos_slide.center;
 					res->status = data->tch_lastStatus;
+					return STATUS_NONE;
 				}
 			}
 			else
 			{
 				res->pos = data->pos_slide.center;
 				res->status = data->tch_lastStatus;
+				return STATUS_NONE;
 			}
 		}
 		else if (s_rectCnt>1)
 		{
-			if (s_rectCnt > 2)
-			{
-				//printf(">2\r\n");
-			}
-			else
-				//printf("=2\r\n");
 			s_maxdist = -1;
 			for (i = 0; i < s_rectCnt; i++)
 			{
+				drawRect.x = s_bigRects[i].x + data->g_tchWin.x;
+				drawRect.y = s_bigRects[i].y + data->g_tchWin.y;
+				drawRect.width = s_bigRects[i].width;
+				drawRect.height = s_bigRects[i].height;
+				tchTrack_drawShow_imgData(data, src, pUV, &drawRect, &data->yellow_colour);
 				for (j = i + 1; j < s_rectCnt; j++)
 				{
 					if (abs(s_bigRects[i].x - s_bigRects[j].x)>s_maxdist)
@@ -262,11 +259,12 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 			{
 				//printf("=========");
 				data->g_isMulti = 1;
-				data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 				res->status = RETURN_TRACK_TCH_MULITY;
+				isChange = (res->status != data->tch_lastStatus);
+				data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 				res->pos = -1;
 				data->slideTimer.start = gettime();
-				return 1;
+				return isChange;
 			}
 		}
 		else
@@ -310,47 +308,26 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 				{
 					//data->g_posIndex = data->g_prevPosIndex;
 					data->g_prevPosIndex = data->g_posIndex;
-					data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 					res->status = RETURN_TRACK_TCH_MULITY;
+					isChange = (res->status != data->tch_lastStatus);
+					data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
 					res->pos = data->pos_slide.center;
 					data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
-					return 1;
+					return isChange;
 				}
-				/*else if (abs(data->g_prevPosIndex - data->g_posIndex)<data->pos_slide.width)
-				{
-					pos_1 = data->center;
-				}*/
-
-				//if (data->g_isMulti == 1)
-				//{
-				//	if (abs(data->g_prevPosIndex - data->g_posIndex) > data->pos_slide.width + 1)
-				//	{
-				//		//printf("++++++++");
-				//		data->g_posIndex = data->g_prevPosIndex;
-				//		//data->g_prevPosIndex = data->g_posIndex;
-				//		data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
-				//		res->status = RETURN_TRACK_TCH_MULITY;
-				//		res->pos = data->pos_slide.center;
-				//		data->tch_lastStatus = RETURN_TRACK_TCH_MULITY;
-				//		return 1;
-				//	}
-				//	else
-				//	{
-				//		data->g_isMulti = 0;
-				//	}
-				//}
 
 				//如果运动框体低于一定阈值，则认为走下讲台
 				if (data->center.y > params->threshold.outside)
 				//if (pos_1.y > params->threshold.outside)
 				{
-					data->tch_lastStatus = RETURN_TRACK_TCH_OUTSIDE;
 					res->status = RETURN_TRACK_TCH_OUTSIDE;
+					isChange = (res->status != data->tch_lastStatus);
+					data->tch_lastStatus = RETURN_TRACK_TCH_OUTSIDE;
 					res->pos = -1;
 					data->g_posIndex = -1;
 					data->g_prevPosIndex = -1;
 					data->tch_lastStatus = RETURN_TRACK_TCH_OUTSIDE;
-					return 1;
+					return isChange;
 				}
 
 				//更新位置
@@ -436,17 +413,19 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 
 				if ((data->slideTimer.deltaTime) > params->threshold.stand)
 				{
-					data->tch_lastStatus = RETURN_TRACK_TCH_MOVEINVIEW;
 					res->status = RETURN_TRACK_TCH_MOVEINVIEW;
+					isChange = (res->status != data->tch_lastStatus);
+					data->tch_lastStatus = RETURN_TRACK_TCH_MOVEINVIEW;
 					res->pos = data->pos_slide.center;
-					return 1;
+					return isChange;
 				}
 				else
 				{
-					data->tch_lastStatus = RETURN_TRACK_TCH_MOVEOUTVIEW;
 					res->status = RETURN_TRACK_TCH_MOVEOUTVIEW;
+					isChange = (res->status != data->tch_lastStatus);
+					data->tch_lastStatus = RETURN_TRACK_TCH_MOVEOUTVIEW;
 					res->pos = data->pos_slide.center;
-					return 1;
+					return isChange;
 				}
 			}
 			else
@@ -464,7 +443,6 @@ int tch_track(itc_uchar *src, itc_uchar* pUV, TeaITRACK_Params *params, Tch_Data
 		data->g_count++;
 		return 0;
 	}
-	return 0;
 }
 
 int tch_calculateDirect_TCH(Itc_Mat_t* src, Track_Rect_t roi)

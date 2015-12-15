@@ -18,6 +18,10 @@ extern "C" {
 #define RETURN_TRACK_TCH_BLACKBOARD 5		//老师书写板书状态
 #define RETURN_TRACK_TCH_MULITY 6			//讲台多目标状态
 
+//返回状态
+#define STATUS_CHANGE 1
+#define STATUS_NONE 0
+
 //定义默认参数
 #define TRACK_SLIDE_WIDTH 5
 #define TRACK_NUMOF_POSITION 10
