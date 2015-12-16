@@ -45,12 +45,12 @@ typedef struct _StuITRACK_ClientParams
 
 //-----------------------------------------------------------------------
 
-#define RESULT_STUTRAKC_NULL_CAMERA				0			//不需要任何操作
+#define RESULT_STUTRAKC_NULL_CAMERA				0			//表示可以结束学生画面了
 #define RESULT_STUTRAKC_MOVE_CAMERA				1			//移动镜头
 #define RESULT_STUTRAKC_FEATURE_CAMERA			2			//切学生特写
 #define RESULT_STUTRAKC_PAN0RAMA_CAMERA			4			//学生全景
 #define RESULT_STUTRAKC_noTCH_FEATURE_CAMERA	8			//需要老师不在讲台上再切特写
-#define RESULT_STUTRAKC_noTCH_PAN0RAMA_CAMERA	16			//需要老师不在讲台上再切全景
+#define RESULT_STUTRAKC_noTCH_PAN0RAMA_CAMERA	16			//需要老师无动作时切全景
 
 typedef struct _StuITRACK_OutParams
 {

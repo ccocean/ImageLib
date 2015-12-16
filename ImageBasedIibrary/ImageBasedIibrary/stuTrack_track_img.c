@@ -76,43 +76,35 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 	{
 		//进行匹配跟踪,（要区分整体运动和局部运动）
 		int min_ID = -1;
-		int min_distance = INT_MAX;
-		int distance = 0;
-		int diff_x = 0;
-		int diff_y = 0;
-		int maxWidth = 0;
-		int maxHeight = 0;
 		int i = 0;
+		Track_Rect_t _roi;
 		for (i = 0; i < count_trackObj_allState; i++)
 		{
-			maxWidth = ITC_IMAX(stuTrack_allState[i].roi.width, roi.width) >> 1;
-			maxHeight = ITC_IMAX(stuTrack_allState[i].roi.height, roi.height) >> 1;
-			if (abs(stuTrack_allState[i].roi.width - roi.width) < maxWidth
-				&& abs(stuTrack_allState[i].roi.height - roi.height) < maxHeight)
+			_roi = roi;
+			if (track_intersect_rect(&_roi, &stuTrack_allState[i].roi, -(_roi.width >> 1)))
 			{
-				diff_x = x - stuTrack_allState[i].current_position.x;
-				diff_y = y - stuTrack_allState[i].current_position.y;
-				distance = diff_x * diff_x + diff_y * diff_y;
-				if (min_distance>distance)
-				{
-					min_distance = distance;
-					min_ID = i;
-				}
+				min_ID = i;
+				break;
 			}
 		}
+
 		if (min_ID >= 0)
 		{
-			int dis_threshold = (stuTrack_allState[min_ID].roi.width * stuTrack_allState[min_ID].roi.height) >> 2;
-			if (min_distance < dis_threshold)
+			stuTrack_allState[min_ID].count_teack++;
+			stuTrack_allState[min_ID].current_tClock = gettime();
+			int maxWidth = ITC_IMAX(stuTrack_allState[i].roi.width, roi.width) >> 1;
+			int maxHeight = ITC_IMAX(stuTrack_allState[i].roi.height, roi.height) >> 1;
+			if (stuTrack_allState[i].roi.width - roi.width < maxWidth
+				&& stuTrack_allState[i].roi.height - roi.height < maxHeight)
 			{
-				stuTrack_allState[min_ID].count_teack++;
-				stuTrack_allState[min_ID].current_tClock = gettime();
+				//整体运动
+				stuTrack_allState[min_ID].flag_matching = TRUE;		//设置匹配成功标记
 				stuTrack_allState[min_ID].current_position = itcPoint(x, y);
 				//计算运动方向
 				int flag_ROI = track_calculateDirect_ROI(interior_params_p->mhiMat, roi, &direct);
 				if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
 				{
-					_PRINTF("matchingID:%d,flag_ROI:%d,angle：%d,standard_direct：%d,min_distance：%d,dis_threshold：%d\n", min_ID, flag_ROI, direct, standard_direct, min_distance, dis_threshold);
+					_PRINTF("matchingID:%d,flag_ROI:%d,angle：%d,standard_direct：%d\n", min_ID, flag_ROI, direct, standard_direct);
 				}
 				if (flag_ROI == 1)
 				{
@@ -127,29 +119,23 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 					{
 						stuTrack_allState[min_ID].count_down++;
 					}
-
 					if (stuTrack_allState[min_ID].flag_state == STATE_STUTRACK_STANDUP_FLAG)
 					{
-						//如果已经是起立目标，那就合并区域，用于判断坐下
-						track_intersect_rect(&roi, &stuTrack_allState[min_ID].roi, EXPAND_STUTRACK_INTERSECT_RECT);
-					}
-				}
-				else if (stuTrack_allState[min_ID].flag_state == STATE_STUTRACK_STANDUP_FLAG)
-				{
-					//如果当前roi不是竖直方向的运动，那就计算原roi区域的运动情况
-					if (track_calculateDirect_ROI(interior_params_p->mhiMat, stuTrack_allState[min_ID].roi, &direct) == 1)
-					{
-						if (abs(standard_direct_Dir - direct) <= stuTrack_direct_range + EXPADN_STURECK_SITDOWN_DIRECT)
-						{
-							stuTrack_allState[min_ID].count_down++;
-						}
-						track_intersect_rect(&roi, &stuTrack_allState[min_ID].roi, EXPAND_STUTRACK_INTERSECT_RECT);
+						roi = _roi;
 					}
 				}
 				stuTrack_allState[min_ID].roi = roi;
-				stuTrack_allState[min_ID].flag_matching = TRUE;//设置匹配成功标记
-				return 1;//匹配成功直接返回
-			}	//	end if(min_distance < dis_threshold)
+			}
+			else
+			{
+				//局部运动
+				if (stuTrack_allState[min_ID].flag_state == STATE_STUTRACK_STANDUP_FLAG)
+				{
+					stuTrack_allState[min_ID].roi = _roi;
+				}
+			}
+
+			return 1;//匹配成功直接返回
 		}		//	end if(min_ID >= 0)
 		if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
 		{
@@ -195,7 +181,7 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 	int i = 0;
 	for (i = 0; i < interior_params_p->count_trackObj_allState; i++)
 	{
-		if (stuTrack_allState[i].flag_matching==TRUE)
+		if (stuTrack_allState[i].flag_matching !=TRUE )
 		{
 			//当前没有匹配到，直接在原位置计算运动方向
 			int direct = 0;
@@ -213,9 +199,9 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 				{
 					stuTrack_allState[i].count_down++;
 				}
-			}
-			stuTrack_allState[i].flag_matching = FALSE;	//清除匹配成功标记
+			}	
 		}
+		stuTrack_allState[i].flag_matching = FALSE;	//清除匹配成功标记
 
 		if (stuTrack_allState[i].flag_state != STATE_STUTRACK_STANDUP_FLAG)
 		{
@@ -482,11 +468,12 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 		interior_params_p->old_move_stretchingCoefficient = size > 0 ? size : 0;
 	}
 
-	return_params->result_flag = interior_params_p->OldResult_flag;	//先把上一次的状态保存
+	return_params->result_flag = interior_params_p->OldResult_flag;
 	//分析
 	unsigned int _time = gettime();
 	if (count_trackObj_stand>0 || count_trackObj_bigMove > 0)
 	{
+		interior_params_p->old_move_Stopflag = FALSE;//重置移动目标停止的标记
 		if (interior_params_p->result_flag == RESULT_STUTRACK_NULL_FLAG		//没有状态变化的时候才切特写
 			&& count_trackObj_bigMove == 0									//必须没有移动目标的时候
 			&& interior_params_p->move_csucceed_flag == TRUE)				//必须先发送了移动镜头的消息
@@ -498,8 +485,7 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 				if (_time - interior_params_p->move_camera_time > THRESHOLD_STURECK_MOVECAMERA_CUT_TIME)
 				{
 					return_params->result_flag = RESULT_STUTRAKC_FEATURE_CAMERA;
-				}
-				
+				}		
 			}
 		}
 		else
@@ -507,8 +493,8 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 			//判断是否需要切全景和移动特写镜头
 			if (count_trackObj_stand > 0 &&count_trackObj_bigMove == 0)
 			{
+				return_params->result_flag = RESULT_STUTRAKC_PAN0RAMA_CAMERA;			//切学生全景
 				interior_params_p->move_csucceed_flag = FALSE;
-				return_params->result_flag = RESULT_STUTRAKC_PAN0RAMA_CAMERA;
 				if(count_trackObj_stand == 1)
 				{
 					//只有一个起立目标才处理
@@ -519,7 +505,7 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 
 						return_params->position = interior_params_p->old_standup_position;
 						return_params->stretchingCoefficient = interior_params_p->old_standup_stretchingCoefficient;
-						return_params->result_flag |= RESULT_STUTRAKC_MOVE_CAMERA;		//切全景和移动特写镜头	
+						return_params->result_flag |= RESULT_STUTRAKC_MOVE_CAMERA;		//移动特写镜头	
 					}
 				}
 			}
@@ -527,7 +513,7 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 			{
 				//有移动目标
 				interior_params_p->move_csucceed_flag = FALSE;
-				return_params->result_flag = RESULT_STUTRAKC_PAN0RAMA_CAMERA;			//如果讲台没有老师，就切学生全景
+				return_params->result_flag = RESULT_STUTRAKC_noTCH_PAN0RAMA_CAMERA;		//如果老师没有动作，就切学生全景
 				if (_time - interior_params_p->move_camera_time > THRESHOLD_STURECK_MOVECAMERA_TIME)
 				{
 					interior_params_p->move_camera_time = _time;
@@ -542,7 +528,7 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 			{
 				//其他情况，可能要重置跟踪
 				interior_params_p->count_trackObj_allState = 0;
-				return_params->result_flag = RESULT_STUTRAKC_noTCH_PAN0RAMA_CAMERA;		//如果讲台没有老师，就切学生全景
+				return_params->result_flag = RESULT_STUTRAKC_noTCH_PAN0RAMA_CAMERA;		//如果老师没有动作，就切学生全景
 			}
 		}
 	}
@@ -550,7 +536,6 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 	{
 		//进入此处说明当前已经没有任何运动目标了
 		interior_params_p->old_move_Stopflag = TRUE;//有移动目标停下设置标记
-
 		interior_params_p->move_csucceed_flag = FALSE;
 		return_params->result_flag = RESULT_STUTRAKC_noTCH_PAN0RAMA_CAMERA;		//如果讲台没有老师，就切学生全景
 		if (_time - interior_params_p->move_camera_time > THRESHOLD_STURECK_MOVECAMERA_TIME)
@@ -577,13 +562,14 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 	}
 
 
-	if (return_params->result_flag != interior_params_p->OldResult_flag)
-	{	
-		//有变化，需要上抛处理
+	if ((return_params->result_flag&(~RESULT_STUTRAKC_MOVE_CAMERA)) != (interior_params_p->OldResult_flag&(~RESULT_STUTRAKC_MOVE_CAMERA))
+		|| (return_params->result_flag&RESULT_STUTRAKC_MOVE_CAMERA) != 0)
+	{
+		//需要上抛处理
 		flag_return = RETURN_STUTRACK_NEED_PROCESS;
+		interior_params_p->OldResult_flag = (return_params->result_flag&(~RESULT_STUTRAKC_MOVE_CAMERA));	//把当前状态保存(只保存切画面的状态，不保存移动镜头的状态)
 	}
-
-	interior_params_p->OldResult_flag = return_params->result_flag;	//把当前状态保存
+	
 	return flag_return;
 }
 
@@ -750,18 +736,19 @@ itc_BOOL stuTrack_initializeTrack(const StuITRACK_Params * inst, StuITRACK_Inter
 		interior_params_p->img_size.width					= WIDTH_STUTRACK_IMG_;
 		interior_params_p->img_size.height					= HEIGHT_STUTRACK_IMG_;
 
-		interior_params_p->transformationMatrix=itc_create_mat(3, 3, ITC_64FC1);
-		interior_params_p->transformationMatrix->data.db[0] = 1.0;
-		interior_params_p->transformationMatrix->data.db[1] = 0.0;
-		interior_params_p->transformationMatrix->data.db[2] = 0.0;
-		interior_params_p->transformationMatrix->data.db[3] = 0.0;
-		interior_params_p->transformationMatrix->data.db[4] = -1.0;
-		interior_params_p->transformationMatrix->data.db[5] = 0.0;
-		interior_params_p->transformationMatrix->data.db[6] = 0.0;
-		interior_params_p->transformationMatrix->data.db[7] = 0.0;
-		interior_params_p->transformationMatrix->data.db[8] = 1.0;
-		interior_params_p->stretchingAB[0] = -1.0;
-		interior_params_p->stretchingAB[1] = 0.0;
+		interior_params_p->transformationMatrix = itc_create_mat(3, 3, ITC_64FC1);
+		MATRIX_STUTRACK_DEFAULT_PARAMS;
+		interior_params_p->transformationMatrix->data.db[0] = MATRIX_STUTRACK_DEFAULT_PARAMS_AT(0);
+		interior_params_p->transformationMatrix->data.db[1] = MATRIX_STUTRACK_DEFAULT_PARAMS_AT(1);
+		interior_params_p->transformationMatrix->data.db[2] = MATRIX_STUTRACK_DEFAULT_PARAMS_AT(2);
+		interior_params_p->transformationMatrix->data.db[3] = MATRIX_STUTRACK_DEFAULT_PARAMS_AT(3);
+		interior_params_p->transformationMatrix->data.db[4] = MATRIX_STUTRACK_DEFAULT_PARAMS_AT(4);
+		interior_params_p->transformationMatrix->data.db[5] = MATRIX_STUTRACK_DEFAULT_PARAMS_AT(5);
+		interior_params_p->transformationMatrix->data.db[6] = MATRIX_STUTRACK_DEFAULT_PARAMS_AT(6);
+		interior_params_p->transformationMatrix->data.db[7] = MATRIX_STUTRACK_DEFAULT_PARAMS_AT(7);
+		interior_params_p->transformationMatrix->data.db[8] = MATRIX_STUTRACK_DEFAULT_PARAMS_AT(8);
+		interior_params_p->stretchingAB[0] = STRETCHING_STUTRACK_DEFFAULT_PARAMS_A;
+		interior_params_p->stretchingAB[1] = STRETCHING_STUTRACK_DEFFAULT_PARAMS_B;
 	}
 
 	//初始化自有的内部统计参数
