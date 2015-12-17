@@ -94,6 +94,7 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 			stuTrack_allState[min_ID].current_tClock = gettime();
 			int maxWidth = ITC_IMAX(stuTrack_allState[i].roi.width, roi.width) >> 1;
 			int maxHeight = ITC_IMAX(stuTrack_allState[i].roi.height, roi.height) >> 1;
+			int flag_ROI = track_calculateDirect_ROI(interior_params_p->mhiMat, roi, &direct);
 			if (stuTrack_allState[i].roi.width - roi.width < maxWidth
 				&& stuTrack_allState[i].roi.height - roi.height < maxHeight)
 			{
@@ -101,7 +102,7 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 				stuTrack_allState[min_ID].flag_matching = TRUE;		//设置匹配成功标记
 				stuTrack_allState[min_ID].current_position = itcPoint(x, y);
 				//计算运动方向
-				int flag_ROI = track_calculateDirect_ROI(interior_params_p->mhiMat, roi, &direct);
+				
 				if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
 				{
 					_PRINTF("matchingID:%d,flag_ROI:%d,angle：%d,standard_direct：%d\n", min_ID, flag_ROI, direct, standard_direct);
@@ -129,12 +130,14 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 			else
 			{
 				//局部运动
-				if (stuTrack_allState[min_ID].flag_state == STATE_STUTRACK_STANDUP_FLAG)
+				if (flag_ROI == 1)
 				{
-					stuTrack_allState[min_ID].roi = _roi;
+					if (stuTrack_allState[min_ID].flag_state == STATE_STUTRACK_STANDUP_FLAG)
+					{
+						stuTrack_allState[min_ID].roi = _roi;
+					}
 				}
 			}
-
 			return 1;//匹配成功直接返回
 		}		//	end if(min_ID >= 0)
 		if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
@@ -165,7 +168,7 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 	return 1;
 }
 
-#define THRESHOLD_STURECK_MOVETIME_DELETE_TIME	1000
+#define THRESHOLD_STURECK_MOVETIME_DELETE_TIME	500
 static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 {
 	StuTrack_allState_t* stuTrack_allState = interior_params_p->stuTrack_allState;
@@ -208,7 +211,7 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 			//判断是否需要删除候选区
 			_time = gettime() - stuTrack_allState[i].current_tClock;
 			if (stuTrack_allState[i].flag_state != STATE_STUTRACK_STANDUP_FLAG
-				&& _time > THRESHOLD_STURECK_MOVETIME_DELETE_TIME)
+				&& _time > stuTrack_moveDelayed_threshold)
 			{
 				if (stuTrack_allState[i].flag_state == RESULT_STUTRACK_MOVE_FLAG
 					|| stuTrack_allState[i].flag_state == STATE_STUTRACK_BIG_FLAG)
@@ -252,7 +255,7 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 				if (diff_x > stuTrack_allState[i].dis_threshold || diff_y > stuTrack_allState[i].dis_threshold)
 				{
 					_time = stuTrack_allState[i].current_tClock - stuTrack_allState[i].start_tClock;
-					if (_time > stuTrack_moveDelayed_threshold)
+					if (_time > THRESHOLD_STURECK_MOVETIME_DELETE_TIME)
 					{
 						if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_2)
 						{
@@ -445,7 +448,7 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 		inpt.x = interior_params_p->stuTrack_allState[id_stuUp].roi.x + interior_params_p->stuTrack_allState[id_stuUp].roi.width / 2;
 		inpt.y = interior_params_p->stuTrack_allState[id_stuUp].roi.y;
 		perspectiveConvert(&inpt, &pt, interior_params_p->transformationMatrix);
-		int size = ITC_IMAX(interior_params_p->stuTrack_allState[id_stuUp].roi.width, interior_params_p->stuTrack_allState[id_stuUp].roi.height);
+		int size = interior_params_p->stuTrack_allState[id_stuUp].roi.width;
 		size = (int)(interior_params_p->stretchingAB[0] * size + interior_params_p->stretchingAB[1]);
 
 		interior_params_p->old_standup_position.x = pt.x;
@@ -460,7 +463,7 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 		inpt.x = interior_params_p->stuTrack_allState[id_stuMove].roi.x + interior_params_p->stuTrack_allState[id_stuMove].roi.width / 2;
 		inpt.y = interior_params_p->stuTrack_allState[id_stuMove].roi.y;
 		perspectiveConvert(&inpt, &pt, interior_params_p->transformationMatrix);
-		int size = ITC_IMAX(interior_params_p->stuTrack_allState[id_stuUp].roi.width, interior_params_p->stuTrack_allState[id_stuUp].roi.height);
+		int size = interior_params_p->stuTrack_allState[id_stuUp].roi.width;
 		size = (int)(interior_params_p->stretchingAB[0] * size + interior_params_p->stretchingAB[1]);
 
 		interior_params_p->old_move_position.x = pt.x;
@@ -657,6 +660,22 @@ itc_BOOL stuTrack_initializeTrack(const StuITRACK_Params * inst, StuITRACK_Inter
 		return FALSE;
 	}
 	stuTrack_stopTrack(inst, interior_params_p);
+
+#ifndef _WIN32
+	Vps_printf("inst->clientParams.flag_setting=%d\n", inst->clientParams.flag_setting);
+	Vps_printf("inst->clientParams.height=%d\n", inst->clientParams.height);
+	Vps_printf("inst->clientParams.width=%d\n", inst->clientParams.width);
+	Vps_printf("inst->clientParams.stuTrack_debugMsg_flag=%d\n", inst->clientParams.stuTrack_debugMsg_flag);
+	Vps_printf("inst->clientParams.stuTrack_Draw_flag=%d\n", inst->clientParams.stuTrack_Draw_flag);
+	Vps_printf("inst->clientParams.stuTrack_direct_standard=%d,%d,%d,%d\n", inst->clientParams.stuTrack_direct_standard[0], inst->clientParams.stuTrack_direct_standard[1], inst->clientParams.stuTrack_direct_standard[2], inst->clientParams.stuTrack_direct_standard[3]);
+	Vps_printf("inst->clientParams.stuTrack_stuWidth_standard=%d,%d,%d,%d\n", inst->clientParams.stuTrack_stuWidth_standard[0], inst->clientParams.stuTrack_stuWidth_standard[1], inst->clientParams.stuTrack_stuWidth_standard[2], inst->clientParams.stuTrack_stuWidth_standard[3]);
+	Vps_printf("inst->clientParams.stuTrack_direct_range=%d\n", inst->clientParams.stuTrack_direct_range);
+	Vps_printf("inst->clientParams.stuTrack_standCount_threshold=%d\n", inst->clientParams.stuTrack_standCount_threshold);
+	Vps_printf("inst->clientParams.stuTrack_sitdownCount_threshold=%d\n", inst->clientParams.stuTrack_sitdownCount_threshold);
+	Vps_printf("inst->clientParams.stuTrack_moveDelayed_threshold=%d\n", inst->clientParams.stuTrack_moveDelayed_threshold);
+	Vps_printf("inst->clientParams.stuTrack_move_threshold=%lf\n", inst->clientParams.stuTrack_move_threshold);
+	Vps_printf("inst->clientParams.stretchingAB=%lf,%lf\n", inst->clientParams.stretchingAB[0], inst->clientParams.stretchingAB[1]);
+#endif
 
 	if (inst->systemParams.callbackmsg_func != NULL)
 	{	interior_params_p->callbackmsg_func = inst->systemParams.callbackmsg_func;}
