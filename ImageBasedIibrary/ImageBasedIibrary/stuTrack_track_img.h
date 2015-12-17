@@ -89,7 +89,7 @@ typedef struct StuTrack_allState_t
 typedef struct _StuITRACK_InteriorParams
 {
 	itc_BOOL initialize_flag;
-	int _count;	//统计帧数
+	unsigned int _count;		//统计帧数
 	Track_Size_t img_size;		//处理图像大小
 	Track_Size_t srcimg_size;	//原始图像大小
 
@@ -98,7 +98,7 @@ typedef struct _StuITRACK_InteriorParams
 	int count_stuTrack_rect;			//运动区域计数
 	Track_Rect_t *stuTrack_rect_arr;
 
-	int count_trackObj_allState;
+	int count_trackObj_allState;		//跟踪的目标数
 	StuTrack_allState_t* stuTrack_allState;
 
 	int stuTrack_debugMsg_flag;					//调试信息输出等级
@@ -114,10 +114,11 @@ typedef struct _StuITRACK_InteriorParams
 	Itc_Mat_t *transformationMatrix;				//图像坐标与云台相机的变换矩阵
 	double stretchingAB[2];							//拉伸系数
 
-	unsigned int move_camera_time;
-	int old_move_Stopflag;
-	int OldResult_flag;
-	int move_csucceed_flag;
+	unsigned int last_upcast_time;					//记录上一次抛出状态信息的时间
+	unsigned int move_camera_time;					//上一次移动相机的时间
+	int old_move_Stopflag;							//是否有移动目标停止动作标记
+	int OldResult_flag;								//上一次的返回结果
+	int move_csucceed_flag;							//要移动镜头时设置该标记为false，成功发送移动信号后设置true
 
 	TrackPrarms_Point_t old_move_position;			//移动目标保存的镜头位置
 	int old_move_stretchingCoefficient;				//移动目标保存的拉伸系数
@@ -193,7 +194,7 @@ typedef struct 	_StuITRACK_Params
 #define DIRECT_STUTRACK_TRANSMUTABLILITY_RANGE	(0.0)
 #define A_STUTRACK_DIRECT_THRESHOLD_PARAMS		(DIRECT_STUTRACK_TRANSMUTABLILITY_RANGE/WIDTH_STUTRACK_IMG_)
 #define B_STUTRACK_DIRECT_THRESHOLD_PARAMS		(270-DIRECT_STUTRACK_TRANSMUTABLILITY_RANGE/2)
-#define MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS		20
+#define MINTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS		18
 #define MAXTHRESHOLD_STUTRACK_SIZE_THRESHOLD_PARAMS		60
 #define MINTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS	225
 #define MAXTHRESHOLD_STUTRACK_DIRECT_THRESHOLD_PARAMS	315

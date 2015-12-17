@@ -408,9 +408,11 @@ static void stuTrack_drawShow_imgData(StuITRACK_InteriorParams* interior_params_
 	//}
 }
 	
+#define THRESHOLD_STURECK_UPCAST_TIME			2000			//无变化时发送状态信息的时间间隔
 #define THRESHOLD_STURECK_MOVECAMERA_TIME		500				//发送相机移动信号的最小时间间隔
-#define THRESHOLD_STURECK_MOVECAMERA_CUT_TIME	1500			//移动信号发送后等待相机到位切换特写的时间
+#define THRESHOLD_STURECK_MOVECAMERA_CUT_TIME	2000			//移动信号发送后等待相机到位切换特写的时间
 #define THRESHOLD_STURECK_STOPMOVE_CUT_TIME		3000			//移动目标停止后，该信号保留的时间
+#define NORMALIZE_STURECK_ZOOM_PARAM			1000			//拉伸系数分档，将连续的分成1000，2000，3000……
 static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_p, StuITRACK_OutParams_t* return_params)
 {
 	ITC_FUNCNAME("FUNCNAME:stuTrack_reslut\n");
@@ -446,14 +448,14 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 		Track_Point_t pt = { 0, 0 };
 		Track_Point_t inpt = { 0, 0 };
 		inpt.x = interior_params_p->stuTrack_allState[id_stuUp].roi.x + interior_params_p->stuTrack_allState[id_stuUp].roi.width / 2;
-		inpt.y = interior_params_p->stuTrack_allState[id_stuUp].roi.y;
+		inpt.y = interior_params_p->stuTrack_allState[id_stuUp].roi.y + (interior_params_p->stuTrack_allState[id_stuUp].roi.height >> 2);
 		perspectiveConvert(&inpt, &pt, interior_params_p->transformationMatrix);
 		int size = interior_params_p->stuTrack_allState[id_stuUp].roi.width;
 		size = (int)(interior_params_p->stretchingAB[0] * size + interior_params_p->stretchingAB[1]);
 
 		interior_params_p->old_standup_position.x = pt.x;
 		interior_params_p->old_standup_position.y = pt.y;
-		interior_params_p->old_standup_stretchingCoefficient = size > 0 ? size : 0;
+		interior_params_p->old_standup_stretchingCoefficient = size > 0 ? (size - (size% NORMALIZE_STURECK_ZOOM_PARAM)) : 0;
 	}
 	if (count_trackObj_bigMove>0)
 	{
@@ -461,14 +463,14 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 		Track_Point_t pt = { 0, 0 };
 		Track_Point_t inpt = { 0, 0 };
 		inpt.x = interior_params_p->stuTrack_allState[id_stuMove].roi.x + interior_params_p->stuTrack_allState[id_stuMove].roi.width / 2;
-		inpt.y = interior_params_p->stuTrack_allState[id_stuMove].roi.y;
+		inpt.y = interior_params_p->stuTrack_allState[id_stuMove].roi.y + (interior_params_p->stuTrack_allState[id_stuUp].roi.height >> 2);
 		perspectiveConvert(&inpt, &pt, interior_params_p->transformationMatrix);
 		int size = interior_params_p->stuTrack_allState[id_stuUp].roi.width;
 		size = (int)(interior_params_p->stretchingAB[0] * size + interior_params_p->stretchingAB[1]);
 
 		interior_params_p->old_move_position.x = pt.x;
 		interior_params_p->old_move_position.y = pt.y;
-		interior_params_p->old_move_stretchingCoefficient = size > 0 ? size : 0;
+		interior_params_p->old_move_stretchingCoefficient = size > 0 ? (size - (size% NORMALIZE_STURECK_ZOOM_PARAM)) : 0;
 	}
 
 	return_params->result_flag = interior_params_p->OldResult_flag;
@@ -570,9 +572,16 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 	{
 		//需要上抛处理
 		flag_return = RETURN_STUTRACK_NEED_PROCESS;
+		interior_params_p->last_upcast_time = _time;
 		interior_params_p->OldResult_flag = (return_params->result_flag&(~RESULT_STUTRAKC_MOVE_CAMERA));	//把当前状态保存(只保存切画面的状态，不保存移动镜头的状态)
 	}
-	
+	else if (_time - interior_params_p->last_upcast_time > THRESHOLD_STURECK_UPCAST_TIME)
+	{
+		//没要变化的时候定时上抛
+		flag_return = RETURN_STUTRACK_NEED_PROCESS;
+		interior_params_p->last_upcast_time = _time;
+	}
+
 	return flag_return;
 }
 
@@ -607,7 +616,6 @@ static void stuTrack_Copy_matData(StuITRACK_InteriorParams* interior_params_p, i
 #define CHECH_STURRACK_RESULT_ERROR7 7
 static int stuTrack_check_clientParams(const StuITRACK_ClientParams_t* clientParams_p)
 {
-
 	if (clientParams_p->stuTrack_vertex[0].x < 0 ||
 		clientParams_p->stuTrack_vertex[1].x < 0 ||
 		clientParams_p->stuTrack_vertex[2].x < 0 ||
@@ -775,7 +783,8 @@ itc_BOOL stuTrack_initializeTrack(const StuITRACK_Params * inst, StuITRACK_Inter
 	interior_params_p->count_stuTrack_rect = 0;
 	interior_params_p->count_trackObj_allState = 0;
 	
-	interior_params_p->move_camera_time = 0;
+	interior_params_p->last_upcast_time = gettime();
+	interior_params_p->move_camera_time = gettime();
 	interior_params_p->old_move_Stopflag = FALSE;
 	interior_params_p->OldResult_flag = RESULT_STUTRAKC_NULL_CAMERA;
 	interior_params_p->move_csucceed_flag = 0;
@@ -923,7 +932,9 @@ void stuTrack_stopTrack(const StuITRACK_Params *inst, StuITRACK_InteriorParams* 
 	interior_params_p->count_stuTrack_rect = 0;
 	interior_params_p->count_trackObj_allState = 0;
 
+	
 	itcReleaseMemStorage(&interior_params_p->stuTrack_storage);
+	itc_release_mat(&interior_params_p->transformationMatrix);
 	itc_release_mat(&interior_params_p->currMat);
 	itc_release_mat(&interior_params_p->lastMat);
 	itc_release_mat(&interior_params_p->mhiMat);
