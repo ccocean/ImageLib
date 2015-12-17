@@ -498,8 +498,8 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 			//判断是否需要切全景和移动特写镜头
 			if (count_trackObj_stand > 0 &&count_trackObj_bigMove == 0)
 			{
-				return_params->result_flag = RESULT_STUTRAKC_PAN0RAMA_CAMERA;			//切学生全景
 				interior_params_p->move_csucceed_flag = FALSE;
+				return_params->result_flag = RESULT_STUTRAKC_PAN0RAMA_CAMERA;			//切学生全景
 				if(count_trackObj_stand == 1)
 				{
 					//只有一个起立目标才处理
@@ -518,7 +518,7 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 			{
 				//有移动目标
 				interior_params_p->move_csucceed_flag = FALSE;
-				return_params->result_flag = RESULT_STUTRAKC_noTCH_PAN0RAMA_CAMERA;		//如果老师没有动作，就切学生全景
+				return_params->result_flag = RESULT_STUTRAKC_PAN0RAMA_CAMERA;		//切学生全景
 				if (_time - interior_params_p->move_camera_time > THRESHOLD_STURECK_MOVECAMERA_TIME)
 				{
 					interior_params_p->move_camera_time = _time;
@@ -533,7 +533,7 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 			{
 				//其他情况，可能要重置跟踪
 				interior_params_p->count_trackObj_allState = 0;
-				return_params->result_flag = RESULT_STUTRAKC_noTCH_PAN0RAMA_CAMERA;		//如果老师没有动作，就切学生全景
+				return_params->result_flag = RESULT_STUTRAKC_PAN0RAMA_CAMERA;		//切学生全景
 			}
 		}
 	}
@@ -705,6 +705,8 @@ itc_BOOL stuTrack_initializeTrack(const StuITRACK_Params * inst, StuITRACK_Inter
 			_PRINTF("The input parameter error:y1 == y2!\n");
 			return FALSE;
 		}
+		y1 *= y1;
+		y2 *= y2;
 		int width1 = (inst->clientParams.stuTrack_stuWidth_standard[0] + inst->clientParams.stuTrack_stuWidth_standard[1]) / 2;
 		int width2 = (inst->clientParams.stuTrack_stuWidth_standard[2] + inst->clientParams.stuTrack_stuWidth_standard[3]) / 2;
 		size_threshold_a = ((double)(width1 - width2)) / (y1 - y2);
