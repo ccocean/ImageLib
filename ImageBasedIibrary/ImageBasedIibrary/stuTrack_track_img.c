@@ -92,14 +92,14 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 		{
 			stuTrack_allState[min_ID].count_teack++;
 			stuTrack_allState[min_ID].current_tClock = gettime();
-			int maxWidth = ITC_IMAX(stuTrack_allState[i].roi.width, roi.width) >> 1;
-			int maxHeight = ITC_IMAX(stuTrack_allState[i].roi.height, roi.height) >> 1;
+			stuTrack_allState[min_ID].flag_matching = TRUE;		//设置匹配成功标记
+			int maxWidth = ITC_IMAX(stuTrack_allState[i].roi.width, roi.width) >> 2;
+			int maxHeight = ITC_IMAX(stuTrack_allState[i].roi.height, roi.height) >> 2;
 			int flag_ROI = track_calculateDirect_ROI(interior_params_p->mhiMat, roi, &direct);
-			if (stuTrack_allState[i].roi.width - roi.width < maxWidth
-				&& stuTrack_allState[i].roi.height - roi.height < maxHeight)
+			if (((stuTrack_allState[i].roi.width - roi.width) < maxWidth)
+				&& ((stuTrack_allState[i].roi.height - roi.height) < maxHeight))
 			{
 				//整体运动
-				stuTrack_allState[min_ID].flag_matching = TRUE;		//设置匹配成功标记
 				stuTrack_allState[min_ID].current_position = itcPoint(x, y);
 				//计算运动方向
 				
@@ -151,7 +151,7 @@ static int stuTrack_matchingSatnd_ROI(StuITRACK_InteriorParams* interior_params_
 		//add
 		if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
 		{
-			_PRINTF("add bigMove：origin:%d,%d,size:%d,%d\n", x, y, roi.width, roi.height);
+			_PRINTF("add trackObj：origin:%d,%d,size:%d,%d\n", x, y, roi.width, roi.height);
 		}
 		stuTrack_allState[count_trackObj_allState].count_teack = 1;
 		stuTrack_allState[count_trackObj_allState].count_up = 0;
@@ -195,16 +195,31 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 				int standard_direct_Dir = (standard_direct > ITC_180DEGREE) ? (standard_direct - ITC_180DEGREE) : (standard_direct + ITC_180DEGREE);
 				if (abs(standard_direct - direct) <= stuTrack_direct_range)
 				{
-					stuTrack_allState[i].count_up++;
+					if (stuTrack_allState[i].count_up>0)//必须是在匹配阶段有检测到该动作
+					{
+						stuTrack_allState[i].count_up++;
+					}
 				}
 				else if (stuTrack_allState[i].flag_state == STATE_STUTRACK_STANDUP_FLAG
-					&& abs(standard_direct_Dir - direct) <= stuTrack_direct_range + EXPADN_STURECK_SITDOWN_DIRECT)
+					&& abs(standard_direct_Dir - direct) <= stuTrack_direct_range)
 				{
-					stuTrack_allState[i].count_down++;
+					if (stuTrack_allState[i].count_down>0)
+					{	
+						stuTrack_allState[i].count_down++;
+					}
 				}
-			}	
+				if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
+				{
+					_PRINTF("analyze:angle：%d,standard_direct：%d-%d\n", direct, standard_direct, standard_direct_Dir);
+				}
+			}
 		}
 		stuTrack_allState[i].flag_matching = FALSE;	//清除匹配成功标记
+
+		if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
+		{
+			_PRINTF("analyzeID:%d,count_up:%d,count_down：%d,flag_state：%d\n", i, stuTrack_allState[i].count_up, stuTrack_allState[i].count_down, stuTrack_allState[i].flag_state);
+		}
 
 		if (stuTrack_allState[i].flag_state != STATE_STUTRACK_STANDUP_FLAG)
 		{
@@ -224,14 +239,14 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 				continue;
 			}
 
-			if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_3)
-			{
-				_PRINTF("analyzeID:%d,count_up:%d,count_down：%d,flag_state：%d\n", i, stuTrack_allState[i].count_up, stuTrack_allState[i].count_down, stuTrack_allState[i].flag_state);
-			}
-
+			//计算移动距离
+			int diff_x = abs(stuTrack_allState[i].origin_position.x - stuTrack_allState[i].current_position.x);
+			int diff_y = abs(stuTrack_allState[i].origin_position.y - stuTrack_allState[i].current_position.y);
+			int maxdiff = ITC_IMAX(diff_x, diff_y);
 			if (stuTrack_allState[i].count_up>stuTrack_standCount_threshold
 				&& stuTrack_allState[i].origin_top_y - stuTrack_allState[i].roi.y>(stuTrack_allState[i].roi.height >> 3)
-				&& stuTrack_allState[i].roi.height>stuTrack_allState[i].roi.width)
+				&& stuTrack_allState[i].roi.height>stuTrack_allState[i].roi.width
+				&& maxdiff<(stuTrack_allState[i].roi.width*2))
 			{
 				if (interior_params_p->stuTrack_debugMsg_flag >= SATUTRACK_PRINTF_LEVEL_2)
 				{
@@ -249,9 +264,6 @@ static void stuTrack_analyze_ROI(StuITRACK_InteriorParams* interior_params_p)
 			if (stuTrack_allState[i].flag_state == STATE_STUTRACK_NULL_FLAG || stuTrack_allState[i].flag_state == STATE_STUTRACK_SITDOWN_FLAG)
 			{
 				//不是起立，判断是否是移动目标
-				//计算移动距离
-				int diff_x = abs(stuTrack_allState[i].origin_position.x - stuTrack_allState[i].current_position.x);
-				int diff_y = abs(stuTrack_allState[i].origin_position.y - stuTrack_allState[i].current_position.y);
 				if (diff_x > stuTrack_allState[i].dis_threshold || diff_y > stuTrack_allState[i].dis_threshold)
 				{
 					_time = stuTrack_allState[i].current_tClock - stuTrack_allState[i].start_tClock;
@@ -380,8 +392,8 @@ static void stuTrack_drawShow_imgData(StuITRACK_InteriorParams* interior_params_
 			{
 				track_draw_rectangle(imageData, bufferuv, srcimg_size, rect, &interior_params_p->blue_colour, YUV420_type);
 			}
-			track_draw_point(imageData, bufferuv, srcimg_size, origin_position,&interior_params_p->red_colour, YUV420_type);
 			track_draw_line(imageData, bufferuv, srcimg_size, origin_position, current_position, &interior_params_p->green_colour, YUV420_type);
+			track_draw_point(imageData, bufferuv, srcimg_size, origin_position, &interior_params_p->red_colour, YUV420_type);
 		}
 		else
 		{
@@ -532,7 +544,7 @@ static stuTrackReturn stuTrack_reslut(StuITRACK_InteriorParams* interior_params_
 			else
 			{
 				//其他情况，可能要重置跟踪
-				interior_params_p->count_trackObj_allState = 0;
+				//interior_params_p->count_trackObj_allState = 0;
 				return_params->result_flag = RESULT_STUTRAKC_PAN0RAMA_CAMERA;		//切学生全景
 			}
 		}
