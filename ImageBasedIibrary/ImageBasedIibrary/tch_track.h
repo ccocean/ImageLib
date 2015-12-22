@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 //定义老师跟踪状态
-#define RETURN_TRACK_TCH_STAND 1			//老师处在站立状态
+#define RETURN_TRACK_TCH_NULL 1				//老师没有状态
 #define RETURN_TRACK_TCH_MOVEINVIEW 2		//老师在特写镜头内
 #define RETURN_TRACK_TCH_MOVEOUTVIEW 3		//老师走出特写镜头
 #define RETURN_TRACK_TCH_OUTSIDE 4			//老师离开跟踪区域
@@ -48,10 +48,6 @@ typedef struct TrackTimer
 {
 	unsigned long start;
 	unsigned long finish;
-	//clock_t start;
-	//clock_t finish;
-	/*double timeLast;
-	double timeNow;*/
 	double deltaTime;
 }Tch_Timer_t;
 
@@ -126,6 +122,7 @@ typedef struct Data
 
 	//计时器定义
 	Tch_Timer_t slideTimer;
+	Tch_Timer_t tch_timer;
 
 	//预置位滑块定义
 	Tch_CamPosSlide_t pos_slide;
